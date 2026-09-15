@@ -3,7 +3,7 @@
 	"monsters": [
 		{
 			"id": "junkyard_roach",
-			"name": "Junkyard Roach",
+			"name": "Litterbug",
 			"zone": "dusty_flats",
 			"is_boss": false,
 			"level_gate": 1,
@@ -19,7 +19,7 @@
 		},
 		{
 			"id": "sewer_landlord",
-			"name": "The Sewer Landlord",
+			"name": "The Superintendent",
 			"zone": "dusty_flats",
 			"is_boss": true,
 			"level_gate": 8,

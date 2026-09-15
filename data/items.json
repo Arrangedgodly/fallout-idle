@@ -3,49 +3,49 @@
 	"items": [
 		{
 			"id": "scrap_metal",
-			"name": "Scrap Metal",
+			"name": "Scrapnel",
 			"category": "resource",
 			"value": 2,
 			"icon": "scrap_metal"
 		},
 		{
 			"id": "copper_wiring",
-			"name": "Copper Wiring",
+			"name": "Copper Snarl",
 			"category": "resource",
 			"value": 3,
 			"icon": "copper_wiring"
 		},
 		{
 			"id": "cloth_scraps",
-			"name": "Cloth Scraps",
+			"name": "Tattercloth",
 			"category": "resource",
 			"value": 2,
 			"icon": "cloth_scraps"
 		},
 		{
 			"id": "glowshroom",
-			"name": "Glowshroom",
+			"name": "Nightlight Cap",
 			"category": "resource",
 			"value": 2,
 			"icon": "glowshroom"
 		},
 		{
 			"id": "roach_meat",
-			"name": "Roach Meat",
+			"name": "Grade-D Bugmeat",
 			"category": "resource",
 			"value": 1,
 			"icon": "roach_meat"
 		},
 		{
 			"id": "scrap_ingot",
-			"name": "Scrap Ingot",
+			"name": "Almost Bullion",
 			"category": "material",
 			"value": 14,
 			"icon": "scrap_ingot"
 		},
 		{
 			"id": "radstag_stew",
-			"name": "Radstag Stew",
+			"name": "Chef's Regret",
 			"category": "food",
 			"value": 18,
 			"heal": 25,
@@ -53,14 +53,14 @@
 		},
 		{
 			"id": "scrap_shiv",
-			"name": "Scrap Shiv",
+			"name": "Point of Order",
 			"category": "equipment",
 			"value": 25,
 			"icon": "scrap_shiv"
 		},
 		{
 			"id": "hubcap_vest",
-			"name": "Hubcap Vest",
+			"name": "Pedestrian Plating",
 			"category": "equipment",
 			"value": 40,
 			"icon": "hubcap_vest"

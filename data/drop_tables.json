@@ -23,7 +23,7 @@
 		},
 		{
 			"id": "roach_nest",
-			"name": "Roach Nest Yields",
+			"name": "Litterbug Yields",
 			"rolls": 1,
 			"entries": [
 				{ "item": "roach_meat", "weight": 75, "qty_min": 1, "qty_max": 2 },

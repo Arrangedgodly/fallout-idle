@@ -54,7 +54,7 @@ func _check_golden_set() -> void:
 	# Items — typed hydration + int coercion (JSON numbers arrive as float).
 	var scrap := lib.item("scrap_metal")
 	_check(scrap is ItemDef, "item('scrap_metal') hydrates an ItemDef")
-	_check(scrap != null and scrap.name == "Scrap Metal", "item name round-trips")
+	_check(scrap != null and scrap.name == "Scrapnel", "item name round-trips (T4 display name)")
 	_check(scrap != null and scrap.category == "resource", "item category round-trips")
 	_check(scrap != null and typeof(scrap.value) == TYPE_INT and scrap.value == 2,
 		"item value is int 2 (float->int coercion, R1)")

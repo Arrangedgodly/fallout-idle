@@ -10,10 +10,10 @@ Implements research decision R1 (`docs/ultron/research/r1-content-storage.md`):
 
 The records currently in `data/*.json` are a **golden set**: a minimal,
 internally consistent example slice (3 of 5 skills, 2 monsters, 2 equipment
-pieces) that exists to prove the loader end-to-end. **T4 (naming) and T5
-(balance) replace and extend them.** Placeholder names here ("Junkyard Roach",
-"Radstag Stew", …) have NOT passed the trademark checklist. Balance numbers are
-placeholders, not tuned.
+pieces) that exists to prove the loader end-to-end. **T5 (balance) replaces
+and extends them.** Display names were finalized and checklist-cleared by T4
+(`docs/ultron/naming-bible.md`; ids stable, e.g. `scrap_metal` → "Scrapnel").
+Balance numbers are placeholders, not tuned.
 
 ## File layout
 

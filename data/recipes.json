@@ -3,7 +3,7 @@
 	"recipes": [
 		{
 			"id": "smelt_scrap_ingot",
-			"name": "Smelt Scrap Ingot",
+			"name": "Smelt Almost Bullion",
 			"skill": "junksmithing",
 			"level_gate": 1,
 			"interval_ms": 4000,
@@ -15,7 +15,7 @@
 		},
 		{
 			"id": "forge_scrap_shiv",
-			"name": "Forge Scrap Shiv",
+			"name": "Forge Point of Order",
 			"skill": "junksmithing",
 			"level_gate": 3,
 			"interval_ms": 6000,
@@ -28,7 +28,7 @@
 		},
 		{
 			"id": "forge_hubcap_vest",
-			"name": "Forge Hubcap Vest",
+			"name": "Press Pedestrian Plating",
 			"skill": "junksmithing",
 			"level_gate": 6,
 			"interval_ms": 8000,
