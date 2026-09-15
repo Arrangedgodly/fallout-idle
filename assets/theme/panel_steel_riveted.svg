@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- Valued Resident - riveted rolled-steel panel, nine-patch (margins 16px).
+       Original geometry, T8 theme system. Palette: steel #4E5560, bevels. -->
+  <rect x="0" y="0" width="64" height="64" fill="#4E5560"/>
+  <!-- outer edge -->
+  <path d="M0.5 0.5 H63.5 V63.5 H0.5 Z" fill="none" stroke="#2E333C" stroke-width="1"/>
+  <!-- top bevel highlight -->
+  <path d="M2 62 L2 2 L62 2" fill="none" stroke="#6B7482" stroke-width="2"/>
+  <!-- bottom bevel shadow -->
+  <path d="M2 62 L62 62 L62 2" fill="none" stroke="#2E333C" stroke-width="2"/>
+  <!-- corner rivets: ring, crown, specular -->
+  <g>
+    <circle cx="12" cy="12" r="3.5" fill="#2E333C"/>
+    <circle cx="12" cy="12" r="2.4" fill="#5A6270"/>
+    <circle cx="11.2" cy="11.2" r="0.9" fill="#8A93A1"/>
+    <circle cx="52" cy="12" r="3.5" fill="#2E333C"/>
+    <circle cx="52" cy="12" r="2.4" fill="#5A6270"/>
+    <circle cx="51.2" cy="11.2" r="0.9" fill="#8A93A1"/>
+    <circle cx="12" cy="52" r="3.5" fill="#2E333C"/>
+    <circle cx="12" cy="52" r="2.4" fill="#5A6270"/>
+    <circle cx="11.2" cy="51.2" r="0.9" fill="#8A93A1"/>
+    <circle cx="52" cy="52" r="3.5" fill="#2E333C"/>
+    <circle cx="52" cy="52" r="2.4" fill="#5A6270"/>
+    <circle cx="51.2" cy="51.2" r="0.9" fill="#8A93A1"/>
+  </g>
+</svg>

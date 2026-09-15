@@ -1,0 +1,910 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Theme" path="res://assets/theme/signage_theme.tres" id="1_theme"]
+[ext_resource type="Script" path="res://scenes/dev/theme_gallery.gd" id="2_gallery"]
+[ext_resource type="Texture2D" path="res://assets/theme/dot_tile.svg" id="3_dot"]
+[ext_resource type="Texture2D" path="res://assets/theme/vent_tile.svg" id="4_vent"]
+
+[node name="ThemeGallery" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_theme")
+script = ExtResource("2_gallery")
+
+[node name="Wall" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Margins" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 32
+
+[node name="Scroll" type="ScrollContainer" parent="Margins"]
+layout_mode = 2
+
+[node name="Column" type="VBoxContainer" parent="Margins/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 26
+
+[node name="Header" type="Panel" parent="Margins/Scroll/Column"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = "SteelPanel"
+
+[node name="HeaderMargin" type="MarginContainer" parent="Margins/Scroll/Column/Header"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
+
+[node name="HeaderColumn" type="VBoxContainer" parent="Margins/Scroll/Column/Header/HeaderMargin"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="HeaderRow" type="HBoxContainer" parent="Margins/Scroll/Column/Header/HeaderMargin/HeaderColumn"]
+layout_mode = 2
+theme_override_constants/separation = 28
+
+[node name="TitlePlate" type="Panel" parent="Margins/Scroll/Column/Header/HeaderMargin/HeaderColumn/HeaderRow"]
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = "EnamelPlate"
+
+[node name="TitleMargin" type="MarginContainer" parent="Margins/Scroll/Column/Header/HeaderMargin/HeaderColumn/HeaderRow/TitlePlate"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 16
+
+[node name="TitleColumn" type="VBoxContainer" parent="Margins/Scroll/Column/Header/HeaderMargin/HeaderColumn/HeaderRow/TitlePlate/TitleMargin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="Margins/Scroll/Column/Header/HeaderMargin/HeaderColumn/HeaderRow/TitlePlate/TitleMargin/TitleColumn"]
+layout_mode = 2
+theme_type_variation = "PlateTitle"
+text = "VALUED RESIDENT — SIGNAGE REFERENCE WALL"
+
+[node name="Subtitle" type="Label" parent="Margins/Scroll/Column/Header/HeaderMargin/HeaderColumn/HeaderRow/TitlePlate/TitleMargin/TitleColumn"]
+layout_mode = 2
+theme_type_variation = "PlateBody"
+text = "DEPARTMENT OF CONTINUED SHELTERING · FORM 8-B · REV. 1958-09"
+
+[node name="HeaderNotice" type="Panel" parent="Margins/Scroll/Column/Header/HeaderMargin/HeaderColumn/HeaderRow"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_type_variation = "PaperNotice"
+
+[node name="NoticeMargin" type="MarginContainer" parent="Margins/Scroll/Column/Header/HeaderMargin/HeaderColumn/HeaderRow/HeaderNotice"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 14
+
+[node name="NoticeColumn" type="VBoxContainer" parent="Margins/Scroll/Column/Header/HeaderMargin/HeaderColumn/HeaderRow/HeaderNotice/NoticeMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="NoticeText" type="Label" parent="Margins/Scroll/Column/Header/HeaderMargin/HeaderColumn/HeaderRow/HeaderNotice/NoticeMargin/NoticeColumn"]
+layout_mode = 2
+theme_type_variation = "PaperText"
+autowrap_mode = 3
+text = "NOTICE: Every component is shown in Default, Active (energized), and disabled states. Compliance is appreciated."
+
+[node name="NoticeStamp" type="Label" parent="Margins/Scroll/Column/Header/HeaderMargin/HeaderColumn/HeaderRow/HeaderNotice/NoticeMargin/NoticeColumn"]
+layout_mode = 2
+theme_type_variation = "PaperStamp"
+text = "APPROVED — SECTOR B"
+
+[node name="HeaderSerial" type="Label" parent="Margins/Scroll/Column/Header/HeaderMargin/HeaderColumn"]
+layout_mode = 2
+theme_type_variation = "PlateSerial"
+text = "SER. NO. T8-1958-09 · GALLERY GENERATED FROM signage_theme.tres"
+
+[node name="Rule0" type="HSeparator" parent="Margins/Scroll/Column"]
+layout_mode = 2
+
+[node name="PlatesLabel" type="Label" parent="Margins/Scroll/Column"]
+layout_mode = 2
+theme_type_variation = "SectionLabel"
+text = "DEPARTMENT PLATES"
+
+[node name="PlatesRow" type="HBoxContainer" parent="Margins/Scroll/Column"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="PlateDefault" type="VBoxContainer" parent="Margins/Scroll/Column/PlatesRow"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Button" type="Button" parent="Margins/Scroll/Column/PlatesRow/PlateDefault"]
+custom_minimum_size = Vector2(240, 84)
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "FORAGING"
+
+[node name="Serial" type="Label" parent="Margins/Scroll/Column/PlatesRow/PlateDefault"]
+layout_mode = 2
+theme_type_variation = "PlateSerial"
+text = "D-01 · DEFAULT — OPEN"
+
+[node name="PlateActive" type="VBoxContainer" parent="Margins/Scroll/Column/PlatesRow"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Button" type="Button" parent="Margins/Scroll/Column/PlatesRow/PlateActive"]
+custom_minimum_size = Vector2(260, 84)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = "Energized"
+toggle_mode = true
+button_pressed = true
+text = "JUNKSMITHING"
+
+[node name="Serial" type="Label" parent="Margins/Scroll/Column/PlatesRow/PlateActive"]
+layout_mode = 2
+theme_type_variation = "PlateSerial"
+text = "D-03 · ACTIVE — ENERGIZED"
+
+[node name="PlateGated" type="VBoxContainer" parent="Margins/Scroll/Column/PlatesRow"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Button" type="Button" parent="Margins/Scroll/Column/PlatesRow/PlateGated"]
+custom_minimum_size = Vector2(300, 84)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = "Danger"
+text = "PATROL — CLEARANCE 3"
+
+[node name="Serial" type="Label" parent="Margins/Scroll/Column/PlatesRow/PlateGated"]
+layout_mode = 2
+theme_type_variation = "PlateSerial"
+text = "D-06 · GATED — LOCKED"
+
+[node name="PlateDisabled" type="VBoxContainer" parent="Margins/Scroll/Column/PlatesRow"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Button" type="Button" parent="Margins/Scroll/Column/PlatesRow/PlateDisabled"]
+custom_minimum_size = Vector2(220, 84)
+layout_mode = 2
+size_flags_horizontal = 3
+disabled = true
+text = "SEALED — REQ. 7"
+
+[node name="Serial" type="Label" parent="Margins/Scroll/Column/PlatesRow/PlateDisabled"]
+layout_mode = 2
+theme_type_variation = "PlateSerial"
+text = "D-09 · DISABLED"
+
+[node name="Rule1" type="HSeparator" parent="Margins/Scroll/Column"]
+layout_mode = 2
+
+[node name="ButtonsLabel" type="Label" parent="Margins/Scroll/Column"]
+layout_mode = 2
+theme_type_variation = "SectionLabel"
+text = "STENCILED BUTTON PLATES"
+
+[node name="ButtonsRow" type="HBoxContainer" parent="Margins/Scroll/Column"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="Default" type="VBoxContainer" parent="Margins/Scroll/Column/ButtonsRow"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Button" type="Button" parent="Margins/Scroll/Column/ButtonsRow/Default"]
+custom_minimum_size = Vector2(190, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "BEGIN SHIFT"
+
+[node name="Caption" type="Label" parent="Margins/Scroll/Column/ButtonsRow/Default"]
+layout_mode = 2
+theme_type_variation = "MicroLabel"
+text = "DEFAULT"
+
+[node name="Pressed" type="VBoxContainer" parent="Margins/Scroll/Column/ButtonsRow"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Button" type="Button" parent="Margins/Scroll/Column/ButtonsRow/Pressed"]
+custom_minimum_size = Vector2(190, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+button_pressed = true
+text = "RUNNING — HOLD"
+
+[node name="Caption" type="Label" parent="Margins/Scroll/Column/ButtonsRow/Pressed"]
+layout_mode = 2
+theme_type_variation = "MicroLabel"
+text = "PRESSED"
+
+[node name="Energized" type="VBoxContainer" parent="Margins/Scroll/Column/ButtonsRow"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Button" type="Button" parent="Margins/Scroll/Column/ButtonsRow/Energized"]
+custom_minimum_size = Vector2(190, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = "Energized"
+text = "ABANDON POST"
+
+[node name="Caption" type="Label" parent="Margins/Scroll/Column/ButtonsRow/Energized"]
+layout_mode = 2
+theme_type_variation = "MicroLabel"
+text = "ENERGIZED — ACTIVE"
+
+[node name="Danger" type="VBoxContainer" parent="Margins/Scroll/Column/ButtonsRow"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Button" type="Button" parent="Margins/Scroll/Column/ButtonsRow/Danger"]
+custom_minimum_size = Vector2(190, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = "Danger"
+text = "REPORT LOSS"
+
+[node name="Caption" type="Label" parent="Margins/Scroll/Column/ButtonsRow/Danger"]
+layout_mode = 2
+theme_type_variation = "MicroLabel"
+text = "DANGER"
+
+[node name="Disabled" type="VBoxContainer" parent="Margins/Scroll/Column/ButtonsRow"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Button" type="Button" parent="Margins/Scroll/Column/ButtonsRow/Disabled"]
+custom_minimum_size = Vector2(190, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+disabled = true
+text = "SEALED"
+
+[node name="Caption" type="Label" parent="Margins/Scroll/Column/ButtonsRow/Disabled"]
+layout_mode = 2
+theme_type_variation = "MicroLabel"
+text = "DISABLED"
+
+[node name="FocusBox" type="VBoxContainer" parent="Margins/Scroll/Column/ButtonsRow"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="FocusDemo" type="Button" parent="Margins/Scroll/Column/ButtonsRow/FocusBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(210, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "TAB TO ME"
+
+[node name="Caption" type="Label" parent="Margins/Scroll/Column/ButtonsRow/FocusBox"]
+layout_mode = 2
+theme_type_variation = "MicroLabel"
+text = "FOCUS — SIGNAL AMBER RING"
+
+[node name="Rule2" type="HSeparator" parent="Margins/Scroll/Column"]
+layout_mode = 2
+
+[node name="GaugesLabel" type="Label" parent="Margins/Scroll/Column"]
+layout_mode = 2
+theme_type_variation = "SectionLabel"
+text = "GAUGES AND SERIAL READOUTS"
+
+[node name="GaugesPanel" type="Panel" parent="Margins/Scroll/Column"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = "SteelPanel"
+
+[node name="GaugesMargin" type="MarginContainer" parent="Margins/Scroll/Column/GaugesPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
+
+[node name="GaugesColumn" type="VBoxContainer" parent="Margins/Scroll/Column/GaugesPanel/GaugesMargin"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="XpRow" type="VBoxContainer" parent="Margins/Scroll/Column/GaugesPanel/GaugesMargin/GaugesColumn"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Caption" type="Label" parent="Margins/Scroll/Column/GaugesPanel/GaugesMargin/GaugesColumn/XpRow"]
+layout_mode = 2
+theme_type_variation = "MicroLabel"
+text = "XP — SCAVENGING · CLEARANCE 4 OF 99"
+
+[node name="BarRow" type="HBoxContainer" parent="Margins/Scroll/Column/GaugesPanel/GaugesMargin/GaugesColumn/XpRow"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="XpBar" type="ProgressBar" parent="Margins/Scroll/Column/GaugesPanel/GaugesMargin/GaugesColumn/XpRow/BarRow"]
+custom_minimum_size = Vector2(340, 22)
+layout_mode = 2
+size_flags_horizontal = 3
+show_percentage = false
+value = 62.0
+
+[node name="XpValue" type="Label" parent="Margins/Scroll/Column/GaugesPanel/GaugesMargin/GaugesColumn/XpRow/BarRow"]
+layout_mode = 2
+theme_type_variation = "MonoValue"
+text = "1,240 / 2,000 XP"
+
+[node name="MailRow" type="VBoxContainer" parent="Margins/Scroll/Column/GaugesPanel/GaugesMargin/GaugesColumn"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Caption" type="Label" parent="Margins/Scroll/Column/GaugesPanel/GaugesMargin/GaugesColumn/MailRow"]
+layout_mode = 2
+theme_type_variation = "MicroLabel"
+text = "MAIL COUNTER — 9 OF 12 CELLS LIT"
+
+[node name="MailLine" type="HBoxContainer" parent="Margins/Scroll/Column/GaugesPanel/GaugesMargin/GaugesColumn/MailRow"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="MailDots" type="HBoxContainer" parent="Margins/Scroll/Column/GaugesPanel/GaugesMargin/GaugesColumn/MailRow/MailLine"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Crowns" type="Label" parent="Margins/Scroll/Column/GaugesPanel/GaugesMargin/GaugesColumn/MailRow/MailLine"]
+layout_mode = 2
+theme_type_variation = "MonoBig"
+text = "2,847"
+
+[node name="CrownsCaption" type="Label" parent="Margins/Scroll/Column/GaugesPanel/GaugesMargin/GaugesColumn/MailRow/MailLine"]
+layout_mode = 2
+theme_type_variation = "MicroLabel"
+size_flags_vertical = 1
+text = "CROWNS — TENDERS EXACT"
+
+[node name="ConditionRow" type="VBoxContainer" parent="Margins/Scroll/Column/GaugesPanel/GaugesMargin/GaugesColumn"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Caption" type="Label" parent="Margins/Scroll/Column/GaugesPanel/GaugesMargin/GaugesColumn/ConditionRow"]
+layout_mode = 2
+theme_type_variation = "MicroLabel"
+text = "EQUIPMENT CONDITION — MAJORITY WHIP"
+
+[node name="BarRow" type="HBoxContainer" parent="Margins/Scroll/Column/GaugesPanel/GaugesMargin/GaugesColumn/ConditionRow"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="ConditionBar" type="ProgressBar" parent="Margins/Scroll/Column/GaugesPanel/GaugesMargin/GaugesColumn/ConditionRow/BarRow"]
+custom_minimum_size = Vector2(220, 22)
+layout_mode = 2
+size_flags_horizontal = 3
+show_percentage = false
+value = 15.0
+
+[node name="ConditionValue" type="Label" parent="Margins/Scroll/Column/GaugesPanel/GaugesMargin/GaugesColumn/ConditionRow/BarRow"]
+layout_mode = 2
+theme_type_variation = "MonoValueEnergized"
+text = "15% — REPAIR RECOMMENDED"
+
+[node name="Rule3" type="HSeparator" parent="Margins/Scroll/Column"]
+layout_mode = 2
+
+[node name="FormsLabel" type="Label" parent="Margins/Scroll/Column"]
+layout_mode = 2
+theme_type_variation = "SectionLabel"
+text = "REQUISITION FORM CONTROLS"
+
+[node name="FormsRow1" type="HBoxContainer" parent="Margins/Scroll/Column"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="NameField" type="LineEdit" parent="Margins/Scroll/Column/FormsRow1"]
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "R. RESIDENT JR."
+
+[node name="NumberField" type="LineEdit" parent="Margins/Scroll/Column/FormsRow1"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "RESIDENT NO."
+
+[node name="ClearanceField" type="LineEdit" parent="Margins/Scroll/Column/FormsRow1"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+editable = false
+text = "CLEARANCE 2"
+
+[node name="FormsRow2" type="HBoxContainer" parent="Margins/Scroll/Column"]
+layout_mode = 2
+theme_override_constants/separation = 28
+
+[node name="CheckOn" type="CheckButton" parent="Margins/Scroll/Column/FormsRow2"]
+layout_mode = 2
+button_pressed = true
+text = "AUTO-FEED"
+
+[node name="CheckOff" type="CheckButton" parent="Margins/Scroll/Column/FormsRow2"]
+layout_mode = 2
+text = "SOUND THE KLAXON"
+
+[node name="CheckDisabled" type="CheckButton" parent="Margins/Scroll/Column/FormsRow2"]
+layout_mode = 2
+disabled = true
+text = "OVERTIME"
+
+[node name="FontScalePick" type="OptionButton" parent="Margins/Scroll/Column/FormsRow2"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(230, 0)
+layout_mode = 2
+
+[node name="Rule4" type="HSeparator" parent="Margins/Scroll/Column"]
+layout_mode = 2
+
+[node name="DropLinesLabel" type="Label" parent="Margins/Scroll/Column"]
+layout_mode = 2
+theme_type_variation = "SectionLabel"
+text = "DROP LINES — STAMPED ONE BY ONE"
+
+[node name="DropRow" type="HBoxContainer" parent="Margins/Scroll/Column"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="DropLines" type="ItemList" parent="Margins/Scroll/Column/DropRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(420, 150)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="DepartmentTabs" type="TabContainer" parent="Margins/Scroll/Column/DropRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(560, 150)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Scavenging" type="Panel" parent="Margins/Scroll/Column/DropRow/DepartmentTabs"]
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="Margins/Scroll/Column/DropRow/DepartmentTabs/Scavenging"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="Copy" type="Label" parent="Margins/Scroll/Column/DropRow/DepartmentTabs/Scavenging/Margin"]
+layout_mode = 2
+autowrap_mode = 3
+theme_type_variation = "BodyCopyDim"
+text = "Tabs select the department docket; the selected tab is the enamel plate, the energized state is the active department."
+
+[node name="Junksmithing" type="Panel" parent="Margins/Scroll/Column/DropRow/DepartmentTabs"]
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="Margins/Scroll/Column/DropRow/DepartmentTabs/Junksmithing"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="Copy" type="Label" parent="Margins/Scroll/Column/DropRow/DepartmentTabs/Junksmithing/Margin"]
+layout_mode = 2
+autowrap_mode = 3
+theme_type_variation = "BodyCopyDim"
+text = "The docket panel occupies the right two-thirds of the concourse; drop lines stamp in one by one in mono figures."
+
+[node name="Cooking" type="Panel" parent="Margins/Scroll/Column/DropRow/DepartmentTabs"]
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="Margins/Scroll/Column/DropRow/DepartmentTabs/Cooking"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="Copy" type="Label" parent="Margins/Scroll/Column/DropRow/DepartmentTabs/Cooking/Margin"]
+layout_mode = 2
+autowrap_mode = 3
+theme_type_variation = "BodyCopyDim"
+text = "Gates render as CLEARANCE language; a locked docket posts a red plate and stops the work."
+
+[node name="Rule5" type="HSeparator" parent="Margins/Scroll/Column"]
+layout_mode = 2
+
+[node name="MaterialsLabel" type="Label" parent="Margins/Scroll/Column"]
+layout_mode = 2
+theme_type_variation = "SectionLabel"
+text = "MATERIALS — PANELS, VENTS, PAPER"
+
+[node name="MaterialsRow" type="HBoxContainer" parent="Margins/Scroll/Column"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="SteelSpecimen" type="Panel" parent="Margins/Scroll/Column/MaterialsRow"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = "SteelPanel"
+
+[node name="Margin" type="MarginContainer" parent="Margins/Scroll/Column/MaterialsRow/SteelSpecimen"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 16
+
+[node name="Column" type="VBoxContainer" parent="Margins/Scroll/Column/MaterialsRow/SteelSpecimen/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Margins/Scroll/Column/MaterialsRow/SteelSpecimen/Margin/Column"]
+layout_mode = 2
+theme_type_variation = "MicroLabel"
+text = "RIVETED STEEL PANEL — CORNER BOLTS, NINE-SLICE"
+
+[node name="VentBox" type="HBoxContainer" parent="Margins/Scroll/Column/MaterialsRow/SteelSpecimen/Margin/Column"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Vent" type="Panel" parent="Margins/Scroll/Column/MaterialsRow/SteelSpecimen/Margin/Column/VentBox"]
+custom_minimum_size = Vector2(120, 32)
+layout_mode = 2
+theme_type_variation = "VentHousing"
+
+[node name="VentTiles" type="TextureRect" parent="Margins/Scroll/Column/MaterialsRow/SteelSpecimen/Margin/Column/VentBox/Vent"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("4_vent")
+stretch_mode = 2
+
+[node name="VentCaption" type="Label" parent="Margins/Scroll/Column/MaterialsRow/SteelSpecimen/Margin/Column/VentBox"]
+layout_mode = 2
+size_flags_vertical = 1
+autowrap_mode = 3
+theme_type_variation = "MicroLabel"
+custom_minimum_size = Vector2(180, 0)
+text = "PERFORATED VENT GRID — 24 PX TILE"
+
+[node name="PaperSpecimen" type="Panel" parent="Margins/Scroll/Column/MaterialsRow"]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = "PaperNotice"
+
+[node name="Margin" type="MarginContainer" parent="Margins/Scroll/Column/MaterialsRow/PaperSpecimen"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 14
+
+[node name="Column" type="VBoxContainer" parent="Margins/Scroll/Column/MaterialsRow/PaperSpecimen/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Copy" type="Label" parent="Margins/Scroll/Column/MaterialsRow/PaperSpecimen/Margin/Column"]
+layout_mode = 2
+autowrap_mode = 3
+theme_type_variation = "PaperText"
+text = "NOTICE: Complimentary grits are mandatory. Refills available at the Depot during posted hours."
+
+[node name="Stamp" type="Label" parent="Margins/Scroll/Column/MaterialsRow/PaperSpecimen/Margin/Column"]
+layout_mode = 2
+theme_type_variation = "PaperStamp"
+text = "DO NOT FOLD"
+
+[node name="DangerSpecimen" type="Panel" parent="Margins/Scroll/Column/MaterialsRow"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = "DangerPlate"
+
+[node name="Margin" type="MarginContainer" parent="Margins/Scroll/Column/MaterialsRow/DangerSpecimen"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 14
+
+[node name="Title" type="Label" parent="Margins/Scroll/Column/MaterialsRow/DangerSpecimen/Margin"]
+layout_mode = 2
+autowrap_mode = 3
+theme_type_variation = "PlateTitleDanger"
+text = "RETURN TO SHELTER"
+
+[node name="Rule6" type="HSeparator" parent="Margins/Scroll/Column"]
+layout_mode = 2
+
+[node name="TypeLabel" type="Label" parent="Margins/Scroll/Column"]
+layout_mode = 2
+theme_type_variation = "SectionLabel"
+text = "TYPE SPECIMENS — EVERY REGISTERED PAIR"
+
+[node name="TypeRow" type="HBoxContainer" parent="Margins/Scroll/Column"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="OnSteel" type="Panel" parent="Margins/Scroll/Column/TypeRow"]
+custom_minimum_size = Vector2(440, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = "SteelPanel"
+
+[node name="Margin" type="MarginContainer" parent="Margins/Scroll/Column/TypeRow/OnSteel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 16
+
+[node name="Column" type="VBoxContainer" parent="Margins/Scroll/Column/TypeRow/OnSteel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Section" type="Label" parent="Margins/Scroll/Column/TypeRow/OnSteel/Margin/Column"]
+layout_mode = 2
+theme_type_variation = "SectionLabel"
+text = "SECTION LABEL — STENCIL 19"
+
+[node name="Body" type="Label" parent="Margins/Scroll/Column/TypeRow/OnSteel/Margin/Column"]
+layout_mode = 2
+autowrap_mode = 3
+custom_minimum_size = Vector2(380, 0)
+theme_type_variation = "BodyCopy"
+text = "Body copy 15 pt — the Shelter thanks you for your continued compliance."
+
+[node name="Dim" type="Label" parent="Margins/Scroll/Column/TypeRow/OnSteel/Margin/Column"]
+layout_mode = 2
+autowrap_mode = 3
+custom_minimum_size = Vector2(380, 0)
+theme_type_variation = "BodyCopyDim"
+text = "Secondary copy 14 pt, steel-tinted bone."
+
+[node name="Micro" type="Label" parent="Margins/Scroll/Column/TypeRow/OnSteel/Margin/Column"]
+layout_mode = 2
+theme_type_variation = "MicroLabel"
+text = "MICRO LABEL — TRACKED CAPS 12 PT"
+
+[node name="Mono" type="Label" parent="Margins/Scroll/Column/TypeRow/OnSteel/Margin/Column"]
+layout_mode = 2
+theme_type_variation = "MonoValue"
+text = "CR 2,847 · 12.5/S · 0.62 KG"
+
+[node name="MonoBigLabel" type="Label" parent="Margins/Scroll/Column/TypeRow/OnSteel/Margin/Column"]
+layout_mode = 2
+theme_type_variation = "MonoBig"
+text = "9,999,999"
+
+[node name="OnBone" type="Panel" parent="Margins/Scroll/Column/TypeRow"]
+custom_minimum_size = Vector2(330, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = "EnamelPlate"
+
+[node name="Margin" type="MarginContainer" parent="Margins/Scroll/Column/TypeRow/OnBone"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 16
+
+[node name="Column" type="VBoxContainer" parent="Margins/Scroll/Column/TypeRow/OnBone/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Margins/Scroll/Column/TypeRow/OnBone/Margin/Column"]
+layout_mode = 2
+theme_type_variation = "PlateTitle"
+text = "PLATE TITLE 26"
+
+[node name="Body" type="Label" parent="Margins/Scroll/Column/TypeRow/OnBone/Margin/Column"]
+layout_mode = 2
+autowrap_mode = 3
+theme_type_variation = "PlateBody"
+text = "Plate body 13 pt, navy grotesk ink on enamel."
+
+[node name="OnNavy" type="Panel" parent="Margins/Scroll/Column/TypeRow"]
+custom_minimum_size = Vector2(330, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = "EnergizedPlate"
+
+[node name="Margin" type="MarginContainer" parent="Margins/Scroll/Column/TypeRow/OnNavy"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 16
+
+[node name="Column" type="VBoxContainer" parent="Margins/Scroll/Column/TypeRow/OnNavy/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Margins/Scroll/Column/TypeRow/OnNavy/Margin/Column"]
+layout_mode = 2
+theme_type_variation = "PlateTitleEnergized"
+text = "ENERGIZED 26"
+
+[node name="Body" type="Label" parent="Margins/Scroll/Column/TypeRow/OnNavy/Margin/Column"]
+layout_mode = 2
+autowrap_mode = 3
+theme_type_variation = "PlateBodyEnergized"
+text = "Active department state — amber on navy."
+
+[node name="Mono" type="Label" parent="Margins/Scroll/Column/TypeRow/OnNavy/Margin/Column"]
+layout_mode = 2
+theme_type_variation = "MonoValueEnergized"
+text = "+12.5 XP/S · LIT"
+
+[node name="OnPaper" type="Panel" parent="Margins/Scroll/Column/TypeRow"]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = "PaperNotice"
+
+[node name="Margin" type="MarginContainer" parent="Margins/Scroll/Column/TypeRow/OnPaper"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 14
+
+[node name="Column" type="VBoxContainer" parent="Margins/Scroll/Column/TypeRow/OnPaper/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Body" type="Label" parent="Margins/Scroll/Column/TypeRow/OnPaper/Margin/Column"]
+layout_mode = 2
+autowrap_mode = 3
+theme_type_variation = "PaperText"
+text = "Paper notice 14 pt — navy ink on posted paper."
+
+[node name="Stamp" type="Label" parent="Margins/Scroll/Column/TypeRow/OnPaper/Margin/Column"]
+layout_mode = 2
+theme_type_variation = "PaperStamp"
+text = "RUBBER STAMP 13"
+
+[node name="OnRed" type="Panel" parent="Margins/Scroll/Column/TypeRow"]
+custom_minimum_size = Vector2(280, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = "DangerPlate"
+
+[node name="Margin" type="MarginContainer" parent="Margins/Scroll/Column/TypeRow/OnRed"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 14
+
+[node name="Column" type="VBoxContainer" parent="Margins/Scroll/Column/TypeRow/OnRed/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Margins/Scroll/Column/TypeRow/OnRed/Margin/Column"]
+layout_mode = 2
+autowrap_mode = 3
+theme_type_variation = "PlateTitleDanger"
+text = "DANGER PLATE 26"
+
+[node name="Body" type="Label" parent="Margins/Scroll/Column/TypeRow/OnRed/Margin/Column"]
+layout_mode = 2
+autowrap_mode = 3
+theme_type_variation = "PlateTitleDanger"
+custom_minimum_size = Vector2(200, 0)
+theme_override_font_sizes/font_size = 14
+text = "Bone ink, body size"
+
+[node name="Footer" type="Label" parent="Margins/Scroll/Column"]
+layout_mode = 2
+autowrap_mode = 3
+theme_type_variation = "PlateSerial"
+text = "END OF WALL · D.O.C.S. SIGNAGE SYSTEM · BIG SHOULDERS STENCIL DISPLAY / PUBLIC SANS / COURIER PRIME — OFL"

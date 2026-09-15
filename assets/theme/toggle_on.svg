@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="28" height="16" viewBox="0 0 28 16">
+  <!-- Valued Resident - CheckButton indicator, ON (energized). Original, T8. -->
+  <rect x="1" y="1" width="26" height="14" rx="7" fill="#20334F" stroke="#FFB000" stroke-width="1.5"/>
+  <circle cx="20" cy="8" r="4.2" fill="#FFB000"/>
+</svg>

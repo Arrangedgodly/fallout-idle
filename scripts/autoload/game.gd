@@ -6,6 +6,8 @@ extends Node
 ##   ContentDB   (T2) — LIVE: validates res://data/*.json per R1 and hydrates
 ##               typed records (scripts/content/); boot fails on any error.
 ##   SaveManager (T3) — atomic versioned saves under user://.
+##   UiTheme     (T8) — LIVE: signage Theme + font-scale setting
+##               (scripts/theme/, assets/theme/signage_theme.tres).
 ##   TickManager (T6) — budgeted ~10 Hz simulation loop.
 ##
 ## Tests (R2): GUT 9.7.1 under res://tests, wired by T12. Until then the plain

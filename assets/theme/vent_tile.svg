@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- Valued Resident - perforated vent grid tile. Original geometry, T8. -->
+  <rect x="0" y="0" width="24" height="24" fill="#3A404A"/>
+  <!-- perforation: bore, top rim light, bottom lip shadow -->
+  <circle cx="12" cy="12" r="6.5" fill="#22272E"/>
+  <path d="M6.4 10.2 A6.5 6.5 0 0 1 17.6 10.2" fill="none" stroke="#556070" stroke-width="1.2"/>
+  <path d="M6.4 13.8 A6.5 6.5 0 0 0 17.6 13.8" fill="none" stroke="#171B21" stroke-width="1.2"/>
+</svg>
