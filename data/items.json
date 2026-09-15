@@ -1,0 +1,69 @@
+{
+	"schema_version": 1,
+	"items": [
+		{
+			"id": "scrap_metal",
+			"name": "Scrap Metal",
+			"category": "resource",
+			"value": 2,
+			"icon": "scrap_metal"
+		},
+		{
+			"id": "copper_wiring",
+			"name": "Copper Wiring",
+			"category": "resource",
+			"value": 3,
+			"icon": "copper_wiring"
+		},
+		{
+			"id": "cloth_scraps",
+			"name": "Cloth Scraps",
+			"category": "resource",
+			"value": 2,
+			"icon": "cloth_scraps"
+		},
+		{
+			"id": "glowshroom",
+			"name": "Glowshroom",
+			"category": "resource",
+			"value": 2,
+			"icon": "glowshroom"
+		},
+		{
+			"id": "roach_meat",
+			"name": "Roach Meat",
+			"category": "resource",
+			"value": 1,
+			"icon": "roach_meat"
+		},
+		{
+			"id": "scrap_ingot",
+			"name": "Scrap Ingot",
+			"category": "material",
+			"value": 14,
+			"icon": "scrap_ingot"
+		},
+		{
+			"id": "radstag_stew",
+			"name": "Radstag Stew",
+			"category": "food",
+			"value": 18,
+			"heal": 25,
+			"icon": "radstag_stew"
+		},
+		{
+			"id": "scrap_shiv",
+			"name": "Scrap Shiv",
+			"category": "equipment",
+			"value": 25,
+			"icon": "scrap_shiv"
+		},
+		{
+			"id": "hubcap_vest",
+			"name": "Hubcap Vest",
+			"category": "equipment",
+			"value": 40,
+			"icon": "hubcap_vest"
+		}
+	]
+}

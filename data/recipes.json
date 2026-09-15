@@ -1,0 +1,43 @@
+{
+	"schema_version": 1,
+	"recipes": [
+		{
+			"id": "smelt_scrap_ingot",
+			"name": "Smelt Scrap Ingot",
+			"skill": "junksmithing",
+			"level_gate": 1,
+			"interval_ms": 4000,
+			"xp_per_action": 12,
+			"inputs": [
+				{ "item": "scrap_metal", "qty": 3 }
+			],
+			"output": { "item": "scrap_ingot", "qty": 1 }
+		},
+		{
+			"id": "forge_scrap_shiv",
+			"name": "Forge Scrap Shiv",
+			"skill": "junksmithing",
+			"level_gate": 3,
+			"interval_ms": 6000,
+			"xp_per_action": 25,
+			"inputs": [
+				{ "item": "scrap_ingot", "qty": 2 },
+				{ "item": "copper_wiring", "qty": 1 }
+			],
+			"output": { "item": "scrap_shiv", "qty": 1 }
+		},
+		{
+			"id": "forge_hubcap_vest",
+			"name": "Forge Hubcap Vest",
+			"skill": "junksmithing",
+			"level_gate": 6,
+			"interval_ms": 8000,
+			"xp_per_action": 40,
+			"inputs": [
+				{ "item": "scrap_ingot", "qty": 3 },
+				{ "item": "cloth_scraps", "qty": 2 }
+			],
+			"output": { "item": "hubcap_vest", "qty": 1 }
+		}
+	]
+}

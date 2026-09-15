@@ -1,0 +1,37 @@
+{
+	"schema_version": 1,
+	"monsters": [
+		{
+			"id": "junkyard_roach",
+			"name": "Junkyard Roach",
+			"zone": "dusty_flats",
+			"is_boss": false,
+			"level_gate": 1,
+			"max_hp": 15,
+			"attack_speed_ms": 2800,
+			"accuracy": 20,
+			"evasion": 5,
+			"min_hit": 0,
+			"max_hit": 2,
+			"xp_reward": 6,
+			"drop_table": "roach_nest",
+			"icon": "junkyard_roach"
+		},
+		{
+			"id": "sewer_landlord",
+			"name": "The Sewer Landlord",
+			"zone": "dusty_flats",
+			"is_boss": true,
+			"level_gate": 8,
+			"max_hp": 120,
+			"attack_speed_ms": 2400,
+			"accuracy": 45,
+			"evasion": 15,
+			"min_hit": 1,
+			"max_hit": 6,
+			"xp_reward": 80,
+			"drop_table": "roach_nest",
+			"icon": "sewer_landlord"
+		}
+	]
+}

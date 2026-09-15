@@ -1,0 +1,29 @@
+{
+	"schema_version": 1,
+	"skills": [
+		{
+			"id": "scavenging",
+			"name": "Scavenging",
+			"kind": "gathering",
+			"max_level": 99,
+			"xp_curve": "standard_99",
+			"icon": "scavenging"
+		},
+		{
+			"id": "junksmithing",
+			"name": "Junksmithing",
+			"kind": "processing",
+			"max_level": 99,
+			"xp_curve": "standard_99",
+			"icon": "junksmithing"
+		},
+		{
+			"id": "wasteland_combat",
+			"name": "Wasteland Combat",
+			"kind": "combat",
+			"max_level": 99,
+			"xp_curve": "standard_99",
+			"icon": "wasteland_combat"
+		}
+	]
+}

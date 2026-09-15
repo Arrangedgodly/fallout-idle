@@ -1,0 +1,25 @@
+{
+	"schema_version": 1,
+	"activities": [
+		{
+			"id": "sort_scrap_pile",
+			"name": "Sort the Scrap Pile",
+			"skill": "scavenging",
+			"level_gate": 1,
+			"interval_ms": 3000,
+			"xp_per_action": 8,
+			"drop_table": "scrap_pile",
+			"icon": "sort_scrap_pile"
+		},
+		{
+			"id": "strip_wreck",
+			"name": "Strip a Wreck",
+			"skill": "scavenging",
+			"level_gate": 5,
+			"interval_ms": 5000,
+			"xp_per_action": 14,
+			"drop_table": "wreck_locker",
+			"icon": "strip_wreck"
+		}
+	]
+}

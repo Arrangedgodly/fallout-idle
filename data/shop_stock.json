@@ -1,0 +1,18 @@
+{
+	"schema_version": 1,
+	"shop_stock": [
+		{
+			"item": "copper_wiring",
+			"buy_price": 9,
+			"gate": { "skill": "scavenging", "level": 2 }
+		},
+		{
+			"item": "glowshroom",
+			"buy_price": 6
+		},
+		{
+			"item": "radstag_stew",
+			"buy_price": 30
+		}
+	]
+}
