@@ -1,4 +1,4 @@
-# RADLANDS Content Schema
+# Valued Resident Content Schema
 
 Contract for every content record in `data/*.json` (T2, Iron Man lane).
 Implements research decision R1 (`docs/ultron/research/r1-content-storage.md`):

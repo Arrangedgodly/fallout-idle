@@ -1,4 +1,4 @@
-# RADLANDS Save Schema — versioned structure (T2 definition, T3 implements)
+# Valued Resident Save Schema — versioned structure (T2 definition, T3 implements)
 
 The save format is a **separate namespace** from content: saves are JSON at
 `user://` written by T3 (SaveManager: atomic temp+rename write, 3-slot backup

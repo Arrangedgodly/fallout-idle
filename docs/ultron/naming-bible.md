@@ -1,4 +1,4 @@
-# RADLANDS Naming Bible — T4
+# Valued Resident Naming Bible — T4
 
 Status: awaiting approval. Owner: Data lane (Mr. Fantastic) carrying Doctor
 Strange's risk gate. Scope: every proper noun in the vertical slice, the
@@ -16,41 +16,52 @@ pun-heavy and goofy.
 
 ---
 
-## 0. Title re-verification — RADLANDS — An Idle Wasteland
+## 0. Title — **Valued Resident — An Idle Wasteland** (renamed from RADLANDS 2026-09-15)
 
-**Checklist verdict (town-hall criterion 7 list): PASS — zero hits.**
-Radlands shares no distinctive term, root, or construction with Fallout,
-Vault-Tec, Nuka-Cola, Pip-Boy, Vault Boy, G.E.C.K., T-51, Deathclaw, RadAway,
-Stimpak, RadRoach/Radroach, or Melvor. Pattern scan: no "Vault-" prefix, no
-"Nuka-" compound, no "-Boy" mascot, no letter-dash-number designation, no
-protected silhouette. The "RAD" element reads as the ordinary surf slang
-"rad(ical)" + "lands" (a place name), not Fallout's radiological "Rad-"
-compound system (RadAway/RadRoach/Radstag); it is also a real-world
-radiation-slang word long predating the games. Subtitle "An Idle Wasteland" is
-generic descriptive English.
+**Outcome: RADLANDS superseded; new title selected from a checklist-cleared shortlist and applied.**
 
-**Third-party observation (recorded, escalated, not a checklist failure).**
-A web-verified scan (2026-09-15) found: **RADLANDS** — U.S. trademark, serial
-90506045, filed 2021-02-02, registered 2024-09-10, status Live, International
-Class 28 (toys/sporting goods → board/card games), associated with the
-publisher of *Radlands*, a two-player post-apocalyptic dueling card game
-(designer Daniel Piechnick, 2021). Facts and sources are logged in
-`production-log.md` (T4 entry). Assessment:
+History, kept for the record: RADLANDS passed the town-hall criterion-7 checklist
+(zero shared terms/patterns with Fallout, Vault-Tec, Nuka-Cola, Pip-Boy, Vault Boy,
+G.E.C.K., T-51, Deathclaw, RadAway, Stimpak, RadRoach/Radroach, or Melvor), but a
+web-verified scan (2026-09-15) found **RADLANDS** — U.S. trademark, serial 90506045,
+filed 2021-02-02, registered 2024-09-10, status Live, International Class 28, held by
+the publisher of *Radlands* (designer Daniel Piechnick, 2021) — an identical word mark
+in an adjacent entertainment category with a similar genre skin. The coordinator
+halted on the question; with the user unavailable, the halt was resolved unattended
+(ultron-supreme recommended path): **rename now via a checklist-cleared shortlist;
+user override remains open.**
 
-- Identical word mark, adjacent entertainment category, similar genre skin —
-  this is a genuine proximity finding, not noise.
-- Mitigants: different goods class (our use would be class 9/41 downloadable
-  game software vs. their 28 physical games); the full mark in use is
-  "RADLANDS — An Idle Wasteland" with a distinctive descriptive subtitle; this
-  is a non-commercial hobby project with an explicit no-monetization non-goal.
-- Consequence: **no blocker for the MVP slice** (title is user-approved; a
-  later title swap is a one-line change in `project.godot`/`PRODUCT.md` and
-  re-render of the title plate). **Escalation:** if the game is ever
-  commercially distributed, re-convene Town Hall on the title before doing so.
-  Recorded here so the decision is made once, with facts.
+Re-verification (2026-09-15, same date): nine candidates were scanned across general
+web, Steam (direct store search), BoardGameGeek (via web search; direct fetch blocked),
+and USPTO/trademark aggregators (trademarkia/justia references). Five passed, three
+failed on real conflicts, one was dropped pre-scan for an internal collision. Full
+per-candidate table with sources: `production-log.md` → **Title Change Record**.
+Summary of failures: "D.O.C.S." (Steam game *The DOCS: Department of Creatures*,
+app 674200, same channel + adjacent premise), "Requisition" (*REQUISITION VR* + 2025
+sequel on Steam, post-apocalyptic), "Bureau of Wastelands" (leading element sits on
+inXile's registered **WASTELAND** mark for computer games, which has a documented
+C&D enforcement history against small developers).
 
-The title stays RADLANDS for this pipeline per user approval (town-hall
-decision 8). Everything below is original coinage or generic-word construction.
+**Selected: VALUED RESIDENT — An Idle Wasteland.** Construction: the institutional
+form of address from this bible's own voice system (Depot plate: "WELCOME, VALUED
+RESIDENT", §7) — the title is the shelter addressing the player, which is the
+design-brief thesis in one phrase. Scan verdict **PASS**: no game, board game,
+software product, or registered mark by this name in any channel scanned
+(2026-09-15); the phrase exists in the wild only as generic apartment-marketing
+English, i.e., no famous-mark overlap — and that mundane provenance is itself the
+parody. Subtitle "An Idle Wasteland" retained per coordinator instruction; it stays
+cleared as generic descriptive English per its §10 row, with one honest flag
+recorded for the user's override review: inXile's WASTELAND registration covers the
+bare word in games class, so the subtitle rides on descriptive-use mitigants
+(non-commercial hobby project, descriptive phrase, subordinate position). If the
+project is ever commercially distributed, re-convene Town Hall on title *and*
+subtitle before doing so.
+
+A future title swap touches exactly: PRODUCT.md (purpose line + brand commitments),
+this file (§0 + §10 title row), `project.godot` `config/name`, plan.md title line,
+content-schema/save-schema doc headers, and the future T9 title-screen plate in
+theme data. Everything below §0 is unchanged original coinage or generic-word
+construction.
 
 ---
 
@@ -233,7 +244,7 @@ term and why this name is distinct). Verdicts: PASS = clears every item.
 
 | Name | Construction | Proximity analysis | Verdict |
 |---|---|---|---|
-| **RADLANDS** (title) | Slang "rad(ical)" + "lands"; place-name | No shared term with any protected mark; "Rad" is ordinary slang/real-world unit, not the Fallout "Rad-" compound system (RadAway/RadRoach); no Vault-/Nuka-/-Boy pattern. Third-party class-28 board-game mark recorded separately (§0) — outside this checklist, escalated | **PASS** |
+| **Valued Resident** (title; plate form VALUED RESIDENT) | Institutional form of address from our own voice system (§7 Depot plate copy); adjective + generic noun | No game, board game, software product, or registered mark by this name (web + Steam direct store search + BGG via search + trademark aggregators, 2026-09-15 — see §0); nearest phrase use is generic apartment-lease marketing — no famous-mark overlap; superseded RADLANDS (third-party class-28 mark, §0) | **PASS** |
 | **An Idle Wasteland** (subtitle) | Generic descriptive English | "Wasteland" and "idle" are genre vocabulary; no protected term appears; not distinctive to any single mark | **PASS** |
 | **Crowns** (currency) | Real-world "crown cork" (the technical name for a bottle cap) reused as royal-sounding money | Parody is structural (cap-money), name is a generic word with different roots entirely; nearest protected concept is Nuka-Cola's caps — different word, no brand echo, icon has no star roundel | **PASS** |
 | **The Department of Continued Sheltering (D.O.C.S.)** | Ordinary bureaucratic phrase; agency acronym | No protected term; "Shelter" is generic civil-defense vocabulary, deliberately not "Vault"; acronym is original, unpunctuated-GECK-style banned pattern avoided | **PASS** |
