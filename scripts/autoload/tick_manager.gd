@@ -93,6 +93,24 @@ func new_game(world_seed: int = -1) -> void:
 	_debug("booted: seed=%d skills=%d" % [state.world_seed, state.skills_xp.size()])
 
 
+# -- T3 save-system hand-off --
+
+## Adopt a PlayerState hydrated from a save (levels already re-derived from xp
+## by PlayerState.from_dict) and resume the saved sim clock so the loaded slot
+## anchors stay consistent with the engine's closed-form math. SaveStore calls
+## this then immediately applies the offline gap via apply_offline_from_save()
+## — the away time rewinds anchors by exactly the elapsed ms (T6 contract), so
+## live ticking resumes with the phase remainder the save left off with.
+## Clock stats reset: a loaded session starts a fresh stall/clamp budget.
+func adopt_state(st: PlayerState, resume_sim_ms: int = 0) -> void:
+	state = st
+	sim_time_ms = maxi(resume_sim_ms, 0)
+	_accum_ms = 0
+	_last_wall_ms = -1
+	for key in stats:
+		stats[key] = 0
+
+
 # -- Clock funnel: _process feeds wall time; advance_wall_ms is THE entrypoint --
 
 func _process(_delta: float) -> void:

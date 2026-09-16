@@ -21,6 +21,7 @@ Game="*res://scripts/autoload/game.gd"
 ContentDB="*res://scripts/autoload/content_db.gd"
 UiTheme="*res://scripts/autoload/ui_theme.gd"
 TickManager="*res://scripts/autoload/tick_manager.gd"
+SaveStore="*res://scripts/autoload/save_store.gd"
 
 [editor_plugins]
 

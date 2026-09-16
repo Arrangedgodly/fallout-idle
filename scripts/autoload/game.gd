@@ -5,7 +5,9 @@ extends Node
 ##   Game        (T1) — this node; stays first so later singletons can reach it.
 ##   ContentDB   (T2) — LIVE: validates res://data/*.json per R1 and hydrates
 ##               typed records (scripts/content/); boot fails on any error.
-##   SaveManager (T3) — atomic versioned saves under user://.
+##   SaveStore   (T3) — LIVE: atomic versioned JSON saves under user:// with a
+##               3-slot backup ring, corruption-notice states, 60 s autosave +
+##               quit/window-close filing (scripts/autoload/save_store.gd).
 ##   UiTheme     (T8) — LIVE: signage Theme + font-scale setting
 ##               (scripts/theme/, assets/theme/signage_theme.tres).
 ##   TickManager (T6) — LIVE: budgeted 10 Hz sim loop + activity engine +

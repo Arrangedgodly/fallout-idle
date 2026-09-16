@@ -22,13 +22,14 @@ extends Control
 ## focus ring (the slider lights its track border — Godot sliders draw no
 ## focus stylebox of their own).
 ##
-## Signals (the stubs T3/T6 wire when those systems land):
+## Signals (SaveStore wires the two record controls since T3; T10a/T6 own the
+## rest):
 ##   department_selected(id)       — plate pressed (intent, before transition)
 ##   department_changed(id)        — bulkhead transition completed
 ##   activity_start_requested(id)  — the docket's big stencled button
 ##   font_scale_changed(scale)     — settings console font scale (1.0/1.5/2.0)
-##   save_requested                — FILE RECORD (persistence is T3)
-##   quit_requested                — CLOCK OUT (T3 files the record on departure)
+##   save_requested                — FILE RECORD (SaveStore files the record)
+##   quit_requested                — CLOCK OUT (SaveStore files, then quits)
 
 signal department_selected(id: String)
 signal department_changed(id: String)
@@ -572,10 +573,34 @@ func _on_fullscreen_toggled(on: bool) -> void:
 		DisplayServer.WINDOW_MODE_FULLSCREEN if on else DisplayServer.WINDOW_MODE_WINDOWED)
 
 func _on_save_pressed() -> void:
+	# Flash the queued state FIRST, then emit the intent: an attached recorder
+	# (SaveStore) files synchronously inside the emit and its stamped result
+	# replaces this flash instantly; with no recorder attached the queued
+	# flash is what the resident sees.
+	_flash_serial("RECORD QUEUED.")
 	save_requested.emit()
+
+
+## T3 wiring: SaveStore's save_completed lands here — the queued flash is
+## replaced by the stamped result (filing is synchronous; the stamp carries
+## the wall-clock moment the Department accepted the record). A refused
+## filing (blocked by a newer on-disk record, disk failure) posts a notice
+## line instead of a false all-clear.
+func mark_record(result: Dictionary) -> void:
+	if bool(result.get("ok", false)):
+		var stamp := Time.get_time_string_from_unix_time(int(result.get("unix_ms", 0)) / 1000)
+		_flash_serial("RECORD FILED · %s" % stamp)
+	else:
+		_flash_serial("RECORD NOT FILED — NOTICE POSTED")
+
+
+## One transient console-serial message: bumps the token so a newer message
+## cancels an older one's restore, then restores the standing serial after
+## two seconds.
+func _flash_serial(text: String) -> void:
 	_serial_token += 1
 	var token := _serial_token
-	console_serial.text = "RECORD QUEUED."
+	console_serial.text = text
 	await get_tree().create_timer(2.0).timeout
 	if token == _serial_token:
 		console_serial.text = CONSOLE_SERIAL
