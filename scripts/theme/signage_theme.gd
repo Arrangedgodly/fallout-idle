@@ -57,6 +57,7 @@ const FONT_SIZE_BASES := [
 	["PlateTitleEnergized", "Label", 26],
 	["PlateTitleDanger", "Label", 26],
 	["PlateSerial", "Label", 13],
+	["PlateSerialNavy", "Label", 13],
 	["SectionLabel", "Label", 19],
 	["MicroLabel", "Label", 12],
 	["BodyCopy", "Label", 15],
@@ -105,6 +106,7 @@ static func build() -> Theme:
 	_label_var(th, "PlateTitleEnergized", f_plate_title, t.SIGNAL_AMBER)
 	_label_var(th, "PlateTitleDanger", f_plate_title, t.BONE_ENAMEL)
 	_label_var(th, "PlateSerial", f_mono, t.BONE_DIM)
+	_label_var(th, "PlateSerialNavy", f_mono, t.INSTITUTIONAL_NAVY)
 	_label_var(th, "SectionLabel", f_plate, t.BONE_ENAMEL)
 	_label_var(th, "MicroLabel", f_micro, t.BONE_DIM)
 	_label_var(th, "BodyCopy", f_body, t.BONE_ENAMEL)
@@ -265,6 +267,20 @@ static func build() -> Theme:
 		th.set_stylebox("grabber", sb_type, grabber)
 		th.set_stylebox("grabber_highlight", sb_type, grabber_hi)
 		th.set_stylebox("grabber_pressed", sb_type, grabber_pr)
+
+	# -- Sliders (settings console gauge; added by T9, same material rules) ------
+	# The font-scale control reads as a recessed gauge: steel-deep inset track,
+	# amber fill behind the grabber (the registered UI-accent pair), enamel
+	# grabber plate with navy border; amber when lit.
+	for sb_type in ["HSlider", "VSlider"]:
+		th.set_stylebox("slider", sb_type, _slider_track())
+		th.set_stylebox("grabber_area", sb_type, _gauge_fill())
+		th.set_stylebox("grabber_area_highlight", sb_type, _gauge_fill())
+		th.set_icon("grabber", sb_type, load(TEXTURES + "slider_grabber.svg"))
+		th.set_icon("grabber_highlight", sb_type, load(TEXTURES + "slider_grabber_lit.svg"))
+		th.set_icon("grabber_pressed", sb_type, load(TEXTURES + "slider_grabber_lit.svg"))
+	# Slider draws no focus stylebox of its own; screens light the track border
+	# via an override on focus enter (T9 concourse does this, probe asserts it).
 
 	# -- Tooltips (posted paper) ----------------------------------------------------
 	th.set_stylebox("panel", "TooltipPanel", _paper_notice(10, 6))
@@ -468,6 +484,23 @@ static func _gauge_fill() -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = t.SIGNAL_AMBER
 	sb.set_corner_radius_all(1)
+	return sb
+
+# ------------------------------------------------------------------ sliders
+static func _slider_track() -> StyleBoxFlat:
+	var t := SignageTokens
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = t.STEEL_DEEP
+	sb.border_color = t.STEEL_LO
+	sb.border_width_top = 2
+	sb.border_width_left = 2
+	sb.border_width_bottom = 1
+	sb.border_width_right = 1
+	sb.set_corner_radius_all(2)
+	sb.content_margin_left = 6
+	sb.content_margin_right = 6
+	sb.content_margin_top = 2
+	sb.content_margin_bottom = 2
 	return sb
 
 # ------------------------------------------------------------------ lists/tabs

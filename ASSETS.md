@@ -18,6 +18,8 @@
 | assets/theme/dot_tile.svg | texture | Valued Resident pipeline (T8, ZCode session) | original | original | 2026-09-15 | T8 agent |
 | assets/theme/toggle_off.svg | texture | Valued Resident pipeline (T8, ZCode session) | original | original | 2026-09-15 | T8 agent |
 | assets/theme/toggle_on.svg | texture | Valued Resident pipeline (T8, ZCode session) | original | original | 2026-09-15 | T8 agent |
+| assets/theme/slider_grabber.svg | texture | Valued Resident pipeline (T9, ZCode session) | original | original | 2026-09-15 | T9 agent |
+| assets/theme/slider_grabber_lit.svg | texture | Valued Resident pipeline (T9, ZCode session) | original | original | 2026-09-15 | T9 agent |
 
 <!--
 Sources (font downloads, all retrieved 2026-09-15 by the T8 agent):
