@@ -461,3 +461,72 @@ func test_rebinding_twins_disconnects_previous_manager() -> void:
 	assert_false(tm_a.state.active.has("scavenging"), "old twin never started")
 	assert_eq(c.bound_tick_manager(), tm_b, "concourse reports the bound twin")
 	tm_b.stop_skill("scavenging")
+
+
+# ---------------------------------------------------------------------------
+# committed theme artifact pin (T10a retry: the stale-.tres escape)
+# ---------------------------------------------------------------------------
+
+## Production renders from the COMMITTED assets/theme/signage_theme.tres
+## (UiTheme._ready loads THEME_PATH; scenes never build the theme live). The
+## T10a verifier FAIL shipped a .tres regenerated before the final builder
+## edit: FormTitleEnergized was missing, so every energized card title fell
+## back to the base Label (bone grotesk 16 on navy) instead of the amber
+## stencil 18 on the registered amber/navy 6.96 pair — and the green suite
+## could not see it. These tests pin the artifact against the builder so a
+## stale .tres can never pass silently again.
+const THEME_TRES_PATH := "res://assets/theme/signage_theme.tres"
+
+
+func test_committed_theme_tres_matches_builder_registry() -> void:
+	var tres := load(THEME_TRES_PATH) as Theme
+	assert_not_null(tres, "committed theme .tres loads")
+	var fresh := SignageTheme.build()
+
+	for entry in SignageTheme.FONT_SIZE_BASES:
+		var type_name: String = entry[0]
+		var base_type: String = entry[1]
+		var size: int = entry[2]
+		assert_eq(tres.get_font_size("font_size", type_name), size,
+			"%s font_size in the committed .tres matches the builder registry (0 = missing — regenerate via generate_theme.gd)" % type_name)
+		if base_type != "":
+			assert_eq(tres.get_type_variation_base(type_name), base_type,
+				"%s registered in the .tres as a variation of %s (empty = missing — regenerate via generate_theme.gd)" % [type_name, base_type])
+		if base_type == "Label":
+			assert_eq(tres.get_color("font_color", type_name),
+				fresh.get_color("font_color", type_name),
+				"%s label ink in the .tres matches the builder" % type_name)
+
+
+func test_energized_card_title_resolves_amber_stencil_18() -> void:
+	# The exact escape, proven at runtime the way production reads it: a
+	# Label under the committed theme with the FormTitleEnergized variation
+	# must resolve the amber token at stencil 18 — not the base-Label
+	# fallback (bone 16) the stale artifact served.
+	var tres := load(THEME_TRES_PATH) as Theme
+	assert_not_null(tres, "committed theme .tres loads")
+	assert_true(tres.has_color("font_color", "FormTitleEnergized"),
+		"FormTitleEnergized color exists (the stale-artifact escape)")
+	assert_eq(tres.get_color("font_color", "FormTitleEnergized"),
+		SignageTokens.SIGNAL_AMBER, "energized title ink is the amber token")
+	assert_eq(tres.get_font_size("font_size", "FormTitleEnergized"), 18,
+		"energized title size is the stencil 18")
+	var fv := tres.get_font("font", "FormTitleEnergized") as FontVariation
+	assert_not_null(fv, "energized title font is the tracked stencil variation")
+	if fv != null:
+		assert_not_null(fv.base_font, "stencil base font round-tripped through the .tres")
+
+	# Control-level resolution: the variation alone (no explicit theme type,
+	# exactly how docket card titles are styled) must draw amber stencil 18.
+	var title := Label.new()
+	title.theme = tres
+	title.theme_type_variation = "FormTitleEnergized"
+	add_child_autofree(title)
+	assert_true(title.has_theme_color("font_color", "FormTitleEnergized"),
+		"variation color resolvable through the control")
+	assert_eq(title.get_theme_color("font_color", "FormTitleEnergized"),
+		SignageTokens.SIGNAL_AMBER, "resolved title color is amber")
+	assert_eq(title.get_theme_font_size("font_size", "FormTitleEnergized"), 18,
+		"resolved title size is 18")
+	assert_eq(title.get_theme_font_size("font_size"), 18,
+		"size resolves through the variation alone")
