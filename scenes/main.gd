@@ -92,9 +92,6 @@ const TRANSITION_OPEN_S := 0.34
 const SWELL := 1.05
 const FONT_STEPS := [1.0, 1.5, 2.0]
 
-const VENT_TILE := "res://assets/theme/vent_tile.svg"
-const DOT_TILE := "res://assets/theme/dot_tile.svg"
-
 var first_run := true
 var font_slider: HSlider
 var font_readout: Label
@@ -195,8 +192,7 @@ func plate_buttons_in_order() -> Array[Button]:
 func docket_for(id: String) -> Control:
 	return _dockets.get(id)
 
-## T10a live docket content controller for a department (null for Patrol —
-## T10b owns that screen; the shell placeholder shows until then).
+## T10a/T10b live docket content controller for a department.
 func docket_controller(id: String) -> Docket:
 	return _controllers.get(id)
 
@@ -448,26 +444,24 @@ func _build_docket(d: Dictionary) -> Control:
 	notice.add_child(ncol)
 	col.add_child(notice)
 
-	# T10a: live docket content — every widget renders from ContentDB records
-	# and the bound TickManager (no mocked data). Wasteland Patrol keeps the
-	# T9 placeholder internals until T10b replaces them.
+	# T10a/T10b: live docket content — every widget renders from ContentDB records
+	# and the bound TickManager (no mocked data).
 	var controller: Docket = null
 	match d.id:
 		"scavenging", "foraging":
 			controller = DocketGathering.new(d.id)
 		"junksmithing", "cooking":
 			controller = DocketProcessing.new(d.id)
+		"wasteland_patrol":
+			controller = DocketPatrol.new()
 		"manifest":
 			controller = DocketManifest.new()
 		"requisition_depot":
 			controller = DocketDepot.new()
-	if controller != null:
-		controller.name = "Content_" + d.id
-		controller.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		col.add_child(controller)
-		_controllers[d.id] = controller
-	else:
-		col.add_child(_build_patrol_placeholder())
+	controller.name = "Content_" + d.id
+	controller.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_child(controller)
+	_controllers[d.id] = controller
 
 	# The primary action — the big stencled button plate on the docket.
 	var begin := Button.new()
@@ -482,6 +476,8 @@ func _build_docket(d: Dictionary) -> Control:
 	_begin_buttons[d.id] = begin
 	if controller is DocketSkill:
 		(controller as DocketSkill).primary_button = begin
+	elif controller is DocketPatrol:
+		(controller as DocketPatrol).primary_button = begin
 
 	col.add_child(_label("PlateSerial", "DOCKET %s · PROVISIONAL POSTING · FORM 9-A" % d.serial))
 	_dockets[d.id] = col
@@ -490,38 +486,12 @@ func _build_docket(d: Dictionary) -> Control:
 
 ## The shell's primary button: announce the intent (T9 contract — probes and
 ## SaveStore listen), then route the action to the docket's controller
-## (skill dockets toggle their slot through the engine façade).
+## (skill dockets toggle their slot through the engine façade; the patrol
+## docket engages/withdraws through the combat façade).
 func _on_begin_pressed(id: String) -> void:
 	activity_start_requested.emit(id)
 	if _controllers.has(id):
 		(_controllers[id] as Docket).primary_action()
-
-
-## Wasteland Patrol placeholder (T9 shape; T10b replaces with the battle
-## docket): vent housing, unlit dot-matrix cells, mono pending readout.
-func _build_patrol_placeholder() -> Control:
-	var vent := _panel_box("VentHousing")
-	vent.name = "GaugeInset"
-	var tiles := TextureRect.new()
-	tiles.texture = load(VENT_TILE)
-	tiles.stretch_mode = TextureRect.STRETCH_TILE
-	tiles.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vent.add_child(tiles)
-	var vcol := _vbox(10)
-	vcol.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var dots := _vbox_h(6)
-	vcol.add_child(dots)
-	for i in 12:
-		var cell := TextureRect.new()
-		cell.texture = load(DOT_TILE)
-		cell.stretch_mode = TextureRect.STRETCH_TILE
-		cell.custom_minimum_size = Vector2(10.0, 10.0)
-		cell.self_modulate = SignageTokens.STEEL_LO  # unlit — gauges pending
-		dots.add_child(cell)
-	var pending := _label("MonoValue", "GAUGES PENDING CERTIFICATION · RATES UNPOSTED")
-	vcol.add_child(pending)
-	vent.add_child(vcol)
-	return vent
 
 func _build_console() -> Control:
 	var console := _panel_box("SteelPanel")

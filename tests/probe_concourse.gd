@@ -33,10 +33,19 @@ extends SceneTree
 ##      equal engine state, stamped drop/craft lines, manifest equip/unequip,
 ##      depot buy/sell through the façade, MAIL CALL presents + acknowledges,
 ##      save-notice plates post and dismiss (all keyboard);
+##   8b. T10b Wasteland Patrol wired to the live combat engine: fauna postings
+##      with visible stats + claim rates + clearance gates, keyboard engage/
+##      withdraw, HP gauges equal engine state, stamped battle lines, death
+##      renders DECEASED — RETURN TO SHELTER with zero loss displayed, offline
+##      recall renders PATROL RECALLED (alive) + MAIL CALL, first boss clear
+##      posts the persistent ZONE SECURED plate, stats panel derives from
+##      equipment, focus traversal covers the new focusables;
 ##   9. (capture mode) PNGs at 1280x720 + 1920x1080 for first-run and
 ##      active-department states under .impeccable/review/t9/, plus the T10a
 ##      set (one per department, running state, MAIL CALL, locked gates)
-##      under .impeccable/review/t10a/ — all validated.
+##      under .impeccable/review/t10a/ and the T10b set (engaged battle,
+##      death state, zone-clear plate) under .impeccable/review/t10b/ —
+##      all validated.
 
 const CONCOURSE_PATH := "res://scenes/main.tscn"
 const REVIEW_DIR := "res://.impeccable/review/t9"
@@ -79,10 +88,12 @@ func _run() -> void:
 	await _check_transition()
 	await _check_console_signals()
 	await _check_t10a_dockets()
+	await _check_t10b_patrol()
 	await _check_font_scale()
 	if _capture_mode:
 		await _capture_sets()
 		await _capture_t10a_sets()
+		await _capture_t10b_sets()
 		if _capture_unsupported:
 			_done = true
 			return  # already quitting CAPTURE_UNSUPPORTED_EXIT for the runner
@@ -343,7 +354,9 @@ func _check_transition() -> void:
 		"duplicate/unknown department selections ignored")
 
 func _check_console_signals() -> void:
-	# BEGIN SHIFT on the active docket, driven by keyboard.
+	# BEGIN SHIFT on the active docket, driven by keyboard. (T10b: the patrol
+	# controller treats this as ENGAGE — withdrawn right after so the later
+	# sections start from a clean engine state.)
 	var begin := _concourse.begin_button_for("wasteland_patrol")
 	_hook(_concourse.activity_start_requested, "begin")
 	begin.grab_focus()
@@ -351,6 +364,9 @@ func _check_console_signals() -> void:
 	_push_action("ui_accept")
 	await _frames(1)
 	_check(_counts["begin"] == 1, "ui_accept on BEGIN SHIFT fires activity_start_requested")
+	var tm_console: Node = _concourse.bound_tick_manager()
+	if tm_console != null:
+		tm_console.stop_combat()
 
 	# CLOCK OUT emits its stub signal (T3 owns persistence).
 	_hook(_concourse.quit_requested, "quit")
@@ -607,6 +623,169 @@ func _pump(tm: Node, total_ms: int) -> void:
 		fed += step
 
 
+func _pump_until_phase(tm: Node, phase: String, budget_ms: int) -> bool:
+	var fed := 0
+	while fed < budget_ms:
+		if str(tm.state.combat.get("phase", "")) == phase:
+			return true
+		_pump(tm, 500)
+		fed += 500
+	return str(tm.state.combat.get("phase", "")) == phase
+
+
+# ------------------------------------------------------------------ T10b patrol
+## Wasteland Patrol wired to the live combat engine through the SAME bound
+## TickManager: honest stats/rates on the fauna postings, keyboard engage and
+## withdraw, gauges equal engine state, stamped battle lines, death/recall/
+## zone-clear phase plates, gear-derived stats, focus traversal.
+func _check_t10b_patrol() -> void:
+	var tm: Node = _concourse.bound_tick_manager()
+	_check(tm != null, "engine bound for the patrol checks")
+	if tm == null:
+		return
+	_concourse.select_department("wasteland_patrol", true)
+	await _frames(2)
+	var patrol := _concourse.docket_controller("wasteland_patrol") as DocketPatrol
+	_check(patrol != null, "patrol docket is live content (T10b)")
+	if patrol == null:
+		return
+	var cards: Dictionary = patrol.get("_cards")
+	_check(cards.size() == 5, "five fauna postings (4 monsters + boss)")
+	var litter: DocketPatrol.FaunaCard = cards.get("junkyard_roach")
+	_check(litter != null and "HP 18" in litter.stats_line.text
+			and "ACC 15" in litter.stats_line.text and "EVERY 2.8 S" in litter.stats_line.text,
+		"fauna stats visible on the posting (honest math)")
+	_check(litter != null and "65%" in litter.drops_line.text and "×1-2" in litter.drops_line.text,
+		"claim table with exact rates visible")
+	var boss: DocketPatrol.FaunaCard = cards.get("sewer_landlord")
+	_check(boss != null and boss.gate_plate.visible and "CLEARANCE 14 REQUIRED" in boss.gate_text.text,
+		"boss posts its clearance gate")
+	_check(boss != null and "SENIOR FAUNA" in boss.tag_line.text, "boss tagged as senior fauna")
+	_check(patrol.stats_line.text == "ACCURACY 30 · EVADE 10 · MAX HIT 1-4 · SWING EVERY 3.0 S · CONDITION 100",
+		"bare-chassis derived stats posted (got '%s')" % patrol.stats_line.text)
+
+	# Keyboard engage: focus a fauna card, press Enter.
+	litter.button.grab_focus()
+	await _frames(1)
+	_push_action("ui_accept")
+	await _frames(1)
+	_check(str(tm.state.combat.get("phase", "")) == "fighting",
+		"ui_accept on a focused fauna card engages through the façade")
+	_check(patrol.phase_plate.visible and patrol.phase_line.text == ">> PATROL ENGAGED — LITTERBUG",
+		"energized phase plate while fighting (non-color cue included)")
+	_check((litter.title as Label).text == ">> LITTERBUG", "engaged fauna card energized")
+	_check(_concourse.begin_button_for("wasteland_patrol").text == "WITHDRAW PATROL",
+		"primary retexts to WITHDRAW PATROL while fighting")
+	_pump(tm, 7_000)
+	await _frames(1)
+	var cc: Dictionary = tm.state.combat
+	_check(patrol.p_read.text == "RESIDENT · %s/100 CONDITION" % str(int(cc["p_hp"])),
+		"resident gauge equals engine p_hp (got '%s')" % patrol.p_read.text)
+	_check(patrol.m_read.text == "LITTERBUG · %s/18 HP" % str(int(cc["m_hp"])),
+		"fauna gauge equals engine m_hp (got '%s')" % patrol.m_read.text)
+	var battle_line := false
+	for i in patrol.log.item_count:
+		var t := patrol.log.get_item_text(i)
+		if "»" in t and ("DAMAGE" in t or "MISS" in t):
+			battle_line = true
+	_check(battle_line, "battle lines stamped from the batched signals")
+
+	# Keyboard withdraw via the primary button.
+	_concourse.begin_button_for("wasteland_patrol").grab_focus()
+	await _frames(1)
+	_push_action("ui_accept")
+	await _frames(1)
+	_check(str(tm.state.combat.get("phase", "")) == "idle", "ui_accept on WITHDRAW stops the fight")
+	_check(_concourse.begin_button_for("wasteland_patrol").text == "ENGAGE PATROL",
+		"primary retexts to ENGAGE PATROL when stopped")
+
+	# Live death: ungearred boss fight halts + renders RETURN TO SHELTER.
+	tm.engine.grant_xp(tm.state, "wasteland_combat", 8_340)
+	tm.batcher.mark("xp")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	await _frames(1)
+	boss.button.grab_focus()
+	await _frames(1)
+	_push_action("ui_accept")
+	await _frames(1)
+	_check(str(tm.state.combat.get("phase", "")) == "fighting", "boss engages at clearance 14")
+	# Layout guard WHILE FIGHTING (the phase plate's long directive serials are
+	# the docket's widest state — the idle-state T10a guard cannot see them).
+	var housing_w: float = _concourse.docket_housing.size.x - 44.0 - 48.0
+	var need_w: float = _concourse.docket_for("wasteland_patrol").get_combined_minimum_size().x
+	_check(need_w <= housing_w, "patrol docket fits while fighting the boss (%.0f <= %.0f)" % [
+		need_w, housing_w])
+	var inv_before: Dictionary = tm.state.inventory.duplicate()
+	var ok_dead := _pump_until_phase(tm, "dead", 90_000)
+	_check(ok_dead, "ungearred boss fight ends in death")
+	await _frames(1)
+	_check(patrol.phase_plate.theme_type_variation == "DangerPlate"
+			and patrol.phase_line.text == "DECEASED — RETURN TO SHELTER",
+		"death renders the red RETURN TO SHELTER plate")
+	_check("NOTHING WAS LOST" in patrol.phase_serial.text, "zero loss displayed on the plate")
+	need_w = _concourse.docket_for("wasteland_patrol").get_combined_minimum_size().x
+	_check(need_w <= housing_w, "patrol docket fits in the death state (%.0f <= %.0f)" % [
+		need_w, housing_w])
+	_check(tm.state.inventory.duplicate() == inv_before, "death removed nothing")
+	_pump(tm, 3_000)
+	_check(str(tm.state.combat.get("phase", "")) == "dead", "combat halted after death")
+
+	# Offline recall: alive at pre-blow HP, rendered here AND via mail call.
+	(boss.button as Button).pressed.emit()
+	_pump(tm, 6_000)
+	tm.apply_offline_elapsed(3_600_000)
+	await _frames(2)
+	_check(str(tm.state.combat.get("phase", "")) == "recalled", "offline gap recalls the patrol")
+	_check(int(tm.state.combat.get("p_hp", 0)) > 0, "recalled patrol is alive at pre-blow HP")
+	_check(patrol.phase_line.text == "PATROL RECALLED — RETURN TO SHELTER",
+		"recall renders the RETURN TO SHELTER plate family")
+	_check(_concourse.mail_call.is_presenting(), "recall surfaced via MAIL CALL")
+	_check(_vp.gui_get_focus_owner() == _concourse.mail_call.ack_button,
+		"acknowledge button holds focus while the notice is posted")
+	_push_action("ui_accept")
+	await _frames(1)
+	_check(not _concourse.mail_call.is_presenting(), "ui_accept acknowledges the mail call")
+
+	# First boss clear: the persistent ZONE SECURED win-moment plate.
+	tm.state.add_item("majority_whip", 1)
+	tm.state.add_item("carpool_carapace", 1)
+	tm.state.add_item("radstag_stew", 10)
+	tm.batcher.mark("inventory")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	await _frames(1)
+	tm.equip_item("majority_whip")
+	tm.equip_item("carpool_carapace")
+	await _frames(1)
+	_check(patrol.stats_line.text == "ACCURACY 75 · EVADE 40 · MAX HIT 1-18 · SWING EVERY 2.0 S · CONDITION 150",
+		"stats re-derive from equipped gear (got '%s')" % patrol.stats_line.text)
+	var clears := {"n": 0}
+	(tm.zone_cleared as Signal).connect(func(_mid: String) -> void: clears["n"] += 1)
+	_check(not patrol.zone_plate.visible, "zone plate hidden before the first clear")
+	(boss.button as Button).pressed.emit()
+	var ok_win := _pump_until_phase(tm, "victory", 300_000)
+	_check(ok_win, "max gear + rations clears the boss")
+	await _frames(1)
+	_check(int(clears["n"]) == 1, "zone_cleared emitted exactly once")
+	_check(bool(tm.state.combat.get("zone_clear", false)), "persistent zone_clear state set")
+	_check(patrol.zone_plate.visible, "ZONE SECURED plate posted on first clear")
+
+	# Focus traversal with the patrol docket active (new focusables covered).
+	var focusables := _concourse.focusable_controls()
+	var docket_focus: Array[Control] = []
+	_collect_focusable_controls(_concourse.docket_for("wasteland_patrol"), docket_focus)
+	_check(focusables.size() == 7 + 4 + docket_focus.size(),
+		"%d focusables (7 plates, 4 console, %d patrol)" % [focusables.size(), docket_focus.size()])
+	var visited := {}
+	var cur: Control = _concourse.initial_focus()
+	var guard := 0
+	while guard < 128 and not visited.has(cur):
+		visited[cur] = true
+		cur = cur.find_next_valid_focus()
+		guard += 1
+	for f in focusables:
+		_check(visited.has(f), "focusable %s reachable via tab chain" % f.name)
+
+
 func _collect_focusable_controls(node: Node, out: Array[Control]) -> void:
 	if node is Control:
 		var c := node as Control
@@ -823,6 +1002,134 @@ func _snap_t10a(file_name: String) -> bool:
 	return true
 
 
+# ------------------------------------------------------- T10b capture set
+## Engaged battle, death state, and the zone-clear plate — all LIVE engine
+## state: a seeded fresh game, real grants/equips/engages, real pumps, real
+## offline recall-free progression. 1280x720 for all three states plus
+## 1920x1080 coverage for the engaged board and the zone plate.
+const T10B_DIR := "res://.impeccable/review/t10b"
+
+func _capture_t10b_sets() -> void:
+	if DirAccess.make_dir_recursive_absolute(T10B_DIR) != OK:
+		_check(false, "t10b review dir created")
+		return
+	var tm: Node = _concourse.bound_tick_manager()
+	if tm == null:
+		_check(false, "capture: engine bound")
+		return
+	_vp.size = Vector2i(1280, 720)  # the t10a set ends at 1920x1080; reset
+	tm.new_game(20260915)
+	tm.engine.grant_xp(tm.state, "wasteland_combat", 8_340)  # boss clearance
+	tm.state.add_item("majority_whip", 1)
+	tm.state.add_item("carpool_carapace", 1)
+	tm.state.add_item("radstag_stew", 10)
+	tm.state.add_item("mandatory_grits", 4)
+	tm.batcher.mark("inventory")
+	tm.batcher.mark("xp")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	_concourse.set_first_run(false)
+	_concourse.select_department("wasteland_patrol", true)
+	await _frames(2)
+	tm.equip_item("majority_whip")
+	tm.equip_item("carpool_carapace")
+	await _frames(2)
+
+	# Engaged battle: mid-fight against the boss with gear + rations visible.
+	var patrol := _concourse.docket_controller("wasteland_patrol") as DocketPatrol
+	var boss: DocketPatrol.FaunaCard = (patrol.get("_cards") as Dictionary).get("sewer_landlord")
+	(boss.button as Button).pressed.emit()
+	_pump(tm, 40_000)  # gauges partially drained, swings + rations stamped
+	await _frames(2)
+	if not _snap_t10b("patrol_engaged_1280x720.png"):
+		return
+
+	# Death state: strip the gear and the rations, re-engage, fall honestly.
+	tm.stop_combat()
+	tm.unequip_slot("weapon")
+	tm.unequip_slot("armor")
+	tm.state.inventory.erase("radstag_stew")
+	tm.state.inventory.erase("mandatory_grits")
+	tm.batcher.mark("inventory")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	await _frames(1)
+	(boss.button as Button).pressed.emit()
+	_pump_until_phase(tm, "dead", 120_000)
+	await _frames(2)
+	if not _snap_t10b("patrol_death_1280x720.png"):
+		return
+
+	# Zone-clear win moment: re-gear, re-engage, secure the zone.
+	tm.equip_item("majority_whip")
+	tm.equip_item("carpool_carapace")
+	tm.state.add_item("radstag_stew", 10)
+	tm.batcher.mark("inventory")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	await _frames(1)
+	(boss.button as Button).pressed.emit()
+	var ok_win := _pump_until_phase(tm, "victory", 300_000)
+	_check(ok_win, "capture: boss cleared for the zone plate")
+	await _frames(2)
+	if not _snap_t10b("patrol_zone_clear_1280x720.png"):
+		return
+
+	# 1920x1080 coverage: engaged board again (re-engage mid-fight) + plate.
+	_vp.size = Vector2i(1920, 1080)
+	await _frames(8)
+	(boss.button as Button).pressed.emit()
+	_pump(tm, 25_000)
+	await _frames(2)
+	if not _snap_t10b("patrol_engaged_1920x1080.png"):
+		return
+	tm.stop_combat()
+	await _frames(2)
+	if not _snap_t10b("patrol_zone_clear_1920x1080.png"):
+		return
+	_validate_t10b_pngs()
+
+
+func _snap_t10b(file_name: String) -> bool:
+	var img := _vp.get_texture().get_image()
+	if img == null:
+		print("HEADLESS_CAPTURE_UNSUPPORTED (dummy rasterizer returned no image)")
+		_capture_unsupported = true
+		quit(CAPTURE_UNSUPPORTED_EXIT)
+		_done = true
+		return false
+	var path := T10B_DIR + "/" + file_name
+	var err := img.save_png(path)
+	_check(err == OK, "captured %s (err=%d)" % [path, err])
+	return true
+
+
+func _validate_t10b_pngs() -> void:
+	var expects := {
+		"patrol_engaged_1280x720.png": Vector2i(1280, 720),
+		"patrol_death_1280x720.png": Vector2i(1280, 720),
+		"patrol_zone_clear_1280x720.png": Vector2i(1280, 720),
+		"patrol_engaged_1920x1080.png": Vector2i(1920, 1080),
+		"patrol_zone_clear_1920x1080.png": Vector2i(1920, 1080),
+	}
+	for file_name: String in expects:
+		var path := T10B_DIR + "/" + file_name
+		var fa := FileAccess.open(path, FileAccess.READ)
+		_check(fa != null and fa.get_length() > 0, "%s saved with size > 0" % file_name)
+		if fa == null:
+			continue
+		fa.close()
+		var img := Image.load_from_file(path)
+		_check(img != null, "%s is a loadable image" % file_name)
+		if img == null:
+			continue
+		_check(Vector2i(img.get_width(), img.get_height()) == expects[file_name],
+			"%s dimensions %dx%d" % [file_name, img.get_width(), img.get_height()])
+		var colors := {}
+		for x in range(0, img.get_width(), 16):
+			for y in range(0, img.get_height(), 16):
+				colors[img.get_pixel(x, y).to_html(true)] = true
+		_check(colors.size() >= 8, "%s renders real content (%d distinct sampled colors)" % [
+			file_name, colors.size()])
+
+
 func _validate_t10a_pngs() -> void:
 	var expects := {
 		"docket_scavenging_locked_gates_1280x720.png": Vector2i(1280, 720),
@@ -931,7 +1238,7 @@ func _check(ok: bool, label: String) -> void:
 func _report_and_quit() -> void:
 	_done = true
 	if failures.is_empty():
-		print("PROBE_OK checks=%d (concourse themed; 7 plates; two-thirds docket; first-run chalk + energized cues; full tab/arrow coverage with amber focus rings incl. T10a docket content; bounded bulkhead slide; console signals wired; T10a live-engine dockets: gates, honest rates, keyboard start/stop, gauge==state, stamps, equip/unequip, depot tenders, MAIL CALL, save notices)" % checks)
+		print("PROBE_OK checks=%d (concourse themed; 7 plates; two-thirds docket; first-run chalk + energized cues; full tab/arrow coverage with amber focus rings incl. T10a/T10b docket content; bounded bulkhead slide; console signals wired; T10a live-engine dockets: gates, honest rates, keyboard start/stop, gauge==state, stamps, equip/unequip, depot tenders, MAIL CALL, save notices; T10b patrol: honest fauna stats + claim rates + gates, keyboard engage/withdraw, gauges==state, battle stamps, DECEASED/RETURN TO SHELTER zero-loss, PATROL RECALLED + mail call, persistent ZONE SECURED, gear-derived stats, traversal)" % checks)
 		quit(0)
 	else:
 		printerr("PROBE_FAILED checks=%d failures=%d" % [checks, failures.size()])
