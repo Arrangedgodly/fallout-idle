@@ -94,9 +94,15 @@ const BASE_MAX_HIT := 4
 
 ## Replay budget: ~145 days of continuous combat at content intervals. Beyond
 ## it the replay truncates honestly at that instant (fight resumes live,
-## payload flags `truncated`) — an O(events) catch-all for absurd gaps; T14's
-## hardening pass can revisit.
+## payload flags `truncated` — surfaced by MailCallModal as a stamped line;
+## pinned by tests/test_resilience.gd): an O(events) catch-all for absurd
+## gaps.
 const MAX_OFFLINE_EVENTS := 5_000_000
+
+## T14 test seam: the replay budget as an overridable var (production default
+## = the constant; tests shrink it to reach the truncation path without
+## replaying five million events).
+var offline_event_budget: int = MAX_OFFLINE_EVENTS
 
 var lib: ContentLibrary
 var batcher: UpdateBatcher
@@ -547,7 +553,7 @@ func _stream_seed(world_seed: int, stream_id: String) -> int:
 ##       the stack runs dry, then the next killing-blow-in-waiting recalls.
 ## The replay runs ONLY when the save left a fight in progress (idle /
 ## victory / dead / recalled saves never auto-start fights), is bounded by
-## the gap's elapsed ms and the food stack (plus MAX_OFFLINE_EVENTS as an
+## the gap's elapsed ms and the food stack (plus the event budget as an
 ## O(events) catch-all), and is bit-deterministic. A still-fighting resume
 ## mirrors T6's anchor rewind: pending attack times shift back by exactly
 ## the gap, preserving the wind-up phase for live continuation.
@@ -573,14 +579,14 @@ func apply_offline(state: PlayerState, now_ms: int, elapsed_ms: int, payload: Di
 	var recalled := false
 	var recalled_at := 0
 	var events_used := 0
-	while not recalled and events_used < MAX_OFFLINE_EVENTS:
+	while not recalled and events_used < offline_event_budget:
 		var mdef: MonsterDef = lib.monster(str(c["monster_id"]))
 		if mdef == null:
 			c["phase"] = PHASE_IDLE
 			break
 		var stats := derived_stats(state)
 		var rng := _session_rng(c)
-		var r := _replay_fight(state, c, mdef, rng, stats, horizon, MAX_OFFLINE_EVENTS - events_used)
+		var r := _replay_fight(state, c, mdef, rng, stats, horizon, offline_event_budget - events_used)
 		events_used += int(r["events"])
 		if str(r["outcome"]) == "victory":
 			_roll_drops(state, mdef, rng)
@@ -608,7 +614,7 @@ func apply_offline(state: PlayerState, now_ms: int, elapsed_ms: int, payload: Di
 		c["m_next_ms"] = int(c["m_next_ms"]) - elapsed_ms
 		c["engage_ms"] = int(c["engage_ms"]) - elapsed_ms
 	_merge_offline_payload(state, payload, xp0, inv0, lvl0, kills, recalled,
-		recalled_at, zone_clear_before, events_used >= MAX_OFFLINE_EVENTS)
+		recalled_at, zone_clear_before, events_used >= offline_event_budget)
 
 
 ## One fight of the offline replay, up to `horizon` (absolute virtual ms) or

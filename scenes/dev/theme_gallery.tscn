@@ -43,18 +43,12 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 26
 
-[node name="Header" type="Panel" parent="Margins/Scroll/Column"]
+[node name="Header" type="PanelContainer" parent="Margins/Scroll/Column"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = "SteelPanel"
 
 [node name="HeaderMargin" type="MarginContainer" parent="Margins/Scroll/Column/Header"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 24
@@ -68,19 +62,13 @@ theme_override_constants/separation = 18
 layout_mode = 2
 theme_override_constants/separation = 28
 
-[node name="TitlePlate" type="Panel" parent="Margins/Scroll/Column/Header/HeaderMargin/HeaderColumn/HeaderRow"]
+[node name="TitlePlate" type="PanelContainer" parent="Margins/Scroll/Column/Header/HeaderMargin/HeaderColumn/HeaderRow"]
 custom_minimum_size = Vector2(520, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = "EnamelPlate"
 
 [node name="TitleMargin" type="MarginContainer" parent="Margins/Scroll/Column/Header/HeaderMargin/HeaderColumn/HeaderRow/TitlePlate"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 theme_override_constants/margin_left = 22
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 22
@@ -100,18 +88,12 @@ layout_mode = 2
 theme_type_variation = "PlateBody"
 text = "DEPARTMENT OF CONTINUED SHELTERING · FORM 8-B · REV. 1958-09"
 
-[node name="HeaderNotice" type="Panel" parent="Margins/Scroll/Column/Header/HeaderMargin/HeaderColumn/HeaderRow"]
+[node name="HeaderNotice" type="PanelContainer" parent="Margins/Scroll/Column/Header/HeaderMargin/HeaderColumn/HeaderRow"]
 custom_minimum_size = Vector2(360, 0)
 layout_mode = 2
 theme_type_variation = "PaperNotice"
 
 [node name="NoticeMargin" type="MarginContainer" parent="Margins/Scroll/Column/Header/HeaderMargin/HeaderColumn/HeaderRow/HeaderNotice"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 theme_override_constants/margin_left = 18
 theme_override_constants/margin_top = 14
 theme_override_constants/margin_right = 18
@@ -331,18 +313,12 @@ layout_mode = 2
 theme_type_variation = "SectionLabel"
 text = "GAUGES AND SERIAL READOUTS"
 
-[node name="GaugesPanel" type="Panel" parent="Margins/Scroll/Column"]
+[node name="GaugesPanel" type="PanelContainer" parent="Margins/Scroll/Column"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = "SteelPanel"
 
 [node name="GaugesMargin" type="MarginContainer" parent="Margins/Scroll/Column/GaugesPanel"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 24
@@ -584,19 +560,13 @@ text = "MATERIALS — PANELS, VENTS, PAPER"
 layout_mode = 2
 theme_override_constants/separation = 24
 
-[node name="SteelSpecimen" type="Panel" parent="Margins/Scroll/Column/MaterialsRow"]
+[node name="SteelSpecimen" type="PanelContainer" parent="Margins/Scroll/Column/MaterialsRow"]
 custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = "SteelPanel"
 
 [node name="Margin" type="MarginContainer" parent="Margins/Scroll/Column/MaterialsRow/SteelSpecimen"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 theme_override_constants/margin_left = 20
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 20
@@ -638,19 +608,13 @@ theme_type_variation = "MicroLabel"
 custom_minimum_size = Vector2(180, 0)
 text = "PERFORATED VENT GRID — 24 PX TILE"
 
-[node name="PaperSpecimen" type="Panel" parent="Margins/Scroll/Column/MaterialsRow"]
+[node name="PaperSpecimen" type="PanelContainer" parent="Margins/Scroll/Column/MaterialsRow"]
 custom_minimum_size = Vector2(320, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = "PaperNotice"
 
 [node name="Margin" type="MarginContainer" parent="Margins/Scroll/Column/MaterialsRow/PaperSpecimen"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 theme_override_constants/margin_left = 18
 theme_override_constants/margin_top = 14
 theme_override_constants/margin_right = 18
@@ -671,19 +635,13 @@ layout_mode = 2
 theme_type_variation = "PaperStamp"
 text = "DO NOT FOLD"
 
-[node name="DangerSpecimen" type="Panel" parent="Margins/Scroll/Column/MaterialsRow"]
+[node name="DangerSpecimen" type="PanelContainer" parent="Margins/Scroll/Column/MaterialsRow"]
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = "DangerPlate"
 
 [node name="Margin" type="MarginContainer" parent="Margins/Scroll/Column/MaterialsRow/DangerSpecimen"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 theme_override_constants/margin_left = 18
 theme_override_constants/margin_top = 14
 theme_override_constants/margin_right = 18
@@ -707,19 +665,13 @@ text = "TYPE SPECIMENS — EVERY REGISTERED PAIR"
 layout_mode = 2
 theme_override_constants/separation = 24
 
-[node name="OnSteel" type="Panel" parent="Margins/Scroll/Column/TypeRow"]
+[node name="OnSteel" type="PanelContainer" parent="Margins/Scroll/Column/TypeRow"]
 custom_minimum_size = Vector2(440, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = "SteelPanel"
 
 [node name="Margin" type="MarginContainer" parent="Margins/Scroll/Column/TypeRow/OnSteel"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 theme_override_constants/margin_left = 20
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 20
@@ -763,19 +715,13 @@ layout_mode = 2
 theme_type_variation = "MonoBig"
 text = "9,999,999"
 
-[node name="OnBone" type="Panel" parent="Margins/Scroll/Column/TypeRow"]
+[node name="OnBone" type="PanelContainer" parent="Margins/Scroll/Column/TypeRow"]
 custom_minimum_size = Vector2(330, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = "EnamelPlate"
 
 [node name="Margin" type="MarginContainer" parent="Margins/Scroll/Column/TypeRow/OnBone"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 theme_override_constants/margin_left = 20
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 20
@@ -796,19 +742,13 @@ autowrap_mode = 3
 theme_type_variation = "PlateBody"
 text = "Plate body 13 pt, navy grotesk ink on enamel."
 
-[node name="OnNavy" type="Panel" parent="Margins/Scroll/Column/TypeRow"]
+[node name="OnNavy" type="PanelContainer" parent="Margins/Scroll/Column/TypeRow"]
 custom_minimum_size = Vector2(330, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = "EnergizedPlate"
 
 [node name="Margin" type="MarginContainer" parent="Margins/Scroll/Column/TypeRow/OnNavy"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 theme_override_constants/margin_left = 20
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 20
@@ -834,19 +774,13 @@ layout_mode = 2
 theme_type_variation = "MonoValueEnergized"
 text = "+12.5 XP/S · LIT"
 
-[node name="OnPaper" type="Panel" parent="Margins/Scroll/Column/TypeRow"]
+[node name="OnPaper" type="PanelContainer" parent="Margins/Scroll/Column/TypeRow"]
 custom_minimum_size = Vector2(320, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = "PaperNotice"
 
 [node name="Margin" type="MarginContainer" parent="Margins/Scroll/Column/TypeRow/OnPaper"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 theme_override_constants/margin_left = 18
 theme_override_constants/margin_top = 14
 theme_override_constants/margin_right = 18
@@ -867,19 +801,13 @@ layout_mode = 2
 theme_type_variation = "PaperStamp"
 text = "RUBBER STAMP 13"
 
-[node name="OnRed" type="Panel" parent="Margins/Scroll/Column/TypeRow"]
+[node name="OnRed" type="PanelContainer" parent="Margins/Scroll/Column/TypeRow"]
 custom_minimum_size = Vector2(280, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = "DangerPlate"
 
 [node name="Margin" type="MarginContainer" parent="Margins/Scroll/Column/TypeRow/OnRed"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 theme_override_constants/margin_left = 18
 theme_override_constants/margin_top = 14
 theme_override_constants/margin_right = 18

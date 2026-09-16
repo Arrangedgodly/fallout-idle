@@ -184,6 +184,12 @@ func _build_lines() -> void:
 				SignageFmt.num(kills),
 				String(monster.name).to_upper() if monster != null
 					else str(combat.get("monster_id", "")).to_upper()]))
+		if bool(combat.get("truncated", false)):
+			# T7's honest-truncation flag (replay budget exhausted): the gains
+			# posted stop at the recording limit and the fight resumes live —
+			# stated, never silently dropped.
+			body_box.add_child(_paper_serial(
+				"PATROL LEDGER TRUNCATED · THE RECORD STOPS AT THE POSTING LIMIT · FIGHT RESUMES LIVE."))
 		if str(combat.get("notice", "")) != "" or _has_recall_stop():
 			var recall := PanelContainer.new()
 			recall.name = "RecallPlate"

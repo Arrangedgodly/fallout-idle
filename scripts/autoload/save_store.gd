@@ -42,6 +42,13 @@ extends Node
 ## parses back as ...992.0), so both ship as STRINGS. int() accepts the string
 ## form on the way back in; the round-trip is bit-exact (pinned by tests).
 ##
+## BIG-INT STATE (T14 sweep — the same cliff, every large-int field): crowns,
+## per-skill lifetime xp and inventory stacks are UNBOUNDED ints in play
+## (max-rate gathering crosses 2^53 crowns in ~11 days of sold yield), so each
+## ships as a NUMBER while exactly float-representable and flips to a STRING
+## at |v| >= 2^53 (small saves keep their historical all-numeric shape;
+## _validate_doc accepts both forms for exactly these fields).
+##
 ## INJECTABILITY (test isolation — binding): base_dir defaults to user:// for
 ## production; tests inject an absolute OS temp dir and call _boot() on a bare
 ## SaveStore.new() that never enters the tree (so _ready/dormancy never run).
@@ -87,6 +94,12 @@ var _created_unix := 0  ## meta stamp, never rewritten after the first save
 var _playtime_s := 0
 var _session_boot_unix_ms := 0
 var _last_autosave_ms := 0
+## T14 serialization latches: filings never interleave with a resolving load
+## (or a filing in progress) — both run on the main thread synchronously, and
+## the latches make that structural instead of incidental (see save_now /
+## load_or_fresh).
+var _in_save := false
+var _in_load := false
 
 
 func _ready() -> void:
@@ -141,10 +154,34 @@ func save_now(now_ms := -1) -> Dictionary:
 	var now := now_ms if now_ms >= 0 else _now_ms()
 	if _dormant:
 		return {"ok": false, "reason": "dormant (script mode)", "unix_ms": now}
+	if _in_load:
+		# T14 serialization latch: a filing attempt while a load is resolving
+		# (only reachable re-entrantly from a notice/save signal handler — the
+		# main thread runs load_or_fresh synchronously) must never interleave
+		# a half-adopted engine state onto the disk. Returns WITHOUT emitting
+		# save_completed: a never-started filing is not a filing result, and
+		# emitting here would re-trigger the very handler that caused the
+		# refusal (an event storm).
+		return {"ok": false, "reason": "filing refused: a load is still resolving (no interleaved writes)", "unix_ms": now}
+	if _in_save:
+		# Re-entrant call from inside the filing's own save_completed chain:
+		# refuse (and do not re-emit) rather than double-file from inside a
+		# filing.
+		return {"ok": false, "reason": "filing refused: a filing is already in progress", "unix_ms": now}
 	if save_blocked:
 		return _fail_save(now, "filing refused: the on-disk record is from a newer build (refused-load protection)")
 	if _tm == null or _tm.state == null:
 		return _fail_save(now, "no engine bound to the recorder")
+	_in_save = true
+	var result := _file(now)
+	_in_save = false
+	return result
+
+
+## The filing itself (called only from save_now under the _in_save latch):
+## build + atomic write + stamps + result emission. Never awaits — a filing
+## is one synchronous main-thread transaction.
+func _file(now: int) -> Dictionary:
 	var doc := _build_doc(now)
 	var written := _atomic_write(JSON.stringify(doc, "\t"))
 	if not written["ok"]:
@@ -176,6 +213,15 @@ func _build_doc(now: int) -> Dictionary:
 		var slot: Dictionary = engine["active"][skill_id]
 		slot["rng_seed"] = str(int(slot["rng_seed"]))
 		slot["rng_state"] = str(int(slot["rng_state"]))
+	# T14 big-int sweep: unbounded player ints flip to strings at the 2^53
+	# JSON cliff (see header). PlayerState.from_dict int()s both forms back.
+	engine["crowns"] = _json_int(int(engine["crowns"]))
+	var xp_out: Dictionary = engine["skills_xp"]
+	for skill_id in xp_out:
+		xp_out[skill_id] = _json_int(int(xp_out[skill_id]))
+	var inv_out: Dictionary = engine["inventory"]
+	for item_id in inv_out:
+		inv_out[item_id] = _json_int(int(inv_out[item_id]))
 	return {
 		"save_version": SAVE_VERSION,
 		"content_schema_version": ContentLoader.SCHEMA_VERSION,
@@ -248,6 +294,16 @@ func _rotate_ring(dir: DirAccess) -> void:
 ## a successful load never writes (the next autosave re-primes the primary).
 func load_or_fresh(now_ms := -1) -> Dictionary:
 	var now := now_ms if now_ms >= 0 else _now_ms()
+	# T14 serialization latch: while a load resolves (including every notice
+	# it raises), save_now is refused — a half-adopted engine state must never
+	# reach the disk, and the quarantine/ring walk must not race a filing.
+	_in_load = true
+	var report := _load_inner(now)
+	_in_load = false
+	return report
+
+
+func _load_inner(now: int) -> Dictionary:
 	notice = {}
 	save_blocked = false
 	content_drift = {}
@@ -425,7 +481,7 @@ func _validate_doc(d: Dictionary) -> String:
 	var e: Dictionary = eng
 	if not _is_number(e.get("world_seed")) or int(e["world_seed"]) < 0:
 		return "engine.world_seed invalid"
-	if not _is_number(e.get("crowns")) or int(e["crowns"]) < 0:
+	if not _is_exact_int(e.get("crowns")) or int(e["crowns"]) < 0:
 		return "engine.crowns invalid"
 	var lib := _lib()
 	if lib == null:
@@ -437,7 +493,7 @@ func _validate_doc(d: Dictionary) -> String:
 	for skill_id in (xp as Dictionary):
 		if not lib.skills.has(skill_id):
 			return "skills_xp references unknown skill '%s'" % skill_id
-		if not _is_number((xp as Dictionary)[skill_id]) or int((xp as Dictionary)[skill_id]) < 0:
+		if not _is_exact_int((xp as Dictionary)[skill_id]) or int((xp as Dictionary)[skill_id]) < 0:
 			return "skills_xp['%s'] is not a non-negative integer" % skill_id
 	# inventory (int stacks against known items)
 	var inv: Variant = e.get("inventory")
@@ -446,7 +502,7 @@ func _validate_doc(d: Dictionary) -> String:
 	for item_id in (inv as Dictionary):
 		if not lib.items.has(item_id):
 			return "inventory references unknown item '%s'" % item_id
-		if not _is_number((inv as Dictionary)[item_id]) or int((inv as Dictionary)[item_id]) < 0:
+		if not _is_exact_int((inv as Dictionary)[item_id]) or int((inv as Dictionary)[item_id]) < 0:
 			return "inventory['%s'] is not a non-negative integer" % item_id
 	# active slots (one per non-combat skill; ids must resolve in content)
 	var act: Variant = e.get("active")
@@ -657,3 +713,19 @@ func _is_number(v: Variant) -> bool:
 	if v is float:
 		return absf(v) < 9007199254740992.0
 	return false
+
+
+## T14 big-int form: int, exactly-representable float, OR integer string
+## (the >= 2^53 ship-as-string convention — int() parses it back exactly).
+func _is_exact_int(v: Variant) -> bool:
+	if _is_number(v):
+		return true
+	return v is String and (v as String).is_valid_int()
+
+
+## Ship one player int: numeric while exactly float-representable, a string
+## from the 2^53 cliff up (full int64 exactness through the JSON round-trip).
+func _json_int(v: int) -> Variant:
+	if v >= 9007199254740992 or v <= -9007199254740992:
+		return str(v)
+	return v
