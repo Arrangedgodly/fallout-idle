@@ -148,6 +148,8 @@ func test_gate_locks_render_and_denial_stamps() -> void:
 	var locked: DocketSkill.Card = cards["strip_wreck"]
 	assert_true(locked.gate_plate.visible, "locked tier posts its clearance plate")
 	assert_string_contains(locked.gate_text.text, "CLEARANCE 5 REQUIRED", "required level shown")
+	assert_string_contains(locked.gate_text.text, "EARNED BY WORKING THIS DEPARTMENT'S POSTED SHIFTS",
+		"gate plate teaches the earning path (refinement 2, critique P2#4)")
 	var open: DocketSkill.Card = cards["sort_scrap_pile"]
 	assert_false(open.gate_plate.visible, "level-1 tier has no gate plate")
 

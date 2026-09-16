@@ -7,7 +7,9 @@ extends Docket
 ##
 ## Card states are never color-alone (Daredevil floor): the running card
 ## carries the Energized variation AND a ">> " prefix on its title; a locked
-## card posts a red CLEARANCE plate whose text names the required grade.
+## card posts a red CLEARANCE plate whose text names the required grade and
+## the earning path (refinement 2, critique P2#4: working this department's
+## posted shifts is what elevates the gate).
 ## The shell's big stencled button retexts BEGIN SHIFT <-> END SHIFT.
 ##
 ## Update discipline: gauge/cards/log mutate ONLY inside bulk_state_changed
@@ -357,8 +359,11 @@ func _apply_card_state(card: Card, energized: bool, locked: bool) -> void:
 func _gate_text(content_id: String) -> String:
 	# On a skill's own docket the gating skill is self-evident — the plate
 	# names only the grade (the Depot, where gates span skills, names both).
+	# Refinement 2 (critique P2#4): the plate also teaches the earning path —
+	# the gate is the level of THIS docket's skill, and working its posted
+	# shifts is what grants the XP that elevates it. Plate idiom, no tooltip.
 	var gate: Dictionary = tm.engine.gate_of(content_id)
-	return "CLEARANCE %d REQUIRED" % int(gate["level"])
+	return "CLEARANCE %d REQUIRED · EARNED BY WORKING THIS DEPARTMENT'S POSTED SHIFTS" % int(gate["level"])
 
 
 ## Subclass hook: refresh lines that read live inventory (craftable counts).

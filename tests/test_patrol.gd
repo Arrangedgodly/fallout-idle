@@ -154,6 +154,8 @@ func test_patrol_cards_match_content() -> void:
 	var bunny: DocketPatrol.FaunaCard = cards["greater_dust_bunny"]
 	assert_true(bunny.gate_plate.visible, "Dust Bunny gate plate visible at level 1")
 	assert_string_contains(bunny.gate_text.text, "CLEARANCE 4 REQUIRED")
+	assert_string_contains(bunny.gate_text.text, "EARNED BY PATROLLING THIS ZONE",
+		"fauna gate teaches the earning path (kills raise combat clearance)")
 	var boss: DocketPatrol.FaunaCard = cards["sewer_landlord"]
 	assert_true(boss.gate_plate.visible, "boss gate plate visible at level 1")
 	assert_string_contains(boss.gate_text.text, "CLEARANCE 14 REQUIRED")
@@ -186,6 +188,7 @@ func test_engage_gauges_and_log_match_engine() -> void:
 	assert_eq(docket.m_read.text, "LITTERBUG · 18/18 HP", "fauna gauge reads max HP at engage")
 	assert_true(docket.phase_plate.visible, "phase plate posted while fighting")
 	assert_eq(docket.phase_line.text, ">> PATROL ENGAGED — LITTERBUG")
+	assert_false(docket.phase_directive.visible, "recovery directive is the death plate's alone")
 	assert_eq((cards["junkyard_roach"].title as Label).text, ">> LITTERBUG", "engaged card carries the non-color cue")
 	assert_eq((cards["junkyard_roach"].button as Button).theme_type_variation, "Energized")
 	assert_eq(c.begin_button_for("wasteland_patrol").text, "WITHDRAW PATROL", "primary retexts while fighting")
@@ -291,6 +294,16 @@ func test_live_death_halts_and_renders_return_to_shelter() -> void:
 	assert_eq(docket.phase_plate.theme_type_variation, "DangerPlate", "death renders the red plate")
 	assert_eq(docket.phase_line.text, "DECEASED — RETURN TO SHELTER")
 	assert_string_contains(docket.phase_serial.text, "NOTHING WAS LOST", "zero loss displayed on the plate")
+	# Refinement 2 (critique P1#2): the death plate posts the recovery
+	# directive — re-engagement named, the no-loss fact kept on the plate,
+	# and the full-condition reset the engine actually performs on engage.
+	assert_true(docket.phase_directive.visible, "recovery directive posted on the death plate")
+	assert_string_contains(docket.phase_directive.text, "RE-ENGAGE WHEN READY",
+		"directive names the next step: re-engage")
+	assert_string_contains(docket.phase_directive.text, "DESIGNATION IS PRESERVED",
+		"directive keeps the designation fact (state.combat.monster_id persists)")
+	assert_string_contains(docket.phase_directive.text, "FULL CONDITION",
+		"directive states the full-condition reset of a fresh engagement")
 	assert_true(_log_has(docket, "DECEASED — RETURN TO SHELTER · ZERO LOSS POSTED"))
 	assert_eq(docket.p_read.text, "RESIDENT · 0/100 CONDITION", "resident gauge reads the death honestly")
 	assert_eq(tm.state.inventory.duplicate(), inv_before, "death removed nothing from the Manifest")
@@ -306,6 +319,7 @@ func test_live_death_halts_and_renders_return_to_shelter() -> void:
 	(_cards(docket)["sewer_landlord"].button as Button).pressed.emit()
 	assert_eq(str(tm.state.combat["phase"]), "fighting")
 	assert_eq(int(tm.state.combat["p_hp"]), 100)
+	assert_false(docket.phase_directive.visible, "directive clears the moment the patrol re-engages")
 	tm.stop_combat()
 
 

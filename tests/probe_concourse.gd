@@ -34,12 +34,14 @@ extends SceneTree
 ##      depot buy/sell through the façade, MAIL CALL presents + acknowledges,
 ##      save-notice plates post and dismiss (all keyboard);
 ##   8b. T10b Wasteland Patrol wired to the live combat engine: fauna postings
-##      with visible stats + claim rates + clearance gates, keyboard engage/
-##      withdraw, HP gauges equal engine state, stamped battle lines, death
-##      renders DECEASED — RETURN TO SHELTER with zero loss displayed, offline
-##      recall renders PATROL RECALLED (alive) + MAIL CALL, first boss clear
-##      posts the persistent ZONE SECURED plate, stats panel derives from
-##      equipment, focus traversal covers the new focusables;
+##      with visible stats + claim rates + clearance gates (naming the earning
+##      path), keyboard engage/withdraw, HP gauges equal engine state, stamped
+##      battle lines, death renders DECEASED — RETURN TO SHELTER with zero
+##      loss displayed AND the recovery directive (refinement 2, critique
+##      P1#2: re-engagement named, designation preserved, full-condition
+##      reset), offline recall renders PATROL RECALLED (alive) + MAIL CALL,
+##      first boss clear posts the persistent ZONE SECURED plate, stats panel
+##      derives from equipment, focus traversal covers the new focusables;
 ##   9. R1 geometry pin (refinement 1, critique P1#1 + P2#3): the header row
 ##      and the docket content region never intersect, a department change
 ##      resets the docket scroll to its content top (the enamel header plate
@@ -432,6 +434,11 @@ func _check_t10a_dockets() -> void:
 			and "CLEARANCE 5 REQUIRED" in locked_card.gate_text.text,
 		"locked tier posts CLEARANCE 5 REQUIRED (got '%s')" % (
 			locked_card.gate_text.text if locked_card else "no card"))
+	# Refinement 2 (critique P2#4): the gate plate teaches the earning path —
+	# the gate is this docket's own skill level, raised by working its shifts.
+	_check(locked_card != null and "EARNED BY WORKING THIS DEPARTMENT'S POSTED SHIFTS" in locked_card.gate_text.text,
+		"locked tier names the earning path (got '%s')" % (
+			locked_card.gate_text.text if locked_card else "no card"))
 	var open_card: DocketSkill.Card = cards.get("sort_scrap_pile")
 	_check(open_card != null and not open_card.gate_plate.visible,
 		"level-1 tier ungated")
@@ -495,8 +502,9 @@ func _check_t10a_dockets() -> void:
 			craftable_after, smelt.yields_line.text])
 	var gated_recipe: DocketSkill.Card = smith_cards.get("forge_scrap_shiv")
 	_check(gated_recipe != null and gated_recipe.gate_plate.visible
-			and "CLEARANCE 8 REQUIRED" in gated_recipe.gate_text.text,
-		"locked recipe posts CLEARANCE 8 REQUIRED")
+			and "CLEARANCE 8 REQUIRED" in gated_recipe.gate_text.text
+			and "EARNED BY WORKING THIS DEPARTMENT'S POSTED SHIFTS" in gated_recipe.gate_text.text,
+		"locked recipe posts CLEARANCE 8 REQUIRED with the earning path")
 	smelt.button.grab_focus()
 	await _frames(1)
 	_push_action("ui_accept")
@@ -669,6 +677,8 @@ func _check_t10b_patrol() -> void:
 	var boss: DocketPatrol.FaunaCard = cards.get("sewer_landlord")
 	_check(boss != null and boss.gate_plate.visible and "CLEARANCE 14 REQUIRED" in boss.gate_text.text,
 		"boss posts its clearance gate")
+	_check(boss != null and "EARNED BY PATROLLING THIS ZONE" in boss.gate_text.text,
+		"fauna gate names the earning path (patrol raises combat clearance)")
 	_check(boss != null and "SENIOR FAUNA" in boss.tag_line.text, "boss tagged as senior fauna")
 	_check(patrol.stats_line.text == "ACCURACY 30 · EVADE 10 · MAX HIT 1-4 · SWING EVERY 3.0 S · CONDITION 100",
 		"bare-chassis derived stats posted (got '%s')" % patrol.stats_line.text)
@@ -732,6 +742,14 @@ func _check_t10b_patrol() -> void:
 			and patrol.phase_line.text == "DECEASED — RETURN TO SHELTER",
 		"death renders the red RETURN TO SHELTER plate")
 	_check("NOTHING WAS LOST" in patrol.phase_serial.text, "zero loss displayed on the plate")
+	# Refinement 2 (critique P1#2): the death plate posts the recovery
+	# directive — the next step (re-engage), the designation fact, and the
+	# full-condition reset the engine performs on every engage.
+	_check(patrol.phase_directive.visible
+			and "RE-ENGAGE WHEN READY" in patrol.phase_directive.text
+			and "DESIGNATION IS PRESERVED" in patrol.phase_directive.text
+			and "FULL CONDITION" in patrol.phase_directive.text,
+		"death plate posts the recovery directive (got '%s')" % patrol.phase_directive.text)
 	need_w = _concourse.docket_for("wasteland_patrol").get_combined_minimum_size().x
 	_check(need_w <= housing_w, "patrol docket fits in the death state (%.0f <= %.0f)" % [
 		need_w, housing_w])
@@ -1319,7 +1337,7 @@ func _check(ok: bool, label: String) -> void:
 func _report_and_quit() -> void:
 	_done = true
 	if failures.is_empty():
-		print("PROBE_OK checks=%d (concourse themed; 7 plates; two-thirds docket; first-run chalk + energized cues; full tab/arrow coverage with amber focus rings incl. T10a/T10b docket content; bounded bulkhead slide; console signals wired; T10a live-engine dockets: gates, honest rates, keyboard start/stop, gauge==state, stamps, equip/unequip, depot tenders, MAIL CALL, save notices; T10b patrol: honest fauna stats + claim rates + gates, keyboard engage/withdraw, gauges==state, battle stamps, DECEASED/RETURN TO SHELTER zero-loss, PATROL RECALLED + mail call, persistent ZONE SECURED, gear-derived stats, traversal)" % checks)
+		print("PROBE_OK checks=%d (concourse themed; 7 plates; two-thirds docket; first-run chalk + energized cues; full tab/arrow coverage with amber focus rings incl. T10a/T10b docket content; bounded bulkhead slide; console signals wired; T10a live-engine dockets: gates + earning-path copy, honest rates, keyboard start/stop, gauge==state, stamps, equip/unequip, depot tenders, MAIL CALL, save notices; T10b patrol: honest fauna stats + claim rates + gates + earning path, keyboard engage/withdraw, gauges==state, battle stamps, DECEASED/RETURN TO SHELTER zero-loss + recovery directive, PATROL RECALLED + mail call, persistent ZONE SECURED, gear-derived stats, traversal)" % checks)
 		quit(0)
 	else:
 		printerr("PROBE_FAILED checks=%d failures=%d" % [checks, failures.size()])

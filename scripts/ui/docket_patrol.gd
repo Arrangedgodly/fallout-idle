@@ -18,9 +18,14 @@ extends Docket
 ##
 ## Phase states are never color-alone (Daredevil floor): each phase renders a
 ## plate with distinct wording — FIGHTING (energized ">> PATROL ENGAGED"),
-## DEAD ("DECEASED — RETURN TO SHELTER" + zero-loss line), VICTORY (enamel
-## plate + claim stamps), RECALLED ("PATROL RECALLED" — withdrawn alive, zero
-## loss), plus the persistent ZONE SECURED certificate once the boss falls
+## DEAD ("DECEASED — RETURN TO SHELTER" + zero-loss line + recovery
+## directive — refinement 2, critique P1#2: the genre's most vulnerable
+## moment posts the next step: re-engagement is immediate, the designation is
+## kept, and a fresh engagement restores full condition per balance-notes
+## §1.4 addendum 1), VICTORY (enamel plate + claim stamps), RECALLED
+## ("PATROL RECALLED" — withdrawn alive, zero loss), plus the persistent
+## ZONE SECURED certificate once the boss falls (state.combat.zone_clear
+## survives save/load).
 ## (state.combat.zone_clear survives save/load).
 ##
 ## Swing attribution without per-swing signals: the engine marks "combat" per
@@ -57,6 +62,7 @@ var zone_plate: PanelContainer
 var phase_plate: PanelContainer
 var phase_line: Label
 var phase_serial: Label
+var phase_directive: Label
 var p_gauge: ProgressBar
 var p_read: Label
 var m_gauge: ProgressBar
@@ -111,8 +117,11 @@ func _build_content() -> void:
 	add_child(zone_plate)
 
 	# Phase plate — one distinct rendering per combat phase (wording carries
-	# the state; the plate color only escorts it). Stacked rows with a wrapped
-	# serial: the long directive lines must never push the docket wide.
+	# the state; the plate color only escorts it). Stacked rows with wrapped
+	# serials: the long directive lines must never push the docket wide.
+	# Third row: the DECEASED plate's recovery directive (refinement 2) —
+	# BodyCopy, the same registered label/plate pair the death serial already
+	# uses; hidden in every other phase.
 	phase_plate = panel_box("EnergizedPlate")
 	phase_plate.name = "PhasePlate"
 	phase_plate.visible = false
@@ -122,6 +131,10 @@ func _build_content() -> void:
 	phase_serial = label("PlateBodyEnergized", "")
 	phase_serial.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	prow.add_child(phase_serial)
+	phase_directive = label("BodyCopy", "")
+	phase_directive.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	phase_directive.visible = false
+	prow.add_child(phase_directive)
 	phase_plate.add_child(prow)
 	add_child(phase_plate)
 
@@ -528,6 +541,7 @@ func _refresh_battle() -> void:
 
 func _apply_phase_plate(phase: String, mdef: MonsterDef) -> void:
 	var mname := mdef.name.to_upper() if mdef != null else "FAUNA"
+	phase_directive.visible = false
 	match phase:
 		CombatSession.PHASE_FIGHTING:
 			phase_plate.theme_type_variation = "EnergizedPlate"
@@ -542,6 +556,13 @@ func _apply_phase_plate(phase: String, mdef: MonsterDef) -> void:
 			phase_serial.theme_type_variation = "BodyCopy"
 			phase_line.text = "DECEASED — RETURN TO SHELTER"
 			phase_serial.text = "NOTHING WAS LOST · THE ZONE THANKS YOU FOR YOUR CONTRIBUTIONS (PARTIAL)"
+			# Recovery directive (refinement 2, critique P1#2): every clause is
+			# engine fact — engage() is callable immediately (no cooldown, no
+			# penalty), the designation persists in state.combat.monster_id, and
+			# every engage resets condition to full (balance-notes §1.4 addendum
+			# 1). Naming-bible §8: directive voice, calm ALL-CAPS, no promises.
+			phase_directive.visible = true
+			phase_directive.text = "RE-ENGAGE WHEN READY · YOUR DESIGNATION IS PRESERVED · THE NEXT ENGAGEMENT BEGINS AT FULL CONDITION"
 			phase_plate.visible = true
 		CombatSession.PHASE_VICTORY:
 			phase_plate.theme_type_variation = "EnamelPlate"
@@ -595,7 +616,12 @@ func _apply_card_state(card: FaunaCard, mdef: MonsterDef, energized: bool, locke
 		card.drops_line.theme_type_variation = "PlateSerialNavy"
 	if mdef != null:
 		card.stats_line.text = _stats_text(mdef)
-	card.gate_text.text = "CLEARANCE %d REQUIRED" % (mdef.level_gate if mdef != null else 0)
+	# Refinement 2 (critique P2#4): the gate plate teaches the earning path —
+	# Wasteland Combat clearance rises on kills while patrolling this zone
+	# (victory XP rides the shared pipeline). Same plate idiom as the workshop
+	# dockets' "EARNED BY WORKING THIS DEPARTMENT'S POSTED SHIFTS".
+	card.gate_text.text = "CLEARANCE %d REQUIRED · EARNED BY PATROLLING THIS ZONE" % (
+		mdef.level_gate if mdef != null else 0)
 	card.gate_plate.visible = locked
 
 
