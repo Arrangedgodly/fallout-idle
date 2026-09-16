@@ -22,7 +22,7 @@ First import from the command line instead:
 godot --headless --path . --import
 ```
 
-The game window opens at 1280x720, uses the GL Compatibility renderer, and is playable with mouse or keyboard alone. Saves live in Godot's per-user `user://` data directory, never in the repo.
+The game window opens at 1280x720, uses the GL Compatibility renderer, and is playable with mouse or keyboard alone. A first run opens on the **ORIENTATION FORM O-1** — a posted seven-line checklist that walks you to your first shift, clearance, sale, craft, patrol provision, victory, and deputy. Saves live in Godot's per-user `user://` data directory, never in the repo.
 
 ## Run the tests
 
@@ -38,7 +38,10 @@ GODOT=/path/to/godot ./run_tests.sh
 
 ## Features
 
-- **Seven departments, five skills** — Scavenging, Foraging, Junksmithing, Cooking, and Wasteland Patrol (auto-battle combat), plus the Requisition Depot shop and the Manifest (inventory and equipment).
+- **Eight departments, five skills** — Scavenging, Foraging, Junksmithing, Cooking, and Wasteland Patrol (auto-battle combat), plus the Requisition Depot shop, the Manifest (inventory and equipment), and the Personnel office.
+- **ORIENTATION FORM O-1** — a low-text first-run checklist posted on the concourse: seven stencil lines, each stamped as you do it (work a shift, earn a clearance, file a claim, process a product, provision the patrol, clear a nuisance, deputize a resident). A walking arrow cue points at the next department; completing the form posts the DULY ORIENTED stamp and an orientation stipend.
+- **Personnel postings** — you start with one posting (your own two hands) and deputize residents at the PERSONNEL plate (D-08) to run more skills at once, up to all five. Starting a shift with no free posting is refused with a posted directive — nothing is silently stopped. The patrol occupies a posting like any skill.
+- **An icon language, not decoration** — every stat has its own instrument glyph, clearance gates carry a rising three-step staircase (never a padlock), log and mail lines carry their subject's mark, and every price carries the crown mark. 54 original SVGs, one stencil grammar.
 - **Honest math** — drop tables and success rates are posted on screen; every gameplay number renders in mono digits.
 - **Clearance gates** — skill levels unlock new activities and recipes as numbered clearances.
 - **Auto-battle patrols** — attack speed, accuracy, max hit; weapon and armor slots; food is auto-eaten at half health, best first. Death ends the patrol with zero losses.
@@ -52,7 +55,7 @@ GODOT=/path/to/godot ./run_tests.sh
 
 | Key | Action |
 | --- | --- |
-| `1`–`7` | Jump to a department (digit row or numpad) |
+| `1`–`8` | Jump to a department (digit row or numpad) — `8` is PERSONNEL |
 | `Tab` / `Shift+Tab` | Move focus through the concourse |
 | `Enter` / `Space` | Activate the focused control |
 | `Esc` | Acknowledge a MAIL CALL notice |
@@ -73,7 +76,7 @@ Every shipped file under `assets/` has a provenance row in [`ASSETS.md`](ASSETS.
 
 ## Status
 
-Hobby project; vertical slice complete, pre-release. The code itself has no distribution license yet (all rights reserved for now). The subtitle word "Wasteland" is queued for a naming/licensing review before any wider distribution.
+Hobby project; vertical slice plus the run-2 systems (orientation form, personnel postings, expanded icon language) complete, pre-release. The code itself has no distribution license yet (all rights reserved for now). The subtitle word "Wasteland" is queued for a naming/licensing review before any wider distribution.
 
 ## Documentation
 
