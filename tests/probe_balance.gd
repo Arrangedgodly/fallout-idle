@@ -27,6 +27,15 @@ extends SceneTree
 ##      roll, bounded damage, first swing after one full interval, auto-eat
 ##      at half HP): The Superintendent is beatable with max slice gear +
 ##      best food and NOT with mid gear — and not by out-eating it naked.
+##   9. T20 PERSONNEL ECONOMY — the deputy ladder + orientation stipend in
+##      data/staffing.json are priced against an earning curve RECOMPUTED
+##      here from the authored content (per-table EV = Σ P x avg_qty x
+##      value; gross rate = EV x 60000/interval_ms), not hardcoded: the
+##      curve checkpoints hold, each deputy is affordable inside its window
+##      on the conservative documented model (and NOT before the window
+##      opens), the stipend's sizing rules hold, and the boss sims above
+##      still pass unchanged (deputies buy postings, not power).
+##      Derivation + assumptions: docs/balance-notes.md §5.1-§5.3.
 
 const SEEDS := 25
 const SIM_CAP_MS := 3_600_000
@@ -99,6 +108,7 @@ func _initialize() -> void:
 	_check_orphans_strong()
 	_check_shop_integrity()
 	_check_combat_sims()
+	_check_personnel_economy()
 
 
 func _process(_delta: float) -> bool:
@@ -536,6 +546,155 @@ func _check_combat_sims() -> void:
 		"Fizzard wants a weapon (bare loses)")
 	_check(_run_fights("dispenser vs MID + 4 cass", "scrap_shiv", "hubcap_vest", "feral_snack_dispenser", {"compliant_casserole": 4})["wins"] >= SEEDS - 2,
 		"Dispenser wants armor + food (mid gear + casseroles wins)")
+
+
+# -------------------------------------------------------- personnel economy
+# T20: the deputy ladder + orientation stipend (data/staffing.json) are
+# priced against an earning curve RECOMPUTED here from the authored tables.
+# Factors are the documented conservative model of balance-notes §5.1 —
+# if you twiddle the content economy, these checkpoints trip before the
+# ladder silently mis-paces:
+#   phase A (1 posting, minutes 0-15): gathering holds ~70% of attention
+#     (grits/ingots/the Litterbug/the Depot trips), retention 0.50 (the
+#     other half of the take self-provisions); tier-2 blends from minute 6
+#     (both gathering skills cross L5's 425 XP at ~70 XP/min split);
+#   phases B-D (2/3/4 postings): retention 0.75 (stockpiles built,
+#     processing adds value) and 1.5/2.2/3.0 effective gathering streams —
+#     a posting beyond the two gatherings runs cooking/combat value-add,
+#     never a third full gathering stream.
+const PERSONNEL_ATTENTION := 0.70
+const PERSONNEL_RETAIN_NEW := 0.50
+const PERSONNEL_RETAIN := 0.75
+const PERSONNEL_STREAMS := [1.5, 2.2, 3.0]
+const DEPUTY1_FAST_GUARD_MIN := 3  # a pure tier-1 seller cannot own rung 1 inside this
+
+
+## EV per action of one table: sum of P(entry) x avg_qty x item value
+## (qty uniform in [qty_min, qty_max], the engine's inclusive draw), times
+## the table's rolls.
+func _table_ev_per_action(table: DropTableDef) -> float:
+	var total := 0
+	for entry in table.entries:
+		total += entry.weight
+	var ev := 0.0
+	for entry in table.entries:
+		var avg_qty := (entry.qty_min + entry.qty_max) / 2.0
+		ev += float(entry.weight) / float(total) * avg_qty * float(lib.item(entry.item).value)
+	return ev * table.rolls
+
+
+## Raw-sell gross Crowns/minute of one gathering activity.
+func _gross_cr_per_min(activity_id: String) -> float:
+	var activity := lib.activity(activity_id)
+	return _table_ev_per_action(lib.drop_table(activity.drop_table)) * 60000.0 / float(activity.interval_ms)
+
+
+## Mean gross of the two gathering skills at a tier (0-indexed).
+func _tier_blend(tier_index: int) -> float:
+	var tiers := [
+		["sort_scrap_pile", "walk_the_glow_rows"],
+		["strip_wreck", "harvest_the_614_plot"],
+		["drain_the_sump", "dig_the_iodine_beds"],
+		["unbuild_the_overpass", "forage_the_far_fence"],
+	]
+	return (_gross_cr_per_min(tiers[tier_index][0]) + _gross_cr_per_min(tiers[tier_index][1])) / 2.0
+
+
+## Piecewise cumulative integral of a {end, rate} phase schedule from 0.
+func _modeled_cumulative(t: float, phases: Array) -> float:
+	var start := 0.0
+	var total := 0.0
+	for phase in phases:
+		if t <= float(phase["end"]):
+			return total + maxf(t - start, 0.0) * float(phase["rate"])
+		total += (float(phase["end"]) - start) * float(phase["rate"])
+		start = float(phase["end"])
+	return total
+
+
+func _check_personnel_economy() -> void:
+	# -- curve checkpoints: the bands the ladder was priced on (§5.1) --
+	var bands := [[45.0, 70.0], [55.0, 90.0], [60.0, 100.0], [75.0, 110.0]]
+	var gross := {}
+	for pair in [["sort_scrap_pile", 0], ["walk_the_glow_rows", 0],
+			["strip_wreck", 1], ["harvest_the_614_plot", 1],
+			["drain_the_sump", 2], ["dig_the_iodine_beds", 2],
+			["unbuild_the_overpass", 3], ["forage_the_far_fence", 3]]:
+		var rate := _gross_cr_per_min(pair[0])
+		gross[pair[0]] = rate
+		_check(rate >= bands[pair[1]][0] and rate <= bands[pair[1]][1],
+			"%s gross %.2f cr/min sits in the tier-%d band [%s, %s] the ladder is priced on" % [
+				pair[0], rate, int(pair[1]) + 1, str(bands[pair[1]][0]), str(bands[pair[1]][1])])
+	var best_t1: float = maxf(gross["sort_scrap_pile"], gross["walk_the_glow_rows"])
+
+	# -- the phase boundaries assume these curve costs (level gates 5/10/16) --
+	var curve := lib.xp_curve("standard_99")
+	_check(curve != null and curve.total_xp_to_reach(5) == 425
+			and curve.total_xp_to_reach(10) == 3226 and curve.total_xp_to_reach(16) == 12113,
+		"the curve costs the phase boundaries assume hold (L5 425 / L10 3226 / L16 12113 XP)")
+
+	# -- the documented conservative model (§5.1) --
+	var r_a1: float = PERSONNEL_ATTENTION * PERSONNEL_RETAIN_NEW * _tier_blend(0)
+	var r_a2: float = PERSONNEL_ATTENTION * PERSONNEL_RETAIN_NEW * _tier_blend(1)
+	var r_b: float = PERSONNEL_RETAIN * PERSONNEL_STREAMS[0] * _tier_blend(1)
+	var r_c: float = PERSONNEL_RETAIN * PERSONNEL_STREAMS[1] * _tier_blend(2)
+	var r_d: float = PERSONNEL_RETAIN * PERSONNEL_STREAMS[2] * _tier_blend(3)
+	var phases: Array = [
+		{"end": 6.0, "rate": r_a1},
+		{"end": 15.0, "rate": r_a2},
+		{"end": 60.0, "rate": r_b},
+		{"end": 180.0, "rate": r_c},
+		{"end": 480.0, "rate": r_d},
+	]
+	print("    personnel curve  phase rates cr/min: A1 %.2f  A2 %.2f  B %.2f  C %.2f  D %.2f" % [r_a1, r_a2, r_b, r_c, r_d])
+
+	# -- the ladder itself (data/staffing.json; prices are T20's tuning) --
+	_check(lib.deputies.size() == 4, "deputy ladder holds 4 rungs (got %d)" % lib.deputies.size())
+	for i in range(1, lib.deputies.size()):
+		_check(lib.deputies[i].price > lib.deputies[i - 1].price,
+			"deputy price escalates at rung %d (%d > %d)" % [i + 1, lib.deputies[i].price, lib.deputies[i - 1].price])
+	var p1: int = lib.deputies[0].price
+	var p2: int = lib.deputies[1].price
+	var p3: int = lib.deputies[2].price
+	var p4: int = lib.deputies[3].price
+	var stipend: int = lib.orientation_stipend
+	print("    deputy ladder    %d / %d / %d / %d crowns + stipend %d" % [p1, p2, p3, p4, stipend])
+
+	# -- deputy 1: the first-session unlock (~10-15 min window) --
+	# The stipend posts at the SEVENTH stamp (after the first purchase — T18
+	# engine), so rung 1 must be affordable from minute-12 earnings ALONE;
+	# the stipend rules below still bind its proportion (§5.2).
+	var cum10 := _modeled_cumulative(10.0, phases)
+	var cum12 := _modeled_cumulative(12.0, phases)
+	var cum15 := _modeled_cumulative(15.0, phases)
+	_check(cum10 < float(p1), "deputy 1 NOT owned before the window opens (min-10 modeled %.1f < %d)" % [cum10, p1])
+	_check(cum12 >= float(p1), "deputy 1 affordable by minute 12 on earnings alone (%.1f >= %d)" % [cum12, p1])
+	_check(cum15 >= 1.15 * float(p1), "deputy 1 reachable with margin by the window close (min-15 %.1f >= 1.15 x %d)" % [cum15, p1])
+	_check(float(stipend) + cum12 >= float(p1),
+		"stipend + modeled minute-12 earnings cover deputy 1 (%d + %.1f >= %d)" % [stipend, cum12, p1])
+	_check(p1 > stipend, "deputy 1 costs more than the stipend alone (%d > %d — the resident must still sell)" % [p1, stipend])
+	_check(float(stipend) >= 0.5 * float(p1), "stipend funds most of deputy 1 (%d >= %.1f)" % [stipend, 0.5 * float(p1)])
+	_check(float(p1) > float(DEPUTY1_FAST_GUARD_MIN) * best_t1,
+		"a pure tier-1 seller cannot own deputy 1 inside %d min (%d > %d x %.2f)" % [DEPUTY1_FAST_GUARD_MIN, p1, DEPUTY1_FAST_GUARD_MIN, best_t1])
+
+	# -- deputies 2-4: not affordable when the window opens, comfortably
+	# affordable by its close (spendable = modeled earnings minus earlier
+	# rungs, bought at their modeled minutes 12/45/130/270 — §5.2).
+	var cum30 := _modeled_cumulative(30.0, phases)
+	var cum60 := _modeled_cumulative(60.0, phases)
+	_check(cum30 - float(p1) < float(p2), "deputy 2 NOT owned at the window open (min-30 spendable %.1f < %d)" % [cum30 - p1, p2])
+	_check(cum60 - float(p1) >= 1.15 * float(p2), "deputy 2 affordable by minute 60 with margin (%.1f >= 1.15 x %d)" % [cum60 - p1, p2])
+	var cum90 := _modeled_cumulative(90.0, phases)
+	var cum180 := _modeled_cumulative(180.0, phases)
+	_check(cum90 - float(p1) - float(p2) < float(p3), "deputy 3 NOT owned at the window open (min-90 spendable %.1f < %d)" % [cum90 - p1 - p2, p3])
+	_check(cum180 - float(p1) - float(p2) >= 1.15 * float(p3), "deputy 3 affordable by minute 180 with margin (%.1f >= 1.15 x %d)" % [cum180 - p1 - p2, p3])
+	var cum240 := _modeled_cumulative(240.0, phases)
+	var cum480 := _modeled_cumulative(480.0, phases)
+	_check(cum240 - float(p1) - float(p2) - float(p3) < float(p4), "deputy 4 NOT owned at the window open (min-240 spendable %.1f < %d)" % [cum240 - p1 - p2 - p3, p4])
+	_check(cum480 - float(p1) - float(p2) - float(p3) >= 1.15 * float(p4), "deputy 4 affordable by minute 480 with margin (%.1f >= 1.15 x %d)" % [cum480 - p1 - p2 - p3, p4])
+	# Boss-gate integrity rides the SAME probe run: _check_combat_sims above
+	# re-proves §2 with content untouched by this ladder (deputies buy
+	# postings, not power — §5.3).
 
 
 # ---------------------------------------------------------------- reporting

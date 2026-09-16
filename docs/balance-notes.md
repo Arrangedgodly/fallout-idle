@@ -1,7 +1,8 @@
 # Balance Notes — Valued Resident vertical slice
 
 Authored by T5 (Data lane, Mr. Fantastic; carrying Professor X's
-genre-conventions claims). Source of truth for every number lives in
+genre-conventions claims); §5.1–§5.3 (personnel economy) authored by T20
+(same lane, same lens, 2026-09-17). Source of truth for every number lives in
 `data/*.json`; this file records the *reasoning*, the **combat spec T7 must
 implement**, the intended progression timeline to the slice's win moment
 (boss clear), and the economy rules the numbers obey. Balance is tunable
@@ -242,7 +243,7 @@ every stage. First clear expected **≈ 60–90 min mixed active play**, or
 T13 should validate stages 1–2 headlessly; stages 3–5 are covered by the
 probe's seeded sims (the same arithmetic, no UI).
 
-## 5. Economy rules (Crowns)
+## 5. Economy rules (Crowns) + the personnel economy (T20)
 
 - One honest sell price per item (`value`); Depot buy lines always cost
   **more** than they pay (`buy_price > value` — the Depot does not make
@@ -258,8 +259,121 @@ probe's seeded sims (the same arithmetic, no UI).
 - Deep Crown sinks: Majority Whip 1,200 / Carpool Carapace 1,500 Depot
   lines (Combat 16 gate) — impatience tax; crafting remains the sane path
   (~40–90 cr of materials each).
-- Rough income: tier-1 scavenging surplus sells ≈ 25–40 cr/min; the whip
-  costs a few hours of raw selling or ~15 min of ingot-and-surplus play.
+
+### 5.1 The earning curve (T20 derivation — every number recomputed
+from `data/*.json` by `tests/probe_balance.gd` `_check_personnel_economy`)
+
+**Per-action expected value** of a drop table = Σ P(entry) × avg_qty ×
+`value`, where P = weight/total and avg_qty = (qty_min+qty_max)/2 (the
+engine draws qty uniformly, `randi_range` inclusive). **Gross rate** per
+posting = EV/action × 60,000/interval_ms, sold raw at the Depot:
+
+| Activity | Gate | EV/action | Gross cr/min |
+|---|---|---|---|
+| Sort the Scrap Pile (Scav T1) | 1 | 2.850 | **57.0** |
+| Walk the Glow Rows (Forage T1) | 1 | 3.000 | **60.0** |
+| Strip a Wreck (Scav T2) | 5 | 5.450 | **65.4** |
+| Harvest the 6:14 Plot (Forage T2) | 5 | 6.225 | **74.7** |
+| Drain the Sump (Scav T3) | 10 | 7.300 | **73.0** |
+| Dig the Iodine Beds (Forage T3) | 10 | 7.725 | **77.25** |
+| Unbuild the Overpass (Scav T4) | 16 | 11.600 | **92.8** |
+| Forage the Far Fence (Forage T4) | 16 | 11.150 | **89.2** |
+
+Skill blend (mean of the two gathering skills): T1 58.5 · T2 70.05 ·
+T3 75.125 · T4 91.0 cr/min per full-time posting. (This reconciles the
+older "tier-1 surplus ≈ 25–40 cr/min" sketch: gross 57–60 minus the
+self-provisioning share.) Combat drops, per kill: Litterbug 2.65 · Dust
+Bunny 5.18 · Fizzard 8.40 · Dispenser 6.60 · Superintendent 26.60 cr —
+combat pays in XP and food-sustain materials, not Crowns; it is not an
+income tier.
+
+**Tier timing** (drives the phase boundaries): at T1's 200 XP/min, with
+one posting split across both gathering skills (~70% of attention on
+gathering → ~70 XP/min per skill), clearance 5 (425 XP) lands ≈ minute 6,
+clearance 10 (3,226 XP) ≈ minute 46 — so the first session is T1-then-T2
+rates, T3 is an hours-scale unlock once deputies double the XP stream,
+T4 (12,113 XP) sits past the first hour.
+
+**The T20 earning model** (wall-clock from a fresh save; all factors
+documented assumptions, deliberately conservative so probe margins are
+real):
+
+| Phase | Minutes | Postings | Disposable cr/min | Assumptions |
+|---|---|---|---|---|
+| A1 | 0–6 | 1 | 0.7 × 0.5 × 58.5 = **20.48** | one posting; gathering holds ~70% of attention (grits, ingots, the Litterbug, the Depot trips take the rest); 50% of the take self-provisions (food + gear materials banked, not sold) |
+| A2 | 6–15 | 1 | 0.7 × 0.5 × 70.05 = **24.52** | same, at T2 blends after both skills cross 425 XP ≈ min 6 |
+| B | 15–60 | 2 | 0.75 × 1.5 × 70.05 = **78.81** | deputy 1 (~min 11) opens a second concurrent posting; 1.5 effective gathering streams (the resident still rotates Cooking/Junksmithing through a slot); 75% retention — stockpiles are built, processing now adds value |
+| C | 60–180 | 3 | 0.75 × 2.2 × 75.125 = **123.96** | deputy 2 (~min 39) + a Cooking posting converting gathered + combat drops into meals (value-add) → 2.2 streams at T3 |
+| D | 180–480 | 4 | 0.75 × 3.0 × 91.0 = **204.75** | deputy 3 (~min 123); 3.0 streams at T4 (both gatherings + cooking/combat value-add) |
+
+Cumulative modeled earnings (before purchases): min 10 → 220.9 · min 12
+→ 270.0 · min 15 → 343.5 · min 30 → 1,525.6 · min 45 → 2,707.7 · min 60
+→ 3,889.8 · min 90 → 7,608.5 · min 135 → 13,186.2 · min 180 → 18,764.5
+· min 240 → 31,049.5 · min 270 → 37,192.0 · min 480 → 80,189.5.
+
+### 5.2 The deputy ladder (T20 prices — data/staffing.json)
+
+| Purchase | Price | Window | Modeled crossing | Probe pins |
+|---|---|---|---|---|
+| DEPUTIZE RESIDENT #1 | **250** | first session, 10–15 min | minute ≈ 11.2 | not affordable at min 10 (220.9 < 250); affordable at min 12 (270.0 ≥ 250) and min 15 (343.5, 1.37×); a pure T1 seller cannot own it inside 3 min (250 > 3 × 60) |
+| #2 | **2,000** | early-mid, 30–60 min | minute ≈ 39 | not at min 30 (1,275.6 spendable < 2,000); at min 60 spendable 3,639.8 ≥ 1.15× |
+| #3 | **9,500** | mid, 1.5–3 h | minute ≈ 123 | not at min 90 (5,358.5 < 9,500); at min 180 spendable 16,514.5 ≥ 1.15× |
+| #4 | **25,000** | late-mid, 4–8 h | minute ≈ 268 (4.5 h) | not at min 240 (19,299.5 < 25,000); at min 480 spendable 68,439.5 ≥ 1.15× |
+
+Spendable = modeled cumulative − prices of deputies already bought
+(purchase minutes assumed 12/45/130/270). Growth ratio softens
+(8×/4.75×/2.6×) as each posting's marginal yield shrinks (posting 3–5
+add cooking value-add and combat convenience, not another full gathering
+stream) — later deputies are long-payback conveniences, Melvor-style.
+The placeholder T17 ladder (75/400/2500/12000) was priced blind to this
+curve: at real rates 75 crowns is ~1.5 min of tier-1 selling, which
+would make the first unlock a non-event and the ladder a speed bump.
+
+**ORIENTATION STIPEND = 150.** Sizing rules (probe-pinned): stipend +
+modeled minute-12 earnings (150 + 270.0 = 420) ≥ price #1; price #1 >
+stipend alone (250 > 150 — the resident must still sell something:
+≥ 100 cr ≈ 2 min of tier-1 selling before the first deputize, so FILE A
+CROWNS CLAIM is a real lesson, not a formality); stipend ≥ half of
+price #1 (150 = 60% — "the stipend funds most of the first deputy").
+As-built timing (T18 engine, unchanged): the stipend posts at the
+SEVENTH stamp — i.e. immediately after the first DEPUTIZE RESIDENT
+purchase completes the form — so in play it lands as the DULY ORIENTED
+windfall that seeds deputy #2 (150 of 2,000) rather than pre-funding
+deputy #1; this is why the probe also pins deputy #1 affordable from
+minute-12 earnings ALONE.
+
+### 5.3 Boss-gate integrity (prices must not trivialize §2/§4)
+
+- **Deputies buy postings, not power.** The staffing namespace carries
+  no combat stat anywhere; a deputy never touches accuracy, evasion, HP,
+  or damage. The §2 boss sims are content-driven and unchanged by this
+  task — the probe's seeded sweeps re-run byte-identically (verified
+  below).
+- **Crowns and gear are separate economies.** The boss's critical path
+  is Wasteland Combat 14 + Junksmith 15 + a CRAFTED Majority Whip +
+  Carpool Carapace + Chef's Regret — every piece built from drops and
+  gathering, none of it Crown-gated on the intended path (the Depot's
+  1,200/1,500 gear lines are the optional impatience tax at Combat 16).
+  Buying deputies consumes zero gear materials, so deputy spending
+  cannot slow the boss path, and gear crafting cannot be skipped with
+  crowns on any path that matters: mid gear + no food still never wins
+  (§2), whatever the wallet holds.
+- **Deputy-first cannot soft-lock.** Worst case: every Crown ever earned
+  goes into deputies, zero Depot purchases. The resident still owns
+  posting 1 forever (refusal never blocks the resident's own hands),
+  every gathering action yields sellable EV > 0 (income floor ≈ 20–25
+  cr/min even in phase A), deputies never expire or drain, and the boss
+  path above needs no Crowns at all. No state of the game has the player
+  stuck: income is unconditional, the ladder is optional, and the single
+  free posting suffices for every system (combat, cooking, gear).
+- **Deputies accelerate income, not the gate.** The boss's real gates
+  are XP/drop-bound (Combat 14 = 8,340 XP; whip/carapace materials from
+  bunny lint + girderlings). Deputy-accelerated income can buy stews
+  (200 cr, Cooking 12 gate) — the pre-existing impatience tax, still
+  clearance-gated — but the intended path (craft gear + food, clear the
+  ladder, ~60–90 min mixed play per §4) remains the fast lane: on the
+  modeled curve a deputy-first optimizer holds 4 postings by ~4.5 h
+  having skipped nothing the boss checks.
 
 ## 6. No-orphan contract
 

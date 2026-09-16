@@ -13,7 +13,7 @@ extends GutTest
 ##       v1 migration seeds the namespace and the adopt evaluation stamps
 ##       every step lifetime evidence already satisfies;
 ##   (c) stipend — granted exactly once, amount from data/staffing.json
-##       (never hardcoded), 60 Crowns placeholder until T20 retunes;
+##       (never hardcoded), T20-tuned 150 Crowns (balance-notes §5.2);
 ##   (d) cue + keyboard — the current step's cue points at the right
 ##       department plate, follows step changes, retires at completion; the
 ##       rows + fold control are keyboard-reachable and a row press opens
@@ -99,7 +99,7 @@ func _stamp_all_but(tm: Variant, skip: Array) -> void:
 		tm.state.add_item("scrap_shiv", 1)
 		assert_true(tm.equip_item("scrap_shiv")["ok"])
 	if not skip.has("deputize_resident"):
-		tm.state.add_crowns(100)
+		tm.state.add_crowns(300)
 		assert_true(tm.deputize_resident()["ok"])
 	if not skip.has("clear_nuisance"):
 		assert_true(tm.engage_monster("junkyard_roach")["ok"])
@@ -235,7 +235,7 @@ func test_clear_nuisance_stamps_on_first_victory() -> void:
 
 func test_deputize_stamps_on_purchase() -> void:
 	var tm: Variant = _make_tm()
-	tm.state.add_crowns(100)
+	tm.state.add_crowns(300)
 	assert_true(tm.deputize_resident()["ok"], "second posting purchased")
 	assert_true(tm.orientation_step_done_bool("deputize_resident"),
 		"a deputy purchase stamps DEPUTIZE A RESIDENT")
@@ -246,8 +246,8 @@ func test_completion_in_reverse_order_stipend_once() -> void:
 	var completed: Array = []
 	tm.orientation_completed.connect(func(payload: Dictionary) -> void: completed.append(payload))
 	# Reverse order: 7 -> 1. Each step stamps through its real event.
-	assert_eq(tm.next_deputy_price(), 75, "ladder price from data")
-	tm.state.add_crowns(200)
+	assert_eq(tm.next_deputy_price(), 250, "ladder price from data (T20-tuned)")
+	tm.state.add_crowns(300)
 	assert_true(tm.deputize_resident()["ok"], "step 7: deputize")
 	assert_true(tm.engage_monster("junkyard_roach")["ok"], "step 6: engage")
 	_pump(tm, 300_000, 2_500)
@@ -262,18 +262,18 @@ func test_completion_in_reverse_order_stipend_once() -> void:
 	tm.state.add_item("scrap_metal", 5)
 	assert_true(tm.depot_sell("scrap_metal", 5)["ok"], "step 3: sell 5 (exact tender)")
 	tm.engine.grant_xp(tm.state, "foraging", 25, false)  # step 2: a clearance
-	# crowns before the seventh stamp: 200-75=125, +10 for five Scrapnel, = 135
-	assert_eq(tm.state.crowns, 135, "crowns before the stipend land")
+	# crowns before the seventh stamp: 300-250=50, +10 for five Scrapnel, = 60
+	assert_eq(tm.state.crowns, 60, "crowns before the stipend land")
 	assert_true(tm.start_activity("sort_scrap_pile")["ok"], "step 1: gather (the seventh stamp)")
-	assert_eq(int(_lib().orientation_stipend), 60, "stipend amount from data (T20 retunes)")
+	assert_eq(int(_lib().orientation_stipend), 150, "stipend amount from data (T20-tuned)")
 	assert_eq(completed.size(), 1, "orientation_completed fired ONCE")
-	assert_eq(int(completed[0]["stipend"]), 60, "payload carries the stipend amount")
-	assert_eq(tm.state.crowns, 195, "stipend posted exactly once at the seventh stamp (135 + 60)")
+	assert_eq(int(completed[0]["stipend"]), 150, "payload carries the stipend amount")
+	assert_eq(tm.state.crowns, 210, "stipend posted exactly once at the seventh stamp (60 + 150)")
 	assert_true(bool(tm.state.orientation["completed"]), "completed flag set")
 	assert_true(bool(tm.state.orientation["stipend_claimed"]), "stipend claimed once")
 	# Re-evaluation (the reload path) re-rewards nothing.
 	tm.orientation.evaluate(tm.state)
-	assert_eq(tm.state.crowns, 195, "evaluation after completion grants nothing")
+	assert_eq(tm.state.crowns, 210, "evaluation after completion grants nothing")
 
 
 # ---------------------------------------------------------------------------
@@ -423,8 +423,8 @@ func _valid_doc() -> Dictionary:
 
 
 func test_staffing_stipend_defect_drills() -> void:
-	assert_eq(int(_lib().orientation_stipend), 60,
-		"orientation_stipend loads from data/staffing.json (placeholder 60)")
+	assert_eq(int(_lib().orientation_stipend), 150,
+		"orientation_stipend loads from data/staffing.json (T20-tuned 150)")
 	var tmp := _tmp_dir("staffing_defects")
 	for fname in ["items.json", "skills.json", "activities.json", "recipes.json",
 			"drop_tables.json", "monsters.json", "equipment.json", "shop_stock.json", "xp_curves.json"]:
@@ -627,7 +627,7 @@ func test_completion_celebrates_then_slips_low_text_every_state() -> void:
 	assert_eq(stamp_line.text, "DULY ORIENTED · FORM O-1", "the stamp posts verbatim")
 	var stipend_line: Label = form.get_node("FormColumn/CompletionRecord/StipendRow/StipendLine")
 	assert_eq(stipend_line.text,
-		"ORIENTATION STIPEND — 60 CROWNS · THANK YOU FOR YOUR PROMPT COMPLIANCE.",
+		"ORIENTATION STIPEND — 150 CROWNS · THANK YOU FOR YOUR PROMPT COMPLIANCE.",
 		"the stipend line posts the naming-bible reward wording")
 	# The console posts the restrained notice.
 	assert_string_contains(_concourse.console_serial.text, "FORM O-1 FILED",

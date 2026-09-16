@@ -175,22 +175,22 @@ func test_offline_recall_ends_the_patrol_posting() -> void:
 func test_deputize_ladder_reads_data_and_refuses_without_funds() -> void:
 	var tm: Variant = _make_tm()
 	var lib := _lib()
-	var prices := [75, 400, 2500, 12000]
+	var prices := [250, 2000, 9500, 25000]
 	for i in 4:
-		assert_eq(lib.deputies[i].price, prices[i], "ladder rung %d price is the T17 placeholder (T20 retunes)" % i)
+		assert_eq(lib.deputies[i].price, prices[i], "ladder rung %d price is the T20-tuned value (balance-notes §5.2)" % i)
 
 	# No funds: in-voice Depot refusal, no state change.
 	var broke: Dictionary = tm.deputize_resident()
 	assert_false(broke["ok"], "purchase refuses without funds")
-	assert_true(str(broke["reason"]).contains("INSUFFICIENT CROWNS (75 REQUIRED)"),
+	assert_true(str(broke["reason"]).contains("INSUFFICIENT CROWNS (250 REQUIRED)"),
 		"refusal carries the Depot tender wording with the data price: %s" % str(broke["reason"]))
 	assert_eq(int(tm.state.staffing["deputies"]), 0, "no deputy granted")
 	assert_eq(tm.state.crowns, 0, "no crowns moved")
 
 	# Partial funds still refuse; exact funds buy.
-	tm.state.add_crowns(74)
+	tm.state.add_crowns(249)
 	var short: Dictionary = tm.deputize_resident()
-	assert_false(short["ok"], "74 of 75 crowns still refuses")
+	assert_false(short["ok"], "249 of 250 crowns still refuses")
 	tm.state.add_crowns(1)
 	var bought: Dictionary = tm.deputize_resident()
 	assert_true(bought["ok"], "exact funds purchase the first deputy")
@@ -200,7 +200,7 @@ func test_deputize_ladder_reads_data_and_refuses_without_funds() -> void:
 	assert_eq(tm.posting_slots(), 2, "two postings now")
 
 	# The ladder climbs to the full establishment, then refuses politely.
-	tm.state.add_crowns(400 + 2500 + 12000)
+	tm.state.add_crowns(2000 + 9500 + 25000)
 	assert_true(tm.deputize_resident()["ok"], "second deputy")
 	assert_true(tm.deputize_resident()["ok"], "third deputy")
 	assert_true(tm.deputize_resident()["ok"], "fourth deputy")
@@ -401,7 +401,7 @@ func test_personnel_board_and_refusal_directive_wiring() -> void:
 	var row_texts := _label_texts(personnel.board_box.get_children()[0])
 	assert_true(_joined(row_texts).contains("POSTING 1 · AVAILABLE"), "row reads AVAILABLE")
 	assert_true(_joined(row_texts).contains("YOUR OWN TWO HANDS"), "posting 1 is the resident's own hands")
-	assert_eq(personnel.deputize_button.text, "DEPUTIZE RESIDENT · 75 CROWNS",
+	assert_eq(personnel.deputize_button.text, "DEPUTIZE RESIDENT · 250 CROWNS",
 		"purchase button label is the naming-bible form with the data price")
 
 	# Fill the posting: the row flips to ASSIGNED with the skill + activity.
@@ -439,7 +439,7 @@ func test_personnel_board_and_refusal_directive_wiring() -> void:
 	# Purchase through the board button: funds/no-funds, ladder, cap line.
 	c.select_department("personnel", true)
 	await wait_frames(2)
-	tm.state.add_crowns(75)
+	tm.state.add_crowns(250)
 	tm.batcher.mark("inventory")
 	tm.batcher.force_flush(tm.sim_time_ms)
 	await wait_frames(2)
@@ -450,7 +450,7 @@ func test_personnel_board_and_refusal_directive_wiring() -> void:
 	await wait_frames(2)
 	assert_eq(int(tm.state.staffing["deputies"]), 1, "board button purchases the deputy")
 	assert_eq(personnel.board_box.get_children().size(), 2, "two rows posted")
-	tm.state.add_crowns(400 + 2500 + 12000)
+	tm.state.add_crowns(2000 + 9500 + 25000)
 	tm.batcher.mark("inventory")
 	tm.batcher.force_flush(tm.sim_time_ms)
 	await wait_frames(2)

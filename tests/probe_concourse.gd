@@ -1060,9 +1060,9 @@ func _check_t17_personnel() -> void:
 		"fresh posting 1 reads AVAILABLE (outline badge state)")
 	_check(_row_has_badge(rows[0], "deputy_badge_outline"),
 		"AVAILABLE row carries the OUTLINE badge (fill = state, never color alone)")
-	_check(personnel.deputize_button.text == "DEPUTIZE RESIDENT · 75 CROWNS",
+	_check(personnel.deputize_button.text == "DEPUTIZE RESIDENT · 250 CROWNS",
 		"purchase button posts the naming-bible label with the DATA price (got '%s')" % personnel.deputize_button.text)
-	_check(Docket.flow_text(personnel.purchase_flow).contains("75 CROWNS")
+	_check(Docket.flow_text(personnel.purchase_flow).contains("250 CROWNS")
 			and Docket.flow_text(personnel.purchase_flow).contains("POSTING 2 OPENS"),
 		"price line carries the crowns mark beside the number: %s" % Docket.flow_text(personnel.purchase_flow))
 
@@ -1110,9 +1110,9 @@ func _check_t17_personnel() -> void:
 	_check(int(tm.state.staffing["deputies"]) == 0 and tm.state.crowns == 0,
 		"no-funds purchase changes nothing")
 	_check(_log_texts(personnel).any(func(t: String) -> bool:
-			return "INSUFFICIENT CROWNS (75 REQUIRED)" in t),
+			return "INSUFFICIENT CROWNS (250 REQUIRED)" in t),
 		"no-funds purchase stamps the in-voice tender refusal")
-	tm.state.add_crowns(75)
+	tm.state.add_crowns(250)
 	tm.batcher.mark("inventory")
 	tm.batcher.force_flush(tm.sim_time_ms)
 	await _frames(2)
@@ -1125,11 +1125,11 @@ func _check_t17_personnel() -> void:
 	_check(_log_texts(personnel).any(func(t: String) -> bool:
 			return "RESIDENT DEPUTIZED" in t),
 		"purchase stamps the staffing log")
-	_check(personnel.deputize_button.text == "DEPUTIZE RESIDENT · 400 CROWNS",
+	_check(personnel.deputize_button.text == "DEPUTIZE RESIDENT · 2,000 CROWNS",
 		"purchase line advances to the second ladder rung (got '%s')" % personnel.deputize_button.text)
 
 	# Climb to the full establishment: purchase line retires, cap line posts.
-	tm.state.add_crowns(400 + 2500 + 12000)
+	tm.state.add_crowns(2000 + 9500 + 25000)
 	tm.batcher.mark("inventory")
 	tm.batcher.force_flush(tm.sim_time_ms)
 	await _frames(2)

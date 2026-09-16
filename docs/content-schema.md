@@ -233,7 +233,7 @@ Top-level scalar (T18, the one file in the set that carries one):
 
 | Field | Type | Range | Req | Notes |
 |---|---|---|---|---|
-| `orientation_stipend` | int | 1–1,000,000 | y | Crowns posted by the ORIENTATION FORM O-1 completion reward (the DULY ORIENTED stipend line; read via `ContentLibrary.orientation_stipend`). Placeholder 60 for T20 to retune. >= 1 because the Department always pays something. |
+| `orientation_stipend` | int | 1–1,000,000 | y | Crowns posted by the ORIENTATION FORM O-1 completion reward (the DULY ORIENTED stipend line; read via `ContentLibrary.orientation_stipend`). T20-tuned 150 (60% of the first deputy's 250 — sizing rules in docs/balance-notes.md §5.2, probe-pinned). >= 1 because the Department always pays something. |
 
 ## Versioning
 
