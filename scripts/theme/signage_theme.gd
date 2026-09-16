@@ -66,6 +66,9 @@ const FONT_SIZE_BASES := [
 	["PlateBodyEnergized", "Label", 13],
 	["PaperText", "Label", 14],
 	["PaperStamp", "Label", 13],
+	["PaperTitle", "Label", 24],
+	["FormTitle", "Label", 18],
+	["FormTitleEnergized", "Label", 18],
 	["MonoValue", "Label", 17],
 	["MonoValueEnergized", "Label", 17],
 	["MonoBig", "Label", 26],
@@ -115,6 +118,14 @@ static func build() -> Theme:
 	_label_var(th, "PlateBodyEnergized", f_body, t.SIGNAL_AMBER)
 	_label_var(th, "PaperText", f_body, t.INSTITUTIONAL_NAVY)
 	_label_var(th, "PaperStamp", f_stamp, t.SAFETY_RED)
+	# T10a additions — both REUSE registered contrast pairs (navy/paper 10.38,
+	# navy/bone 10.92); no new color pairs are introduced:
+	#   PaperTitle — posted-notice headline (MAIL CALL card) on paper ground.
+	#   FormTitle — the stenciled line title on a bone form line (tier/recipe
+	#   picker cards), one weight step under the plate titles.
+	_label_var(th, "PaperTitle", f_plate_title, t.INSTITUTIONAL_NAVY)
+	_label_var(th, "FormTitle", f_plate, t.INSTITUTIONAL_NAVY)
+	_label_var(th, "FormTitleEnergized", f_plate, t.SIGNAL_AMBER)
 	_label_var(th, "MonoValue", f_mono, t.BONE_ENAMEL)
 	_label_var(th, "MonoValueEnergized", f_mono_b, t.SIGNAL_AMBER)
 	_label_var(th, "MonoBig", f_mono_b, t.BONE_ENAMEL)

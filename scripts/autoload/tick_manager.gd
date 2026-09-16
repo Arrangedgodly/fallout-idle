@@ -227,9 +227,71 @@ func equip_item(item_id: String) -> Dictionary:
 
 ## Empty "weapon" | "armor"; the item returns to the Manifest.
 func unequip_slot(slot_key: String) -> Dictionary:
-	var result: Dictionary = combat.unequip(state, slot_key)
+	var result := combat.unequip(state, slot_key)
 	batcher.force_flush(sim_time_ms)
 	return result
+
+
+# -- Depot façade (T10a; the wallet lives in PlayerState, the terms in the
+#    ShopEntryDef records — the UI never mutates state itself) --
+
+## Buy `qty` units of a stocked item at the posted buy_price. Gate failures
+## carry CLEARANCE wording, matching start_activity/engage_monster.
+func depot_buy(item_id: String, qty: int = 1) -> Dictionary:
+	if qty < 1:
+		return {"ok": false, "reason": "quantity must be at least 1", "qty": 0, "crowns": 0}
+	var entry := _shop_entry(item_id)
+	if entry == null:
+		return {"ok": false, "reason": "not stocked at this counter", "qty": 0, "crowns": 0}
+	if entry.is_gated():
+		var level := int(state.skills_level.get(entry.gate_skill, 1))
+		if level < entry.gate_level:
+			return {"ok": false, "reason": "CLEARANCE %d REQUIRED (%s)" % [
+				entry.gate_level, String(engine.lib.skill(entry.gate_skill).name)],
+				"qty": 0, "crowns": 0}
+	var cost := entry.buy_price * qty
+	if not state.try_spend_crowns(cost):
+		return {"ok": false, "reason": "INSUFFICIENT CROWNS (%s REQUIRED)" % cost, "qty": 0, "crowns": 0}
+	state.add_item(item_id, qty)
+	batcher.mark("inventory")
+	batcher.force_flush(sim_time_ms)
+	return {"ok": true, "reason": "", "qty": qty, "crowns": cost}
+
+
+## Sell `qty` units (qty <= 0 tenders the whole stack) at ItemDef.value —
+## the one honest sell price. Returns the settled count + Crowns paid.
+func depot_sell(item_id: String, qty: int = 0) -> Dictionary:
+	var def := engine.lib.item(item_id)
+	if def == null:
+		return {"ok": false, "reason": "unknown item", "qty": 0, "crowns": 0}
+	var have := state.item_count(item_id)
+	var n := have if qty <= 0 else mini(qty, have)
+	if n < 1:
+		return {"ok": false, "reason": "NOTHING TO SELL", "qty": 0, "crowns": 0}
+	state.take_item(item_id, n)
+	state.add_crowns(def.value * n)
+	batcher.mark("inventory")
+	batcher.force_flush(sim_time_ms)
+	return {"ok": true, "reason": "", "qty": n, "crowns": def.value * n}
+
+
+## Units the current wallet affords (0 when gated or broke).
+func depot_max_affordable(item_id: String) -> int:
+	var entry := _shop_entry(item_id)
+	if entry == null:
+		return 0
+	if entry.is_gated():
+		var level := int(state.skills_level.get(entry.gate_skill, 1))
+		if level < entry.gate_level:
+			return 0
+	return state.crowns / entry.buy_price
+
+
+func _shop_entry(item_id: String) -> ShopEntryDef:
+	for entry in engine.lib.shop_entries():
+		if entry.item == item_id:
+			return entry
+	return null
 
 
 # -- Offline catch-up --

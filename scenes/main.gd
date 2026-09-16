@@ -37,6 +37,7 @@ signal activity_start_requested(id: String)
 signal font_scale_changed(scale: float)
 signal save_requested
 signal quit_requested
+signal mail_call_acknowledged(payload: Dictionary)
 
 const DEPARTMENTS := [
 	{
@@ -104,6 +105,8 @@ var console_serial: Label
 var chalk_mark: ChalkMark
 var shutter: PanelContainer
 var docket_housing: PanelContainer
+var mail_call: MailCallModal
+var save_board: SaveNoticeBoard
 
 var _ui_theme: Node  # the UiTheme autoload, soft-accessed so the script also
                      # compiles under --check-only/-s (no global identifiers)
@@ -111,12 +114,15 @@ var _mouth: BulkheadMouth
 var _plates: Dictionary = {}   # id -> Button
 var _dockets: Dictionary = {}  # id -> Control (VBox placeholder)
 var _begin_buttons: Dictionary = {}  # id -> Button
+var _controllers: Dictionary = {}    # id -> Docket (T10a live content)
 var _dept_by_id: Dictionary = {}
 var _plate_order: Array[Button] = []
 var _active_id := ""
 var _transitioning := false
 var _slider_focus_lit := false
 var _serial_token := 0
+var _tm: Node = null              # TickManager (autoload in prod, twin in tests)
+var _mail_hooked := false
 
 func _ready() -> void:
 	_ui_theme = get_node_or_null("/root/UiTheme")
@@ -133,6 +139,7 @@ func _ready() -> void:
 	set_first_run(true)
 	_plates[DEPARTMENTS[0].id].grab_focus()  # START HERE points here first run
 	_settle_boot_swell()
+	bind_engines()  # T10a: live engine data (autoloads in production)
 
 ## The first container layout pass resets child transforms assigned during
 ## _ready, so the boot swell is re-asserted one frame later, after layout.
@@ -188,6 +195,14 @@ func plate_buttons_in_order() -> Array[Button]:
 func docket_for(id: String) -> Control:
 	return _dockets.get(id)
 
+## T10a live docket content controller for a department (null for Patrol —
+## T10b owns that screen; the shell placeholder shows until then).
+func docket_controller(id: String) -> Docket:
+	return _controllers.get(id)
+
+func controllers() -> Dictionary:
+	return _controllers
+
 func begin_button_for(id: String) -> Button:
 	return _begin_buttons.get(id)
 
@@ -219,6 +234,44 @@ func focus_ring_lit(control: Control) -> bool:
 			and flat.border_width_top > 0 \
 			and flat.expand_margin_left > 0.0
 	return false
+
+# ------------------------------------------------------------------ engines
+## T10a: wire the concourse to the engine autoloads (production default) or
+## to test twins injected by the GUT suite. Every docket controller, the
+## MAIL CALL modal and the save-notice board follow the bound managers;
+## rebinding to a different twin disconnects the old one first. The cached
+## last_mail_call is presented when the load's mail_call_ready fired before
+## this scene existed (SaveStore loads inside its own _ready).
+func bind_engines(p_tm: Node = null, p_save: Node = null) -> void:
+	var new_tm: Node = p_tm if p_tm != null else get_node_or_null("/root/TickManager")
+	var new_save: Node = p_save if p_save != null else get_node_or_null("/root/SaveStore")
+	if new_tm == null:
+		return
+	var rebound := new_tm != _tm
+	if rebound and _tm != null and _mail_hooked:
+		(_tm.mail_call_ready as Signal).disconnect(_on_mail_call_ready)
+		_mail_hooked = false
+	_tm = new_tm
+	for id in _controllers:
+		(_controllers[id] as Docket).bind(_tm)
+	mail_call.lib = _tm.engine.lib
+	if not _mail_hooked:
+		(_tm.mail_call_ready as Signal).connect(_on_mail_call_ready)
+		_mail_hooked = true
+	save_board.bind(new_save)
+	if rebound:
+		var cached: Dictionary = _tm.state.last_mail_call
+		if int(cached.get("elapsed_ms", 0)) > 0:
+			mail_call.present(cached, _tm.engine.lib)
+
+
+func bound_tick_manager() -> Node:
+	return _tm
+
+
+func _on_mail_call_ready(payload: Dictionary) -> void:
+	mail_call.present(payload, _tm.engine.lib)
+
 
 # ------------------------------------------------------------------ build
 func _build_ui() -> void:
@@ -266,6 +319,22 @@ func _build_ui() -> void:
 	_position_chalk()
 	_plates[DEPARTMENTS[0].id].resized.connect(_position_chalk)
 	resized.connect(_position_chalk)
+
+	# T10a overlays: save notices post above the console; the MAIL CALL card
+	# dims the concourse while posted (both bound to the engines later —
+	# bind_engines() — and hidden until they have something to say).
+	save_board = SaveNoticeBoard.new()
+	save_board.name = "SaveNoticeBoard"
+	save_board.set_anchors_preset(PRESET_FULL_RECT)
+	save_board.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(save_board)
+
+	mail_call = MailCallModal.new()
+	mail_call.name = "MailCallModal"
+	mail_call.z_index = 40
+	add_child(mail_call)
+	mail_call.acknowledged.connect(func(payload: Dictionary) -> void:
+		mail_call_acknowledged.emit(payload))
 
 func _build_header() -> Control:
 	var row := _hbox(20)
@@ -379,7 +448,58 @@ func _build_docket(d: Dictionary) -> Control:
 	notice.add_child(ncol)
 	col.add_child(notice)
 
-	# Gauge inset: vent housing, unlit dot-matrix cells, mono pending readout.
+	# T10a: live docket content — every widget renders from ContentDB records
+	# and the bound TickManager (no mocked data). Wasteland Patrol keeps the
+	# T9 placeholder internals until T10b replaces them.
+	var controller: Docket = null
+	match d.id:
+		"scavenging", "foraging":
+			controller = DocketGathering.new(d.id)
+		"junksmithing", "cooking":
+			controller = DocketProcessing.new(d.id)
+		"manifest":
+			controller = DocketManifest.new()
+		"requisition_depot":
+			controller = DocketDepot.new()
+	if controller != null:
+		controller.name = "Content_" + d.id
+		controller.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		col.add_child(controller)
+		_controllers[d.id] = controller
+	else:
+		col.add_child(_build_patrol_placeholder())
+
+	# The primary action — the big stencled button plate on the docket.
+	var begin := Button.new()
+	begin.name = "BeginShift_" + d.id
+	begin.theme_type_variation = "Energized"
+	begin.text = BEGIN_LABEL
+	begin.custom_minimum_size = Vector2(300.0, 64.0)
+	begin.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	begin.tooltip_text = "Begin the department shift"
+	begin.pressed.connect(_on_begin_pressed.bind(d.id))
+	col.add_child(begin)
+	_begin_buttons[d.id] = begin
+	if controller is DocketSkill:
+		(controller as DocketSkill).primary_button = begin
+
+	col.add_child(_label("PlateSerial", "DOCKET %s · PROVISIONAL POSTING · FORM 9-A" % d.serial))
+	_dockets[d.id] = col
+	return col
+
+
+## The shell's primary button: announce the intent (T9 contract — probes and
+## SaveStore listen), then route the action to the docket's controller
+## (skill dockets toggle their slot through the engine façade).
+func _on_begin_pressed(id: String) -> void:
+	activity_start_requested.emit(id)
+	if _controllers.has(id):
+		(_controllers[id] as Docket).primary_action()
+
+
+## Wasteland Patrol placeholder (T9 shape; T10b replaces with the battle
+## docket): vent housing, unlit dot-matrix cells, mono pending readout.
+func _build_patrol_placeholder() -> Control:
 	var vent := _panel_box("VentHousing")
 	vent.name = "GaugeInset"
 	var tiles := TextureRect.new()
@@ -401,23 +521,7 @@ func _build_docket(d: Dictionary) -> Control:
 	var pending := _label("MonoValue", "GAUGES PENDING CERTIFICATION · RATES UNPOSTED")
 	vcol.add_child(pending)
 	vent.add_child(vcol)
-	col.add_child(vent)
-
-	# The primary action — the big stencled button plate on the docket.
-	var begin := Button.new()
-	begin.name = "BeginShift_" + d.id
-	begin.theme_type_variation = "Energized"
-	begin.text = BEGIN_LABEL
-	begin.custom_minimum_size = Vector2(300.0, 64.0)
-	begin.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	begin.tooltip_text = "Begin the department shift"
-	begin.pressed.connect(activity_start_requested.emit.bind(d.id))
-	col.add_child(begin)
-	_begin_buttons[d.id] = begin
-
-	col.add_child(_label("PlateSerial", "DOCKET %s · PROVISIONAL POSTING · FORM 9-A" % d.serial))
-	_dockets[d.id] = col
-	return col
+	return vent
 
 func _build_console() -> Control:
 	var console := _panel_box("SteelPanel")
@@ -516,7 +620,12 @@ func _set_plate_state(plate: Button, energized: bool, animate: bool) -> void:
 	plate.pivot_offset = Vector2(0.0, plate.size.y * 0.5)
 	var target := Vector2.ONE * (SWELL if energized else 1.0)
 	if plate.has_meta("swell_tween"):
-		(plate.get_meta("swell_tween") as Tween).kill()
+		# A finished tween is auto-freed; its stale meta entry must not be
+		# killed (T10a's repeated programmatic selections surfaced this).
+		var old_swell := plate.get_meta("swell_tween") as Tween
+		if old_swell != null and old_swell.is_valid():
+			old_swell.kill()
+		plate.remove_meta("swell_tween")
 	if animate:
 		var tw := create_tween().tween_property(plate, "scale", target, 0.22) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
