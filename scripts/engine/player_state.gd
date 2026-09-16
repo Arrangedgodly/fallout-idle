@@ -48,6 +48,15 @@ var staffing: Dictionary = {}
 ## orientation_tracker.gd) — the single writer; pass-through here.
 var orientation: Dictionary = {}
 
+## T23 objectives namespace (save_version 3, naming-bible §15 machine ids):
+##   {"counters": {String: int} lifetime counters (see ObjectivesTracker),
+##    "stamped": Array[String] objective ids in canonical file order,
+##    "rewards_granted": Array[String] ids whose rewards posted (== stamped)}
+## The single writer is ObjectivesTracker (scripts/engine/
+## objectives_tracker.gd); pass-through here (values hydrate raw, the
+## tracker's ensure_objectives repairs types).
+var objectives: Dictionary = {}
+
 
 ## One running activity/recipe on one skill. Action k (0-based) completes at
 ## `anchor_ms + (k + 1) * interval_ms` on the sim clock — the closed-form
@@ -144,6 +153,7 @@ func to_dict() -> Dictionary:
 		"combat": combat.duplicate(true),
 		"staffing": staffing.duplicate(true),
 		"orientation": orientation.duplicate(true),
+		"objectives": objectives.duplicate(true),
 	}
 
 
@@ -186,5 +196,25 @@ static func from_dict(d: Dictionary, lib: ContentLibrary) -> PlayerState:
 		"steps_done": steps_d,
 		"completed": bool(orientation_d.get("completed", false)),
 		"stipend_claimed": bool(orientation_d.get("stipend_claimed", false)),
+	}
+	# T23 objectives (v3 saves carry it; the v2->v3 migration seeds it and any
+	# pre-v3 record hydrates a fresh namespace — values hydrate raw (int()
+	# takes both numeric and >= 2^53 string forms), ObjectivesTracker.
+	# ensure_objectives repairs types + drops unknown ids).
+	var objectives_d: Dictionary = d.get("objectives", {})
+	var obj_counters: Dictionary = objectives_d.get("counters", {})
+	var counters := {}
+	for key in obj_counters:
+		counters[String(key)] = int(obj_counters[key])
+	var obj_stamped: Array[String] = []
+	for oid in objectives_d.get("stamped", []):
+		obj_stamped.append(String(oid))
+	var obj_granted: Array[String] = []
+	for gid in objectives_d.get("rewards_granted", []):
+		obj_granted.append(String(gid))
+	st.objectives = {
+		"counters": counters,
+		"stamped": obj_stamped,
+		"rewards_granted": obj_granted,
 	}
 	return st

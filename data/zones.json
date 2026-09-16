@@ -1,0 +1,13 @@
+{
+	"schema_version": 1,
+	"zones": [
+		{
+			"id": "dusty_flats",
+			"name": "The Sunny Exclusion Zone"
+		},
+		{
+			"id": "gift_court",
+			"name": "The Gift Court"
+		}
+	]
+}

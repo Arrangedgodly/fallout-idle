@@ -59,6 +59,13 @@ var batcher: UpdateBatcher
 ## completion: gathering starts stamp WORK A POSTED SHIFT, completed recipe
 ## actions stamp PROCESS A PRODUCT (+ PROVISION THE PATROL on food output).
 var orientation: OrientationTracker = null
+## T23 objectives hook (same wiring discipline). The gather/craft LIFETIME
+## COUNTERS update inside _execute_action itself — the exactness keystone
+## shared with the closed-form offline catch-up — so a live twin and an
+## offline twin of the same window hold identical counters by construction.
+## `evaluate_now` follows the emit_levels discipline: live actions stamp
+## immediately, offline batches defer to ObjectivesTracker.settle_offline.
+var objectives: ObjectivesTracker = null
 
 
 func _init(p_lib: ContentLibrary, p_batcher: UpdateBatcher = null) -> void:
@@ -332,16 +339,23 @@ func _execute_action(state: PlayerState, slot: PlayerState.ActiveSlot, emit_leve
 		# (and the patrol's provisions when the output is food).
 		if orientation != null:
 			orientation.note_recipe_completed(state, rdef)
+		# T23: craft lifetime counters (evaluate_now = the emit_levels
+		# discipline — see the field doc above).
+		if objectives != null:
+			objectives.note_craft_action(state, rdef, emit_levels)
 	else:
 		var adef: ActivityDef = lib.activity(slot.content_id)
 		if adef == null:
 			_stop_slot(state, slot, "content_missing")
 			return false
 		var rng := _slot_rng(slot)
-		_roll_action(lib.drop_table(adef.drop_table), rng, state)
+		var drops := _roll_action(lib.drop_table(adef.drop_table), rng, state)
 		_store_rng(slot, rng)
 		slot.completed += 1
 		_grant_xp(state, adef.skill, adef.xp_per_action, emit_levels)
+		# T23: gather lifetime counters (per-activity actions + per-item yield).
+		if objectives != null:
+			objectives.note_gather_action(state, adef, drops, emit_levels)
 	batcher.mark("inventory")
 	batcher.mark("xp")
 	return true
@@ -385,8 +399,11 @@ func _stop_slot(state: PlayerState, slot: PlayerState.ActiveSlot, reason: String
 
 ## One action's drop: `table.rolls` independent weighted picks, qty drawn
 ## uniformly in [qty_min, qty_max]. Draw order is fixed (pick then qty, entry
-## order) — it IS the determinism contract; do not reorder.
-func _roll_action(table: DropTableDef, rng: RandomNumberGenerator, state: PlayerState) -> void:
+## order) — it IS the determinism contract; do not reorder. Returns the
+## action's per-item yield (T23: the objectives gather counters consume it;
+## combat's _roll_drops returns the same shape).
+func _roll_action(table: DropTableDef, rng: RandomNumberGenerator, state: PlayerState) -> Dictionary:
+	var drops := {}
 	var total := table.total_weight()
 	for r in table.rolls:
 		var pick := rng.randi_range(1, total)
@@ -398,7 +415,9 @@ func _roll_action(table: DropTableDef, rng: RandomNumberGenerator, state: Player
 				if entry.qty_max > entry.qty_min:
 					qty = rng.randi_range(entry.qty_min, entry.qty_max)
 				state.add_item(entry.item, qty)
+				drops[entry.item] = int(drops.get(entry.item, 0)) + qty
 				break
+	return drops
 
 
 func _slot_rng(slot: PlayerState.ActiveSlot) -> RandomNumberGenerator:

@@ -53,13 +53,30 @@ extends Node
 ##       and since T17 "staffing" (deputize purchases, posting enforcement).
 ##       Crowns ride "inventory" (Depot precedent: wallet-class changes).
 ##       Since T18 "orientation" (every O-1 form stamp; the stipend grant
-##       also marks "inventory").
+##       also marks "inventory"). Since T23 "objectives" (every dossier
+##       stamp; reward legs additionally mark "inventory"/"xp").
 ##   orientation_step_done(step_id: String) — IMMEDIATE, discrete, once per
 ##       step (T18). The ORIENTATION FORM O-1's row stamps bind here.
 ##   orientation_completed(payload: Dictionary) — IMMEDIATE, once ever (T18):
 ##       the seventh stamp. payload {"stipend": int} (Crowns posted by the
 ##       DULY ORIENTED reward line; 0 when the stipend was already claimed —
 ##       a reload never re-rewards).
+##   objective_stamped(payload: Dictionary) — IMMEDIATE, discrete, once per
+##       objective ever (T23, kind "objective_stamped" per naming-bible §15):
+##       a DEPARTMENTAL DOSSIER line crossed its condition and MERIT PAY /
+##       COMMENDATION posted itself (no claim buttons anywhere). payload
+##       {id, skill, description, crowns, xp_skill, xp_amount, reward_line,
+##       notice_line} — the lines carry the T22 formats ("MERIT PAY · 40
+##       CROWNS" / "COMMENDATION · 250 XP"; notice "FORM R-1 STAMPED · 40
+##       CROWNS POSTED"). Offline completions fire here too (the T18
+##       offline-seam precedent) AND ride the MAIL CALL payload's
+##       `objectives` section ({stamps: [the same payloads], crowns: int})
+##       plus the folded skills_xp/levels legs — the mail call is their
+##       presentation.
+##   dossier_completed(payload: Dictionary) — IMMEDIATE, when one skill's
+##       LAST objective stamps (T23): payload {skill, total, stamp_line =
+##       "ALL N STAMPED · FORM R-1"} (N from data, never hardcoded). Re-arms
+##       if content later adds objectives to a completed dossier.
 ##
 ## Interaction rules:
 ##   • User-initiated actions (start/stop activity) force an immediate bulk
@@ -82,6 +99,8 @@ signal zone_cleared(monster_id: String)
 signal mail_call_ready(payload: Dictionary)
 signal orientation_step_done(step_id: String)
 signal orientation_completed(payload: Dictionary)
+signal objective_stamped(payload: Dictionary)
+signal dossier_completed(payload: Dictionary)
 
 const TICK_MS := 100  ## 10 Hz sim (decoupled from render frames).
 const MAX_CATCHUP_TICKS_PER_FRAME := 25  ## 2.5 s of sim max per frame, then clamp.
@@ -92,6 +111,7 @@ var state: PlayerState
 var engine: ActivityEngine
 var combat: CombatSession
 var orientation: OrientationTracker
+var objectives: ObjectivesTracker
 var batcher: UpdateBatcher
 var sim_time_ms: int = 0  ## absolute sim clock (int ms; the engine's anchors live on it)
 var stats := {
@@ -133,10 +153,28 @@ func _boot(p_lib: ContentLibrary, world_seed: int) -> void:
 		orientation_completed.emit(payload))
 	engine.level_up.connect(func(skill_id: String, _old: int, _new: int) -> void:
 		orientation.note_level_up(state, skill_id))
+	# T23: the DEPARTMENTAL DOSSIER tracker — the orientation two-tier pattern
+	# generalized (lifetime counters from the engine seams, evaluation stamps
+	# + auto-grants exactly once). Gather/craft counters live INSIDE
+	# ActivityEngine._execute_action (engine.objectives, wired above the
+	# combat session so the shared XP pipeline exists for reward legs).
+	objectives = ObjectivesTracker.new(p_lib, batcher, engine)
+	engine.objectives = objectives
+	objectives.objective_stamped.connect(func(payload: Dictionary) -> void:
+		objective_stamped.emit(payload))
+	objectives.dossier_completed.connect(func(payload: Dictionary) -> void:
+		dossier_completed.emit(payload))
+	engine.level_up.connect(func(skill_id: String, _old: int, new_level: int) -> void:
+		objectives.note_level_up(state, skill_id, new_level))
+	# The O-1 stipend posts through the wallet — it counts as lifetime Crowns
+	# earned (the crowns_total counters read every earn path).
+	orientation.orientation_completed.connect(func(payload: Dictionary) -> void:
+		objectives.note_crowns_posted(state, int(payload.get("stipend", 0))))
 	combat = CombatSession.new(p_lib, batcher, engine)
 	combat.combat_ended.connect(func(result: Dictionary) -> void:
 		if str(result.get("outcome", "")) == "victory":
 			orientation.note_victory(state)
+			objectives.note_victory(state, str(result.get("monster_id", "")))
 		combat_ended.emit(result))
 	combat.zone_cleared.connect(func(monster_id: String) -> void:
 		zone_cleared.emit(monster_id))
@@ -151,6 +189,10 @@ func new_game(world_seed: int = -1) -> void:
 	orientation.ensure_orientation(state)
 	orientation.evaluate(state)  # no-op on a fresh record; the seam stays one
 	batcher.mark("orientation")  # a reset re-posts the form from engine truth
+	objectives.ensure_objectives(state)
+	objectives.sync_derivable(state)
+	objectives.evaluate(state)  # no-op on a fresh record (counters zero)
+	batcher.mark("objectives")  # a reset re-posts the dossier from engine truth
 	sim_time_ms = 0
 	_accum_ms = 0
 	_last_wall_ms = -1
@@ -184,6 +226,12 @@ func adopt_state(st: PlayerState, resume_sim_ms: int = 0) -> void:
 	# only for records that arrived without a namespace, SaveStore-side; the
 	# acceptance suite pins live/reloaded twin dicts byte-equal).
 	orientation.ensure_orientation(state)
+	# T23: hydrate/repair the objectives namespace the same way — a genuine
+	# v3 record IS its own truth (counters + stamps). The migration-time
+	# derivable sync (per-skill max grades) + evaluation run SaveStore-side,
+	# only for records that arrived without their own namespace (the
+	# orientation back-fill precedent, verbatim).
+	objectives.ensure_objectives(state)
 	sim_time_ms = maxi(resume_sim_ms, 0)
 	_accum_ms = 0
 	_last_wall_ms = -1
@@ -328,6 +376,35 @@ func orientation_step_done_bool(step_id: String) -> bool:
 	return orientation.is_step_done(state, step_id)
 
 
+# -- T23 objectives façade (the T26 dossier registers read these) --
+
+## One read for a whole dossier: {"skill", "stamped", "total", "rows":
+## [{id, description, stamped, current, target, reward_line}] in posted
+## order, "stamp_line": "ALL N STAMPED · FORM R-1" once complete ("" while
+## open)}. All numbers engine truth — the UI never infers progress.
+func dossier_summary(skill_id: String) -> Dictionary:
+	var summary := objectives.skill_summary(state, skill_id)
+	var rows: Array[Dictionary] = []
+	for obj in engine.lib.objectives_for_skill(skill_id):
+		var prog := objectives.progress(state, obj.id)
+		rows.append({
+			"id": obj.id,
+			"description": obj.description,
+			"stamped": bool(prog["stamped"]),
+			"current": int(prog["current"]),
+			"target": int(prog["target"]),
+			"reward_line": ObjectivesTracker.reward_line(obj),
+		})
+	summary["rows"] = rows
+	summary["stamp_line"] = "ALL %s STAMPED · FORM R-1" % SignageFmt.num(int(summary["total"])) \
+		if int(summary["stamped"]) >= int(summary["total"]) and int(summary["total"]) > 0 else ""
+	return summary
+
+
+func is_objective_stamped(objective_id: String) -> bool:
+	return objectives.is_stamped(state, objective_id)
+
+
 # -- Combat façade (T7; Wasteland Patrol calls these, never ActivityEngine) --
 
 ## Engage (or switch to) a monster — the auto-battle starts. Returns
@@ -351,6 +428,7 @@ func equip_item(item_id: String) -> Dictionary:
 	var result: Dictionary = combat.equip(state, item_id)
 	if bool(result.get("ok", false)):
 		orientation.note_equip(state)  # T18: PROVISION THE PATROL (equip leg)
+		objectives.note_equip(state, item_id)  # T23: equip lifetime counter
 	batcher.force_flush(sim_time_ms)
 	return result
 
@@ -401,6 +479,8 @@ func depot_sell(item_id: String, qty: int = 0) -> Dictionary:
 	state.take_item(item_id, n)
 	state.add_crowns(def.value * n)
 	orientation.note_sale(state)  # T18: FILE A CROWNS CLAIM (first tender)
+	# T23: sell + lifetime-crowns counters (tender = the one earn path).
+	objectives.note_sale(state, item_id, n, def.value * n)
 	batcher.mark("inventory")
 	batcher.force_flush(sim_time_ms)
 	return {"ok": true, "reason": "", "qty": n, "crowns": def.value * n}
@@ -471,7 +551,14 @@ func apply_offline_elapsed(elapsed_ms: int) -> Dictionary:
 				"reason": engine.STOP_POSTING_SUSPENDED,
 			})
 		_staffing_notice = []
-	if int(payload["elapsed_ms"]) > 0 or payload.has("staffing"):
+	# T23: settle the dossiers from the away window's DELTA evidence (levels
+	# crossed, kills landed — gather/craft counters were already maintained
+	# inside the shared _execute_action). Runs BEFORE the mail call posts so
+	# the payload carries the offline stamps ({objectives: {stamps, crowns}}
+	# + the folded skills_xp/levels reward legs) — the same stamps a live
+	# twin of the window earns through its event hooks.
+	objectives.settle_offline(state, payload)
+	if int(payload["elapsed_ms"]) > 0 or payload.has("staffing") or payload.has("objectives"):
 		mail_call_ready.emit(payload)
 		batcher.force_flush(sim_time_ms)
 	state.last_mail_call = payload

@@ -19,9 +19,13 @@ extends SceneTree
 const DOMAIN_FILES := [
 	"items.json", "skills.json", "activities.json", "recipes.json",
 	"drop_tables.json", "monsters.json", "equipment.json", "shop_stock.json",
-	"xp_curves.json", "staffing.json",
+	"xp_curves.json", "staffing.json", "zones.json", "objectives.json",
 ]
-const GOLDEN_RECORD_COUNT := 83  # 21 items + 5 skills + 8 activities + 11 recipes + 13 drop tables + 5 monsters + 4 equipment + 11 shop lines + 1 curve + 4 deputy rungs (T5 set + T17 staffing)
+# 21 items + 5 skills + 8 activities + 11 recipes + 13 drop tables + 5 monsters
+# + 4 equipment + 11 shop lines + 1 curve + 4 deputy rungs (T5 set + T17
+# staffing) + 2 zones (T23) + 0 objectives (T23 ships the schema + engine;
+# T25 authors >= 20/skill and bumps this count with the set).
+const GOLDEN_RECORD_COUNT := 85
 
 var checks := 0
 var failures: Array[String] = []
@@ -136,6 +140,19 @@ func _check_golden_set() -> void:
 		"first deputy rung hydrates (id + int price 250, T20-tuned)")
 	_check(lib.deputy_price_at(0) == 250 and lib.deputy_price_at(3) == 25000 and lib.deputy_price_at(4) == -1,
 		"deputy_price_at() reads the ladder and returns -1 past the cap")
+
+	# Zones (T23) — both run-3 ids ship from day one; the reserved Gift Court
+	# id resolves now, T24 authors its fauna.
+	_check(lib.zones.size() == 2, "both run-3 zones ship (dusty_flats + the reserved gift_court)")
+	var flats := lib.zone("dusty_flats")
+	_check(flats is ZoneDef and flats.name == "The Sunny Exclusion Zone", "zone dusty_flats hydrates (id + display name)")
+	_check(lib.zone("gift_court") != null and String(lib.zone("gift_court").name) == "The Gift Court",
+		"the reserved Gift Court zone id resolves (T24 fills fauna)")
+
+	# Objectives (T23) — the schema + loader ship with an EMPTY set (T25
+	# authors >= 20/skill); the engine suite drives the full fixture matrix.
+	_check(lib.objectives.is_empty(), "objectives.json ships EMPTY (T23 engine-only; T25 authors the dossier sets)")
+	_check(lib.objectives_for_skill("scavenging").is_empty(), "per-skill dossier reads return file-order arrays")
 
 	# Whole-library shape.
 	_check(lib.record_count() == GOLDEN_RECORD_COUNT, "library record_count() == %d" % GOLDEN_RECORD_COUNT)

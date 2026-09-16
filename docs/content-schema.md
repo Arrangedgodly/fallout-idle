@@ -32,6 +32,8 @@ records array (any other top-level key is an error):
 | `data/shop_stock.json` | `shop_stock` | `ShopEntryDef` | T10a Depot |
 | `data/xp_curves.json` | `xp_curves` | `XpCurveDef` | T6 XP math, T10 gauges |
 | `data/staffing.json` | `deputies` + scalar `orientation_stipend` | `DeputyDef` + int | T17 personnel engine, posting board; T18 orientation stipend |
+| `data/zones.json` | `zones` | `ZoneDef` | T23 zone registry (monsters + objectives reference it); T24 fills Gift Court fauna |
+| `data/objectives.json` | `objectives` | `ObjectiveDef` | T23 objectives engine (T26 dossier registers); **T23 ships the set EMPTY — T25 authors ≥ 20/skill** |
 
 `schema_version` is currently **1** and is namespaced to *content only* — it
 never collides with the save format's `save_version` (see
@@ -235,9 +237,80 @@ Top-level scalar (T18, the one file in the set that carries one):
 |---|---|---|---|---|
 | `orientation_stipend` | int | 1–1,000,000 | y | Crowns posted by the ORIENTATION FORM O-1 completion reward (the DULY ORIENTED stipend line; read via `ContentLibrary.orientation_stipend`). T20-tuned 150 (60% of the first deputy's 250 — sizing rules in docs/balance-notes.md §5.2, probe-pinned). >= 1 because the Department always pays something. |
 
+### zones.json (T23)
+
+The zone registry — deliberately MINIMAL (id + display name; monsters.json's
+`zone` field and objectives.json `zone_clear` conditions reference these
+ids). The T23 set ships BOTH run-3 zone ids (`dusty_flats` The Sunny
+Exclusion Zone + `gift_court` The Gift Court) so the reserved Gift Court id
+resolves from day one; **T24 authors the Gift Court fauna** (monsters
+referencing the zone) and owns any growth beyond the display name (a schema
+bump by the versioning rules below). A zone with no monsters is NOT an
+orphan — the Gift Court deliberately ships fauna-less until T24, so no
+loader warning fires.
+
+| Field | Type | Range | Req | Notes |
+|---|---|---|---|---|
+| `id` | string | snake_case | y | machine id (`dusty_flats`, `gift_court` — naming-bible §15) |
+| `name` | string | non-empty, ≤ 120 | y | display name ("The Sunny Exclusion Zone") |
+
+Cross-checks: every `monsters.json` `zone` must resolve here (zone strings
+became real references in T23); duplicate ids rejected.
+
+### objectives.json (T23 — the DEPARTMENTAL DOSSIER content)
+
+One dossier line per record: a tracked condition with an auto-granted
+reward (naming-bible §15 machine-id contract; engine =
+`scripts/engine/objectives_tracker.gd`). **T23 ships the file with an EMPTY
+`objectives` array** — the schema, loader and engine are the deliverable;
+T25 authors ≥ 20 objectives per skill (probe-asserted) and bumps the golden
+record count with the set. Every engine behavior is proven by
+`tests/test_objectives.gd` against a fixture set through the injectable
+`ContentLoader.load_all(dir)` seam.
+
+| Field | Type | Range | Req | Notes |
+|---|---|---|---|---|
+| `id` | string | snake_case | y | one stable id per objective |
+| `skill` | string | ref | y | the dossier grouping (one of the 5 skills) |
+| `description` | string | non-empty, ≤ 60 chars, **≤ 6 words, no `!`** | y | the plate line (design-brief Addendum 2 voice rules are LOADER LAW: verb-first, mono numerals, bible names — the word cap + no-exclamation are enforced here) |
+| `condition.kind` | enum | see kinds below | y | |
+| `condition.target` | int | per kind | y | the threshold the lifetime counter must reach |
+| `condition.ref` | string | snake_case ref | ref kinds only | forbidden on the meta kinds |
+| `reward.crowns` | int | 1–1,000,000 | one leg | MERIT PAY leg |
+| `reward.xp` | object | `{skill, amount}`; `amount` 1–1,000,000 | one leg | COMMENDATION leg; `skill` independent of the dossier (cross-skill legs legal) |
+
+At least one reward leg is required (no unpaid duties); both legs legal.
+Condition kinds (T23 final set — `stamped_count` supersedes the §15
+suggested id `set_complete`, per the T23 dispatch):
+
+| Kind | `ref` resolves to | Counter |
+|---|---|---|
+| `level_reach` | — (skill = the dossier's) | max clearance grade reached in `skill` (target 2–99, ≤ `skill.max_level`) |
+| `gather_count` | an ACTIVITY id **or** an ITEM id | completed actions of the activity / units of the item gained from activity drop rolls |
+| `craft_count` | a RECIPE id | completed crafts of the recipe |
+| `kill_count` | a MONSTER id | victories over the monster |
+| `sell_count` | an ITEM id | units tendered at the Depot |
+| `equip_item` | an EQUIPMENT item id | times equipped |
+| `zone_clear` | a ZONE id | times that zone's boss was defeated (repeatable) |
+| `stamped_count` | — (skill = the dossier's) | objectives of `skill` STAMPED (the open one never counts itself — the set-completion meta kind; target ≤ per-skill count − 1, loader-enforced) |
+| `crowns_total` | — | Crowns earned LIFETIME (posted, never spent) |
+
+Cross-checks (all in the T2 error grammar): `skill` exists; every `ref`
+resolves; kind/skill ownership — `craft_count` recipes and activity-ref
+`gather_count` must belong to the dossier's skill, gather-by-item refs must
+be producible by that skill's activity drop tables (reverse-mapped), and
+kill/zone/equip objectives belong to the combat skill's EXTERIOR DOSSIER;
+`level_reach` targets must not exceed the skill's `max_level`;
+`stamped_count` targets must be reachable (≤ the skill's other-objective
+count); `reward.xp.skill` must exist; duplicate ids rejected. File order is
+the CANONICAL posted order (`objectives.stamped` persists in it).
+
 ## Versioning
 
 `schema_version` bumps when a file's *shape* changes (field added/removed,
 range change). Procedure: bump `ContentLoader.SCHEMA_VERSION` + this doc +
-all nine files in one commit, and update T5's authored content in the same
-change — content and code move together or boot fails by design.
+every data file in one commit, and update T5's authored content in the same
+change — content and code move together or boot fails by design. (Adding a
+NEW domain file — zones.json/objectives.json in T23 — is not a shape change
+of existing files: the loader and the new file land in the same commit per
+the same rule, and `schema_version` stayed 1.)

@@ -40,6 +40,9 @@ const BONUS_MAX := 10000
 const XP_PER_LEVEL_MAX := 100000000
 const ID_LEN_MAX := 64
 const DEPUTY_RUNGS := 4  ## run-2 staffing ladder: 1 + 4 deputies = 5 postings
+const OBJECTIVE_COUNT_MAX := 100000000  ## run-3 count thresholds (incl. lifetime crowns)
+const OBJECTIVE_DESC_MAX := 60  ## characters; the word cap is the real voice rule
+const OBJECTIVE_WORDS_MAX := 6  ## design-brief Addendum 2: <= 6 words, hard cap (T25 acceptance)
 
 
 class Result:
@@ -117,6 +120,10 @@ static func _domain_specs() -> Array[Dictionary]:
 		# retunes; the ladder cross-check stays on "deputies").
 		{"file": "staffing.json", "key": "deputies", "validate": _validate_deputy, "install": _install_deputies,
 			"scalar": {"key": "orientation_stipend", "min": 1, "max": VALUE_MAX}},
+		# T23 run-3 domains. Zones + objectives load LAST so every referenced
+		# pool is hydrated; reference integrity itself lives in _cross_check.
+		{"file": "zones.json", "key": "zones", "validate": _validate_zone, "install": _install_zones},
+		{"file": "objectives.json", "key": "objectives", "validate": _validate_objective, "install": _install_objectives},
 	]
 
 
@@ -304,6 +311,26 @@ static func _install_deputies(lib: ContentLibrary, defs: Array, ctx: Ctx, key: S
 				break
 		if not duplicate:
 			lib.deputies.append(def)
+
+
+## Zones + objectives install in FILE ORDER (Dictionary insertion order =
+## the canonical posted order of `objectives.stamped`); duplicates rejected.
+static func _install_zones(lib: ContentLibrary, defs: Array, ctx: Ctx, key: String) -> void:
+	for def in defs:
+		ctx.at(key, def.id)
+		if lib.zones.has(def.id):
+			ctx.err("id", "duplicate zone id '%s' — already defined in this file" % def.id)
+			continue
+		lib.zones[def.id] = def
+
+
+static func _install_objectives(lib: ContentLibrary, defs: Array, ctx: Ctx, key: String) -> void:
+	for def in defs:
+		ctx.at(key, def.id)
+		if lib.objectives.has(def.id):
+			ctx.err("id", "duplicate objective id '%s' — already defined in this file" % def.id)
+			continue
+		lib.objectives[def.id] = def
 
 
 # ------------------------------------------------------------ record schemas
@@ -599,6 +626,117 @@ static func _validate_deputy(rec: Dictionary, ctx: Ctx) -> DeputyDef:
 	return def
 
 
+## One zone record (T23): id + display name. Deliberately minimal — monsters
+## reference zones; objectives reference zones; T24 owns any growth beyond
+## the display name (a schema bump by the versioning rules).
+static func _validate_zone(rec: Dictionary, ctx: Ctx) -> ZoneDef:
+	_check_keys(rec, ctx, ["id", "name"])
+	var id := _get_id(rec, ctx, "id")
+	var zone_name := _get_string(rec, ctx, "name", OBJECTIVE_DESC_MAX * 2)
+	if id == "" or zone_name == "":
+		return null
+	return ZoneDef.hydrate({"id": id, "name": zone_name})
+
+
+## One DEPARTMENTAL DOSSIER line (T23): id, skill (dossier grouping),
+## description (<= 6 words, no "!" — Addendum 2 voice rules are loader law),
+## condition {kind, target, ref?}, reward {crowns? and/or xp?}. Reference
+## resolution + kind/skill ownership live in _cross_check (every pool is
+## hydrated there); this pass owns shape, ranges and the reward leg rules.
+static func _validate_objective(rec: Dictionary, ctx: Ctx) -> ObjectiveDef:
+	_check_keys(rec, ctx, ["id", "skill", "description", "condition", "reward"])
+	var id := _get_id(rec, ctx, "id")
+	var skill := _get_id(rec, ctx, "skill")
+	var description := _get_string(rec, ctx, "description", OBJECTIVE_DESC_MAX)
+	if description != "":
+		if _word_count(description) > OBJECTIVE_WORDS_MAX:
+			ctx.err("description", "must be at most %d words, got %d (design-brief Addendum 2 plate idiom: '%s')" %
+				[OBJECTIVE_WORDS_MAX, _word_count(description), description])
+			description = ""
+		elif description.contains("!"):
+			ctx.err("description", "must not contain '!' (voice Rule 4: no exclamation points on signage)")
+			description = ""
+
+	var cond_ctx := ctx.nested("condition")
+	var cond: Variant = _get_dict(rec, ctx, "condition", ["kind", "target"])
+	if cond == null:
+		return null
+	var cond_d: Dictionary = cond
+	# Exact key set inside the condition: {kind, target} + ref only where the
+	# kind references content.
+	var cond_required := ["kind", "target"]
+	if cond_d.has("ref"):
+		cond_required.append("ref")
+	_check_keys(cond_d, cond_ctx, cond_required, [])
+	var kind := _get_enum(cond_d, cond_ctx, "kind", ObjectiveDef.KINDS)
+	var ref := ""
+	if cond_d.has("ref"):
+		ref = _get_id(cond_d, cond_ctx, "ref")
+		if ref == "":
+			return null
+	elif ObjectiveDef.REF_KINDS.has(kind):
+		cond_ctx.err("ref", "condition kind '%s' requires a content ref" % kind)
+		return null
+	var target: Variant = null
+	if kind != "":
+		if kind == ObjectiveDef.KIND_LEVEL_REACH:
+			target = _get_int(cond_d, cond_ctx, "target", 2, LEVEL_MAX)
+		elif kind == ObjectiveDef.KIND_EQUIP_ITEM or kind == ObjectiveDef.KIND_ZONE_CLEAR:
+			target = _get_int(cond_d, cond_ctx, "target", 1, QTY_MAX)
+		else:
+			target = _get_int(cond_d, cond_ctx, "target", 1, OBJECTIVE_COUNT_MAX)
+	if id == "" or skill == "" or kind == "" or target == null:
+		return null
+
+	var reward_ctx := ctx.nested("reward")
+	var reward: Variant = _get_dict(rec, ctx, "reward", [])
+	if reward == null:
+		return null
+	var reward_d: Dictionary = reward
+	_check_keys(reward_d, reward_ctx, [], ["crowns", "xp"])
+	if not reward_d.has("crowns") and not reward_d.has("xp"):
+		reward_ctx.err("(record)", "at least one reward leg is required ('crowns' and/or 'xp') — no unpaid duties")
+		return null
+	var crowns := 0
+	if reward_d.has("crowns"):
+		var crowns_raw: Variant = _get_int(reward_d, reward_ctx, "crowns", 1, VALUE_MAX)
+		if crowns_raw == null:
+			return null
+		crowns = crowns_raw
+	var xp_skill := ""
+	var xp_amount := 0
+	if reward_d.has("xp"):
+		var xp_ctx := reward_ctx.nested("xp")
+		var xp: Variant = _get_dict(reward_d, reward_ctx, "xp", ["skill", "amount"])
+		if xp == null:
+			return null
+		xp_skill = _get_id(xp, xp_ctx, "skill")
+		var xp_raw: Variant = _get_int(xp, xp_ctx, "amount", 1, XP_MAX)
+		if xp_skill == "" or xp_raw == null:
+			return null
+		xp_amount = xp_raw
+
+	var def := ObjectiveDef.new()
+	def.id = id
+	def.skill = skill
+	def.description = description
+	def.kind = kind
+	def.target = target
+	def.ref = ref
+	def.reward_crowns = crowns
+	def.reward_xp_skill = xp_skill
+	def.reward_xp_amount = xp_amount
+	return def
+
+
+static func _word_count(text: String) -> int:
+	var n := 0
+	for word in text.split(" "):
+		if String(word).strip_edges() != "":
+			n += 1
+	return n
+
+
 # ------------------------------------------------------------- cross-checks
 
 ## Reference integrity across domains; runs only when per-record validation
@@ -627,6 +765,10 @@ static func _cross_check(lib: ContentLibrary, res: Result) -> void:
 
 	for monster in lib.monsters.values():
 		_require_ref(lib, res, "data/monsters.json", "monsters[%s]" % monster.id, "drop_table", "drop_tables", monster.drop_table)
+		# T23: zone strings became real references — every monster's zone must
+		# resolve against data/zones.json (the reserved gift_court id ships in
+		# the zones list from day one, so T24's fauna reference-checks clean).
+		_require_ref(lib, res, "data/monsters.json", "monsters[%s]" % monster.id, "zone", "zones", monster.zone)
 
 	for equip in lib.equipment.values():
 		_require_ref(lib, res, "data/equipment.json", "equipment[%s]" % equip.item, "item", "items", equip.item)
@@ -677,6 +819,99 @@ static func _cross_check(lib: ContentLibrary, res: Result) -> void:
 			combat_skills.append(skill.id)
 	if combat_skills.is_empty():
 		res.errors.append("[content] data/skills.json · skills: no skill with kind 'combat' — monsters gate on one (Wasteland Combat)")
+
+	# T23 objectives: reference resolution + kind/skill ownership (the dossier
+	# grouping is validated, not just the ref's existence). The per-skill
+	# counts drive the stamped_count reachability rule.
+	var per_skill_counts := {}
+	for obj in lib.objectives.values():
+		per_skill_counts[obj.skill] = int(per_skill_counts.get(obj.skill, 0)) + 1
+	for obj in lib.objectives.values():
+		var pointer := "objectives[%s]" % obj.id
+		var skill: SkillDef = lib.skills.get(obj.skill)
+		if skill == null:
+			res.errors.append("[content] data/objectives.json · %s · skill: references unknown skills id '%s'" % [pointer, obj.skill])
+			continue
+		match obj.kind:
+			ObjectiveDef.KIND_LEVEL_REACH:
+				if obj.target > skill.max_level:
+					res.errors.append("[content] data/objectives.json · %s · condition.target: %d exceeds skill '%s' max_level %d — the clearance is unreachable" %
+						[pointer, obj.target, obj.skill, skill.max_level])
+			ObjectiveDef.KIND_GATHER_COUNT:
+				var adef: ActivityDef = lib.activities.get(obj.ref)
+				var item: ItemDef = lib.items.get(obj.ref)
+				if adef != null:
+					obj.gather_ref_is_activity = true
+					if adef.skill != obj.skill:
+						res.errors.append("[content] data/objectives.json · %s · condition.ref: activity '%s' belongs to skill '%s', not dossier skill '%s'" %
+							[pointer, obj.ref, adef.skill, obj.skill])
+				elif item != null:
+					obj.gather_ref_is_activity = false
+					if not _skill_produces_item(lib, obj.skill, obj.ref):
+						res.errors.append("[content] data/objectives.json · %s · condition.ref: no '%s' activity drop table produces item '%s' — the gather count is unreachable" %
+							[pointer, obj.skill, obj.ref])
+				else:
+					res.errors.append("[content] data/objectives.json · %s · condition.ref: references unknown activities/items id '%s'" %
+						[pointer, obj.ref])
+			ObjectiveDef.KIND_CRAFT_COUNT:
+				var rdef: RecipeDef = lib.recipes.get(obj.ref)
+				if rdef == null:
+					res.errors.append("[content] data/objectives.json · %s · condition.ref: references unknown recipes id '%s'" % [pointer, obj.ref])
+				elif rdef.skill != obj.skill:
+					res.errors.append("[content] data/objectives.json · %s · condition.ref: recipe '%s' belongs to skill '%s', not dossier skill '%s'" %
+						[pointer, obj.ref, rdef.skill, obj.skill])
+			ObjectiveDef.KIND_KILL_COUNT:
+				if lib.monsters.get(obj.ref) == null:
+					res.errors.append("[content] data/objectives.json · %s · condition.ref: references unknown monsters id '%s'" % [pointer, obj.ref])
+				if not combat_skills.has(obj.skill):
+					res.errors.append("[content] data/objectives.json · %s · skill: kill objectives belong to the combat skill's dossier, got '%s'" %
+						[pointer, obj.skill])
+			ObjectiveDef.KIND_SELL_COUNT:
+				if lib.items.get(obj.ref) == null:
+					res.errors.append("[content] data/objectives.json · %s · condition.ref: references unknown items id '%s'" % [pointer, obj.ref])
+			ObjectiveDef.KIND_EQUIP_ITEM:
+				if lib.items.get(obj.ref) == null or lib.equipment.get(obj.ref) == null:
+					res.errors.append("[content] data/objectives.json · %s · condition.ref: references unknown equipment item '%s' (needs an items record + an equipment record)" %
+						[pointer, obj.ref])
+				if not combat_skills.has(obj.skill):
+					res.errors.append("[content] data/objectives.json · %s · skill: equip objectives belong to the combat skill's dossier, got '%s'" %
+						[pointer, obj.skill])
+			ObjectiveDef.KIND_ZONE_CLEAR:
+				if lib.zones.get(obj.ref) == null:
+					res.errors.append("[content] data/objectives.json · %s · condition.ref: references unknown zones id '%s'" % [pointer, obj.ref])
+				if not combat_skills.has(obj.skill):
+					res.errors.append("[content] data/objectives.json · %s · skill: zone objectives belong to the combat skill's dossier, got '%s'" %
+						[pointer, obj.skill])
+			ObjectiveDef.KIND_STAMPED_COUNT:
+				# The count excludes the objective itself while it is open, so
+				# the ceiling is (per-skill count - 1); equal = the full-set
+				# completion objective, greater = unreachable.
+				var ceiling := int(per_skill_counts.get(obj.skill, 0)) - 1
+				if obj.target > ceiling:
+					res.errors.append("[content] data/objectives.json · %s · condition.target: %d exceeds the %d other objectives in skill '%s' — the set can never complete" %
+						[pointer, obj.target, ceiling, obj.skill])
+			ObjectiveDef.KIND_CROWNS_TOTAL:
+				pass  # whole-scope meta kind; no ref to resolve
+		if obj.reward_xp_skill != "" and lib.skills.get(obj.reward_xp_skill) == null:
+			res.errors.append("[content] data/objectives.json · %s · reward.xp.skill: references unknown skills id '%s'" %
+				[pointer, obj.reward_xp_skill])
+
+
+## Whether any activity of `skill_id` rolls a drop table that can produce
+## `item_id` (the gather-by-item reachability check). Equipment-category
+## items never come from gathering (recipes forge them) — the reverse map
+## answers honestly for those too: no table produces them.
+static func _skill_produces_item(lib: ContentLibrary, skill_id: String, item_id: String) -> bool:
+	for activity in lib.activities.values():
+		if activity.skill != skill_id:
+			continue
+		var table: DropTableDef = lib.drop_tables.get(activity.drop_table)
+		if table == null:
+			continue
+		for entry in table.entries:
+			if entry.item == item_id:
+				return true
+	return false
 
 
 static func _require_ref(lib: ContentLibrary, res: Result, file: String, pointer: String, field: String, domain: String, id: String) -> void:

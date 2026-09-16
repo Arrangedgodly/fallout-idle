@@ -230,7 +230,7 @@ func _write_v1_save(dir: String, tm: Variant, anchor_ms: int) -> void:
 	assert_true(store.save_now(anchor_ms)["ok"], "v2 record filed")
 	var path := dir.path_join("save.json")
 	var doc: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(path))
-	assert_eq(int(doc["save_version"]), 2, "fresh records are v2")
+	assert_eq(int(doc["save_version"]), 3, "fresh records are v3 (T23 objectives rides save_version 3)")
 	doc["save_version"] = 1
 	doc["engine"].erase("staffing")
 	var f := FileAccess.open(path, FileAccess.WRITE)
@@ -291,7 +291,7 @@ func test_migration_three_skills_one_survivor_plus_notice() -> void:
 	# The record re-files as v2 with the staffing namespace intact.
 	assert_true(store2.save_now(NOW + 1_000)["ok"], "re-filing works after migration")
 	var redoc: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("save.json")))
-	assert_eq(int(redoc["save_version"]), 2, "the re-filed record is v2")
+	assert_eq(int(redoc["save_version"]), 3, "the re-filed record is v3")
 	assert_eq(int(redoc["engine"]["staffing"]["deputies"]), 0, "deputies persisted")
 	assert_true(redoc["engine"]["staffing"]["suspended"].has("foraging"), "parked postings persisted")
 

@@ -18,6 +18,11 @@ var shop_stock: Array[ShopEntryDef] = []  ## File order = Depot display order.
 var xp_curves: Dictionary = {}  ## String -> XpCurveDef
 var deputies: Array[DeputyDef] = []  ## T17 staffing ladder; file order = purchase order.
 var orientation_stipend: int = 0  ## T18 Crowns posted by the DULY ORIENTED reward line (data/staffing.json).
+var zones: Dictionary = {}  ## String -> ZoneDef (T23; insertion order = file order).
+## String -> ObjectiveDef (T23; insertion order = file order — the CANONICAL
+## posted order of `objectives.stamped`, the orientation steps_done pattern).
+## T23 ships the schema + engine with an EMPTY set; T25 authors >= 20/skill.
+var objectives: Dictionary = {}
 
 
 func item(id: String) -> ItemDef:
@@ -52,6 +57,36 @@ func xp_curve(id: String) -> XpCurveDef:
 	return xp_curves.get(id)
 
 
+func zone(id: String) -> ZoneDef:
+	return zones.get(id)
+
+
+func objective(id: String) -> ObjectiveDef:
+	return objectives.get(id)
+
+
+## One skill's dossier, in file (posted) order — the T26 register renders
+## this array directly; `stamped` ordering uses the same file-order index.
+func objectives_for_skill(skill_id: String) -> Array[ObjectiveDef]:
+	var out: Array[ObjectiveDef] = []
+	for obj_id in objectives:
+		var def: ObjectiveDef = objectives[obj_id]
+		if def.skill == skill_id:
+			out.append(def)
+	return out
+
+
+## Canonical posted-order index of an objective id (-1 unknown) — the sort
+## key for `objectives.stamped` / `objectives.rewards_granted`.
+func objective_order_index(objective_id: String) -> int:
+	var i := 0
+	for obj_id in objectives:
+		if String(obj_id) == objective_id:
+			return i
+		i += 1
+	return -1
+
+
 func shop_entries() -> Array[ShopEntryDef]:
 	return shop_stock
 
@@ -76,13 +111,16 @@ func _pool(domain: String) -> Dictionary:
 		"monsters": return monsters
 		"equipment": return equipment
 		"xp_curves": return xp_curves
+		"zones": return zones
+		"objectives": return objectives
 		_: return {}
 
 
 func record_count() -> int:
 	return items.size() + skills.size() + activities.size() + recipes.size() \
 		+ drop_tables.size() + monsters.size() + equipment.size() \
-		+ shop_stock.size() + xp_curves.size() + deputies.size()
+		+ shop_stock.size() + xp_curves.size() + deputies.size() \
+		+ zones.size() + objectives.size()
 
 
 ## Items with no obtainment path (no drop table, recipe output, or shop stock

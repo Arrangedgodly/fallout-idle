@@ -622,10 +622,10 @@ for save fields and content ids (`save_version`, `staffing.deputies`,
 |---|---|---|
 | objectives state namespace | `engine.objectives` | sibling of `staffing`/`orientation` in the PlayerState dict; rides **save_version 3** (T23 owns `_migrate_2_to_3` + the intact v1→v2→v3 chain) |
 | stamped objectives | `objectives.stamped` | Array[String] of objective ids in canonical posted order — the `orientation.steps_done` pattern generalized (T23 owns mechanics; the names are binding) |
-| per-objective progress | `objectives.progress` | Dictionary objective_id → int lifetime count (suggested shape; T23 owns the final contract) |
+| per-objective progress | `objectives.counters` | T23 FINAL CONTRACT (as shipped): Dictionary of LIFETIME counters keyed `kind:id` — `activity:` `item_gathered:` `recipe:` `monster:` `zone:` `item_sold:` `item_equipped:` `level:` `stamped:` `crowns` — replacing §15's suggested per-objective `objectives.progress` shape (raw counters are the truth; per-objective progress derives from them, so later content reads history for free) |
 | auto-grant notice kind | `objective_stamped` | engine/UI notice payload kind string, sibling of `posting_refused`; payload carries the objective id + reward legs — T23 owns mechanics, the kind string is binding |
 | objectives data file | `data/objectives.json` | plan T23; T2-grammar validation; ids snake_case, one stable id per objective |
-| condition kinds | `level_reach` · `gather_count` · `craft_count` · `kill_count` · `sell_count` · `equip_item` · `zone_clear` · `set_complete` | suggested snake_case kinds covering the amendment's condition list (level reach, gather/craft/kill/sell counts, equip, zone clear, complete-the-set); T23 owns the final set — keep kinds generic-word snake_case |
+| condition kinds | `level_reach` · `gather_count` · `craft_count` · `kill_count` · `sell_count` · `equip_item` · `zone_clear` · `stamped_count` · `crowns_total` | T23 FINAL SET (binds T25/T26): `stamped_count` supersedes the suggested id `set_complete` (the set-completion meta kind — N objectives of the skill STAMPED, the open one never counting itself); `crowns_total` adds the amendment's economy leg (Crowns earned lifetime). All generic-word snake_case per the §15 rule |
 | dossier UI section | `docket_skill.gd` / `docket_patrol.gd` extension | suggested (a DossierRegister control mounted by the existing dockets — no ninth department plate); non-binding, collision-checked |
 
 **Second zone (T24):**

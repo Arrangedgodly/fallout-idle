@@ -78,7 +78,7 @@ const BIBLE_NAMES := {
 	"carpool_carapace": "Carpool Carapace",
 }
 
-const EXPECTED_RECORD_COUNT := 83  # 21 items + 5 skills + 8 activities + 11 recipes + 13 tables + 5 monsters + 4 equipment + 11 shop lines + 1 curve + 4 T17 deputy rungs
+const EXPECTED_RECORD_COUNT := 85  # 21 items + 5 skills + 8 activities + 11 recipes + 13 tables + 5 monsters + 4 equipment + 11 shop lines + 1 curve + 4 T17 deputy rungs + 2 T23 zones (objectives ship EMPTY until T25)
 
 var lib: ContentLibrary
 var checks := 0

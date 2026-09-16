@@ -590,6 +590,6 @@ func test_a4_migration_journey_v1_record_enforced_with_notice() -> void:
 	# ---- the record re-files as v2 with the staffing namespace intact.
 	assert_true(store2.save_now(NOW + 1_000)["ok"], "the migrated record re-files")
 	var redoc: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(path))
-	assert_eq(int(redoc["save_version"]), 2, "the re-filed record is v2")
+	assert_eq(int(redoc["save_version"]), 3, "the re-filed record is v3 (T23 objectives rides save_version 3)")
 	assert_eq(int(redoc["engine"]["staffing"]["deputies"]), 0, "deputies persisted")
 	assert_true(redoc["engine"]["staffing"]["suspended"].has("scavenging"), "the standing park persisted")

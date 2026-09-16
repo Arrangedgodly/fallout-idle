@@ -427,7 +427,8 @@ func test_staffing_stipend_defect_drills() -> void:
 		"orientation_stipend loads from data/staffing.json (T20-tuned 150)")
 	var tmp := _tmp_dir("staffing_defects")
 	for fname in ["items.json", "skills.json", "activities.json", "recipes.json",
-			"drop_tables.json", "monsters.json", "equipment.json", "shop_stock.json", "xp_curves.json"]:
+			"drop_tables.json", "monsters.json", "equipment.json", "shop_stock.json", "xp_curves.json",
+			"zones.json", "objectives.json"]:
 		DirAccess.copy_absolute("res://data/%s" % fname, tmp.path_join(fname))
 	for label in [
 			["missing key", {"schema_version": 1, "deputies": _deputies_doc()}],

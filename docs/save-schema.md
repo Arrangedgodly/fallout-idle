@@ -10,11 +10,10 @@ separation rule, Doctor Strange's versioning-from-day-1 claim).
 
 ## Versioning rules (binding, unchanged since T2)
 
-- Top-level `save_version: 2` today (v2 = the T17 staffing namespace AND the
-  T18 orientation namespace — one amended v2, see "Migration 1→2"; v1
-  records migrate up). Bump on any shape change that has SHIPPED; run-2's v2
-  was amended pre-delivery (T17 and T18 land in the same build), so a single
-  v2 definition covers both namespaces and no v3 exists.
+- Top-level `save_version: 3` today (v3 = the T23 objectives namespace;
+  v2 = the T17 staffing namespace AND the T18 orientation namespace — one
+  amended v2; v1 records migrate up the intact chain). Bump on any shape
+  change that has SHIPPED.
 - Every migration is a named, ordered function (e.g.
   `_migrate_1_to_2(dict) -> dict`); a save loads only after being migrated up
   to the current `save_version`. The chain hook lives in SaveStore
@@ -38,16 +37,17 @@ separation rule, Doctor Strange's versioning-from-day-1 claim).
   `content_schema_version` and compared on load: a mismatch is a diagnostic
   (warned, exposed in `SaveStore.content_drift`), never a load failure.
 
-## Shape (save_version 2 — v1 + the staffing and orientation namespaces; T3's layout otherwise unchanged)
+## Shape (save_version 3 — v2 + the objectives namespace; T3's layout otherwise unchanged)
 
 T6's per-skill slot model replaced the T2 sketch's single `activity_state`
-line (T3 owned the final layout per the T2 hand-off note); `save_version`
-stays 1 because no v1 record predates this layout. `engine` is
-`PlayerState.to_dict()` verbatim except the RNG stringification.
+line (T3 owned the final layout per the T2 hand-off note). `engine` is
+`PlayerState.to_dict()` verbatim except the RNG stringification and the
+T14/T23 big-int flips (crowns, skills_xp, inventory stacks, objective
+counters).
 
 ```jsonc
 {
-	"save_version": 1,
+	"save_version": 3,
 	"content_schema_version": 1,     // ContentLoader.SCHEMA_VERSION at write time
 	"meta": {
 		"created_unix": 1760000000,  // first-boot stamp, never rewritten
@@ -83,6 +83,20 @@ stays 1 because no v1 record predates this layout. `engine` is
 			                                    // order is fixed)
 			"completed": false,    // true only with all 7 stamped
 			"stipend_claimed": false  // the DULY ORIENTED stipend posted once
+		},
+		"objectives": {               // T23 namespace (save_version 3)
+			"counters": {          // lifetime counters, String -> int; keys are
+			                       // content-derived: "activity:<id>",
+			                       // "item_gathered:<id>", "recipe:<id>",
+			                       // "monster:<id>", "zone:<id>", "item_sold:<id>",
+			                       // "item_equipped:<id>", "level:<skill>",
+			                       // "stamped:<skill>" (derived cache, rebuilt from
+			                       // the stamped set), "crowns" (earned LIFETIME;
+			                       // >= 2^53 ships as a string, T14 policy)
+			},
+			"stamped": [],         // objective ids in canonical posted (file)
+			                       // order — the orientation steps_done pattern
+			"rewards_granted": []  // ids whose rewards posted (== stamped)
 		}
 	},
 	"settings": { "font_scale": 1.0, "fullscreen": false }  // steps 1.0/1.5/2.0
@@ -133,6 +147,38 @@ zero — the notice is the point. Validation never rejects an
 over-subscribed record as corrupt (repair beats discard: the player keeps
 everything); `staffing.deputies` must be an integer 0-4 and parked slots
 validate against content exactly like active ones.
+
+## Migration 2→3 (T23 objectives)
+
+`_migrate_2_to_3` is a pure document transform: it seeds
+`engine.objectives = {"counters": {}, "stamped": [], "rewards_granted": []}`
+and stamps `save_version: 3`. The **zero-counters policy is deliberate and
+documented**: namespace-less lifetime events (per-activity/recipe/monster/
+item counts, Crowns ever earned) cannot be reconstructed from a v2 record,
+and the O-1 back-fill precedent stamps only what state can PROVE — per-item
+lifetime totals are not provable, so guessing is worse than starting honest.
+After adopt, SaveStore runs the one derivable sync + evaluation (the
+orientation back-fill gate, verbatim — only for records that arrived without
+their own namespace):
+
+- **Derivable and synced:** per-skill max clearance grades
+  (`level:<skill>`, provable from `skills_xp` via the curve) — so
+  level-ladder objectives a veteran's grades already satisfy STAMP (with
+  rewards) on the first session after migrating.
+- **Zeroed (honest):** gather/craft/kill/sell/equip counts, lifetime Crowns
+  earned, stamps. A veteran re-earns count objectives from the migration
+  session onward; zone clears stay live because the condition counts boss
+  DEFEATS (repeatable), not the once-ever `combat.zone_clear` bool.
+
+Validation (v3 requires the namespace): `counters` keys must match real
+content (skills/activities/recipes/monsters/zones/items + `crowns`), values
+non-negative ints (the ≥ 2^53 string form accepted); `stamped` and
+`rewards_granted` hold known objective ids without duplicates; every
+granted reward has a stamp. Canonical ORDER and the derived
+`stamped:<skill>` counters are NOT load gates — `ObjectivesTracker.
+ensure_objectives` repairs both at adopt (repair beats discard). Rewards
+post exactly once at the stamp (the stamped + rewards-granted sets guard
+reloads); MERIT PAY counts toward the lifetime-crowns counter.
 
 ## File mechanics (T3-owned, as shipped)
 

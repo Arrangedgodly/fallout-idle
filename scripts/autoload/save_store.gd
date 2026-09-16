@@ -16,8 +16,9 @@ extends Node
 ##     observe a torn primary (the rename is atomic), and a machine power loss
 ##     degrades to the previous last-good file — never garbage.
 ##   • save_version migrations: ordered, named `_migrate_<n>_to_<n+1>` chain
-##     (v2 is current — v1→v2 seeds the T17 staffing + T18 orientation
-##     namespaces; a save loads only after reaching SAVE_VERSION).
+##     (v3 is current — v1→v2 seeds the T17 staffing + T18 orientation
+##     namespaces; v2→v3 seeds the T23 objectives namespace; a save loads
+##     only after reaching SAVE_VERSION).
 ##   • load path: primary -> quarantine on hard failure -> backup ring
 ##     newest-first by mtime -> fresh state + corruption NOTICE (a signal + a
 ##     flag — never a crash). Corrupt files are NEVER deleted: the primary is
@@ -72,7 +73,7 @@ signal save_completed(result: Dictionary)
 ## result: {"ok": bool, "reason": String, "unix_ms": int}
 signal notice_raised(kind: String, detail: Dictionary)
 
-const SAVE_VERSION := 2
+const SAVE_VERSION := 3
 const SAVE_NAME := "save.json"
 const TMP_NAME := "save.json.tmp"
 const BACKUP_SLOTS := 3
@@ -217,6 +218,13 @@ func _build_doc(now: int) -> Dictionary:
 	# T14 big-int sweep: unbounded player ints flip to strings at the 2^53
 	# JSON cliff (see header). PlayerState.from_dict int()s both forms back.
 	engine["crowns"] = _json_int(int(engine["crowns"]))
+	# T23: the lifetime-crowns objective counter is the same unbounded class
+	# (it counts every Crown ever earned) — flip every counter the same way.
+	var obj_ns: Dictionary = engine.get("objectives", {})
+	if obj_ns.has("counters"):
+		var counters: Dictionary = obj_ns["counters"]
+		for key in counters:
+			counters[key] = _json_int(int(counters[key]))
 	var xp_out: Dictionary = engine["skills_xp"]
 	for skill_id in xp_out:
 		xp_out[skill_id] = _json_int(int(xp_out[skill_id]))
@@ -330,7 +338,8 @@ func _load_inner(now: int) -> Dictionary:
 		})
 		return load_report
 	if pr["ok"]:
-		return _finish_load(pr["doc"], SAVE_NAME, "", now, load_report, bool(pr.get("orientation_backfill", false)))
+		return _finish_load(pr["doc"], SAVE_NAME, "", now, load_report,
+			bool(pr.get("orientation_backfill", false)), bool(pr.get("objectives_backfill", false)))
 	load_report["attempts"].append({"slot": SAVE_NAME, "why": str(pr["reason"])})
 	var quarantined := ""
 	if has_primary:
@@ -344,7 +353,8 @@ func _load_inner(now: int) -> Dictionary:
 			load_report["attempts"].append({"slot": bak, "why": "newer save_version %d — skipped" % int(cand["save_version"])})
 			continue
 		if cand["ok"]:
-			return _finish_load(cand["doc"], bak, str(pr["reason"]), now, load_report, bool(cand.get("orientation_backfill", false)))
+			return _finish_load(cand["doc"], bak, str(pr["reason"]), now, load_report,
+				bool(cand.get("orientation_backfill", false)), bool(cand.get("objectives_backfill", false)))
 		load_report["attempts"].append({"slot": bak, "why": str(cand["reason"])})
 	# -- nothing loadable: fresh state + corruption notice (a state, not a crash) --
 	load_report["loaded_from"] = "fresh-corrupt"
@@ -360,7 +370,7 @@ func _load_inner(now: int) -> Dictionary:
 ## own (v1 migration / T17-window v2) — run the veteran lifetime evaluation
 ## right after adopt, so already-satisfied steps stamp on the first session.
 func _finish_load(doc: Dictionary, slot: String, primary_why: String, now: int,
-		report: Dictionary, orientation_backfill := false) -> Dictionary:
+		report: Dictionary, orientation_backfill := false, objectives_backfill := false) -> Dictionary:
 	_record_drift(doc)
 	var meta: Dictionary = doc["meta"]
 	_created_unix = int(meta.get("created_unix", 0))
@@ -371,6 +381,14 @@ func _finish_load(doc: Dictionary, slot: String, primary_why: String, now: int,
 	_tm.adopt_state(st, int(doc.get("engine_sim_time_ms", 0)))
 	if orientation_backfill and _tm.orientation != null:
 		_tm.orientation.evaluate(st)
+	# T23: the record arrived without an objectives namespace of its own —
+	# sync the DERIVABLE counters (per-skill max grades, provable from xp)
+	# and evaluate, so level-ladder lines the grades already satisfy stamp
+	# (with rewards) on the first session; every non-derivable counter stays
+	# honestly zero (the documented migration policy).
+	if objectives_backfill and _tm.objectives != null:
+		_tm.objectives.sync_derivable(st)
+		_tm.objectives.evaluate(st)
 	var mail: Dictionary = _tm.apply_offline_from_save(anchor, now)
 	report["loaded_from"] = slot
 	report["anchor_unix_ms"] = anchor
@@ -425,6 +443,12 @@ func _read_save(path: String) -> Dictionary:
 	# back-fill once adopted — its already-satisfied steps stamp instantly.
 	out["orientation_backfill"] = v < SAVE_VERSION \
 		or not (doc.get("engine", {}) as Dictionary).has("orientation")
+	# T23: same gate for the objectives namespace — a record that predates it
+	# (a v1/v2 migration, or a development-window v3) takes the derivable
+	# sync + evaluation right after adopt; a genuine v3 record IS its own
+	# truth (the orientation precedent, verbatim).
+	out["objectives_backfill"] = v < SAVE_VERSION \
+		or not (doc.get("engine", {}) as Dictionary).has("objectives")
 	if v < SAVE_VERSION:
 		var mig := _apply_migrations(doc, SAVE_VERSION)
 		if not mig["ok"]:
@@ -460,6 +484,23 @@ func _migrate_1_to_2(doc: Dictionary) -> Dictionary:
 	engine_ns["orientation"] = {"steps_done": [], "completed": false, "stipend_claimed": false}
 	doc["engine"] = engine_ns
 	doc["save_version"] = 2
+	return doc
+
+
+## v2 -> v3 (T23 objectives system): seed engine.objectives — counters empty,
+## nothing stamped, nothing granted. The zero-counters policy is DELIBERATE
+## and documented (ObjectivesTracker header + save-schema.md): namespace-less
+## lifetime events (per-activity/recipe/monster/item counts, Crowns earned)
+## cannot be reconstructed from a v2 record, and guessing is worse than
+## starting honest — TickManager.adopt_state then syncs the ONE derivable
+## counter family (per-skill max grades, provable from skills_level) and
+## evaluates, so level-ladder objectives a veteran already earned stamp on
+## the first session. Pure doc transform; stamps version 3.
+func _migrate_2_to_3(doc: Dictionary) -> Dictionary:
+	var engine_ns: Dictionary = doc.get("engine", {})
+	engine_ns["objectives"] = {"counters": {}, "stamped": [], "rewards_granted": []}
+	doc["engine"] = engine_ns
+	doc["save_version"] = 3
 	return doc
 
 
@@ -615,7 +656,70 @@ func _validate_doc(d: Dictionary) -> String:
 			return "engine.orientation carries every step but completed is false"
 		if bool(o.get("stipend_claimed", false)) and not bool(o.get("completed", false)):
 			return "engine.orientation.stipend_claimed is true while the form is incomplete"
+	# T23 objectives namespace (v3 requires it — the v2->v3 migration seeds
+	# it). Counters must be content-derived keys with non-negative int values
+	# (the >= 2^53 string form accepted, T14 policy); the id arrays must be
+	# known objectives without duplicates; every granted reward was stamped.
+	# Order and the derived stamped:<skill> counters are NOT load gates —
+	# ObjectivesTracker.ensure_objectives repairs both (repair beats discard).
+	var objectives_v: Variant = e.get("objectives")
+	if objectives_v is not Dictionary:
+		return "engine.objectives missing or not an object (required since save_version 3)"
+	var ob: Dictionary = objectives_v
+	var counters_v: Variant = ob.get("counters")
+	if counters_v is not Dictionary:
+		return "engine.objectives.counters missing or not an object"
+	for key in (counters_v as Dictionary):
+		if not _is_valid_objective_counter_key(String(key), lib):
+			return "engine.objectives.counters key '%s' does not match any content counter" % String(key)
+		if not _is_exact_int((counters_v as Dictionary)[key]) or int((counters_v as Dictionary)[key]) < 0:
+			return "engine.objectives.counters['%s'] is not a non-negative integer" % String(key)
+	var stamped_v: Variant = ob.get("stamped")
+	if stamped_v is not Array:
+		return "engine.objectives.stamped is not an array"
+	var stamped_seen := {}
+	for oid in (stamped_v as Array):
+		var sid := str(oid)
+		if lib.objectives.get(sid) == null:
+			return "engine.objectives.stamped references unknown objective '%s'" % sid
+		if stamped_seen.has(sid):
+			return "engine.objectives.stamped stamps '%s' twice" % sid
+		stamped_seen[sid] = true
+	var granted_v: Variant = ob.get("rewards_granted")
+	if granted_v is not Array:
+		return "engine.objectives.rewards_granted is not an array"
+	var granted_seen := {}
+	for gid in (granted_v as Array):
+		var gsid := str(gid)
+		if lib.objectives.get(gsid) == null:
+			return "engine.objectives.rewards_granted references unknown objective '%s'" % gsid
+		if granted_seen.has(gsid):
+			return "engine.objectives.rewards_granted grants '%s' twice" % gsid
+		if not stamped_seen.has(gsid):
+			return "engine.objectives.rewards_granted carries '%s' without a stamp (rewards only ever follow stamps)" % gsid
+		granted_seen[gsid] = true
 	return ""
+
+
+## T23: a save counter key is valid iff it names real content — "crowns",
+## "level:<skill>", "stamped:<skill>", "activity:<id>", "recipe:<id>",
+## "monster:<id>", "zone:<id>", "item_sold/item_gathered/item_equipped:<id>"
+## (the ObjectivesTracker counter vocabulary; mirror of its
+## _is_valid_counter_key, save-side).
+func _is_valid_objective_counter_key(key: String, lib: ContentLibrary) -> bool:
+	if key == "crowns":
+		return true
+	var parts := key.split(":", true, 1)
+	if parts.size() != 2:
+		return false
+	match parts[0]:
+		"level", "stamped": return lib.skills.has(parts[1])
+		"activity": return lib.activities.has(parts[1])
+		"recipe": return lib.recipes.has(parts[1])
+		"monster": return lib.monsters.has(parts[1])
+		"zone": return lib.zones.has(parts[1])
+		"item_sold", "item_gathered", "item_equipped": return lib.items.has(parts[1])
+		_: return false
 
 
 func _validate_slot(slot: Dictionary, skill_id: String, lib: ContentLibrary) -> String:
