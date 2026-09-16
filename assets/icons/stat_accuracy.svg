@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Accuracy stat glyph: paper-target, concentric rings + center punch. Rule: names exactly the ACCURACY stat, inline before its mono number. Original stencil-line signage icon (T19). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="64" cy="64" r="32"/>
+    <circle cx="64" cy="64" r="16" stroke-width="6"/>
+    <circle cx="64" cy="64" r="4" fill="#20334F" stroke="none"/>
+  </g>
+</svg>

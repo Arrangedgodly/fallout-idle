@@ -9,15 +9,23 @@ extends Docket
 var slots_row: HBoxContainer
 var weapon_plate: PanelContainer
 var weapon_name: Label
-var weapon_serial: Label
+var weapon_serial: HFlowContainer
 var weapon_unequip: Button
 var armor_plate: PanelContainer
 var armor_name: Label
-var armor_serial: Label
+var armor_serial: HFlowContainer
 var armor_unequip: Button
 var list: ItemList
 var equip_button: Button
 var status_line: Label
+
+
+func weapon_serial_text() -> String:
+	return flow_text(weapon_serial)
+
+
+func armor_serial_text() -> String:
+	return flow_text(armor_serial)
 
 var _row_items: Array[String] = []  # row index -> item id
 var _selected_item := ""
@@ -72,14 +80,14 @@ func _slot_plate(slot_label: String) -> PanelContainer:
 	plate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var col := vbox(4)
 	col.add_child(label("PlateSerialNavy", slot_label))
-	# T15: the gear serial wraps — the stat string is the slot plate's widest
-	# line at 200% font scale (the two slot plates sit side by side).
+	# T19: the gear serial is a [stat glyph][bonus] segment flow — every stat
+	# number its gear posts carries its own stat's glyph.
 	if slot_label == "WEAPON":
 		weapon_name = label("FormTitle", "— VACANT —")
 		weapon_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		col.add_child(weapon_name)
-		weapon_serial = label("PlateSerialNavy", "NO SIDEARM FILED")
-		weapon_serial.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		weapon_serial = segment_flow(12)
+		set_segments(weapon_serial, [{"icon": "", "text": "NO SIDEARM FILED"}], "PlateSerialNavy")
 		col.add_child(weapon_serial)
 		weapon_unequip = Button.new()
 		weapon_unequip.name = "UnequipWeapon"
@@ -91,8 +99,8 @@ func _slot_plate(slot_label: String) -> PanelContainer:
 		armor_name = label("FormTitle", "— VACANT —")
 		armor_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		col.add_child(armor_name)
-		armor_serial = label("PlateSerialNavy", "NO PLATING FILED")
-		armor_serial.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		armor_serial = segment_flow(12)
+		set_segments(armor_serial, [{"icon": "", "text": "NO PLATING FILED"}], "PlateSerialNavy")
 		col.add_child(armor_serial)
 		armor_unequip = Button.new()
 		armor_unequip.name = "UnequipArmor"
@@ -119,34 +127,39 @@ func _refresh_slots() -> void:
 	_fill_slot(armor_plate, armor_name, armor_serial, armor_unequip, "armor", "NO PLATING FILED")
 
 
-func _fill_slot(_plate: PanelContainer, name_label: Label, serial_label: Label,
+func _fill_slot(_plate: PanelContainer, name_label: Label, serial_flow: HFlowContainer,
 		unequip_button: Button, slot_key: String, vacant_serial: String) -> void:
 	var equipped := str(state().combat.get(slot_key, ""))
 	if equipped == "":
 		name_label.text = "— VACANT —"
-		serial_label.text = vacant_serial
+		set_segments(serial_flow, [{"icon": "", "text": vacant_serial}], "PlateSerialNavy")
 		unequip_button.disabled = true
 		return
 	var item: ItemDef = lib().item(equipped)
 	var eq: EquipmentDef = lib().equipment_for(equipped)
 	name_label.text = item.name.to_upper() if item != null else equipped
-	serial_label.text = _gear_serial(eq) if eq != null else equipped
+	set_segments(serial_flow,
+		_gear_segments(eq) if eq != null else [{"icon": "", "text": equipped.to_upper()}],
+		"PlateSerialNavy")
 	unequip_button.disabled = false
 
 
-func _gear_serial(eq: EquipmentDef) -> String:
-	var parts: Array[String] = []
+## One [stat glyph][bonus] segment per stat the gear posts (T19 gear lines).
+func _gear_segments(eq: EquipmentDef) -> Array:
+	var out: Array = []
 	if eq.attack_speed_ms > 0:
-		parts.append("SWING %s S" % SignageFmt.seconds(eq.attack_speed_ms))
+		out.append({"icon": GLYPH_INTERVAL, "text": "SWING %s S" % SignageFmt.seconds(eq.attack_speed_ms)})
 	if eq.accuracy_bonus != 0:
-		parts.append("ACC +%d" % eq.accuracy_bonus)
+		out.append({"icon": GLYPH_ACCURACY, "text": "ACC +%d" % eq.accuracy_bonus})
 	if eq.max_hit_bonus != 0:
-		parts.append("MAX HIT +%d" % eq.max_hit_bonus)
+		out.append({"icon": GLYPH_MAX_HIT, "text": "MAX HIT +%d" % eq.max_hit_bonus})
 	if eq.evasion_bonus != 0:
-		parts.append("EVA +%d" % eq.evasion_bonus)
+		out.append({"icon": GLYPH_EVADE, "text": "EVA +%d" % eq.evasion_bonus})
 	if eq.max_hp_bonus != 0:
-		parts.append("HP +%d" % eq.max_hp_bonus)
-	return " · ".join(parts) if not parts.is_empty() else "STANDARD ISSUE"
+		out.append({"icon": GLYPH_CONDITION, "text": "HP +%d" % eq.max_hp_bonus})
+	if out.is_empty():
+		out.append({"icon": "", "text": "STANDARD ISSUE"})
+	return out
 
 
 func _refresh_list() -> void:

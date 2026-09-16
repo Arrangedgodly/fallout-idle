@@ -138,16 +138,17 @@ func test_patrol_cards_match_content() -> void:
 
 	# Stats visible and exact: the engine's own numbers, in mono.
 	var litter: DocketPatrol.FaunaCard = cards["junkyard_roach"]
-	assert_string_contains(litter.stats_line.text, "HP 18")
-	assert_string_contains(litter.stats_line.text, "ACC 15")
-	assert_string_contains(litter.stats_line.text, "EVA 4")
-	assert_string_contains(litter.stats_line.text, "HIT 0-2")
-	assert_string_contains(litter.stats_line.text, "EVERY 2.8 S")
-	assert_string_contains(litter.stats_line.text, "25 XP ON KILL")
+	assert_string_contains(litter.stats_text(), "HP 18")
+	assert_string_contains(litter.stats_text(), "ACC 15")
+	assert_string_contains(litter.stats_text(), "EVA 4")
+	assert_string_contains(litter.stats_text(), "HIT 0-2")
+	assert_string_contains(litter.stats_text(), "EVERY 2.8 S")
+	assert_string_contains(litter.stats_text(), "25 XP ON KILL")
 
 	# Drop table with exact rates (one decimal only when needed).
-	assert_string_contains(litter.drops_line.text, "CLAIMS: GRADE-D BUGMEAT 65% ×1-2")
-	assert_string_contains(litter.drops_line.text, "TATTERCLOTH 35% ×1")
+	assert_string_contains(litter.drops_text(), "CLAIMS:", "claim table headed")
+	assert_string_contains(litter.drops_text(), "GRADE-D BUGMEAT 65% ×1-2", "exact rate posted")
+	assert_string_contains(litter.drops_text(), "TATTERCLOTH 35% ×1")
 
 	# Clearance gates where leveled: level-1 fauna open, the ladder locks.
 	assert_false(litter.gate_plate.visible, "Litterbug posts at clearance 1 (no gate)")
@@ -160,10 +161,10 @@ func test_patrol_cards_match_content() -> void:
 	assert_true(boss.gate_plate.visible, "boss gate plate visible at level 1")
 	assert_string_contains(boss.gate_text.text, "CLEARANCE 14 REQUIRED")
 	assert_string_contains(boss.tag_line.text, "SENIOR FAUNA", "boss posts as senior fauna")
-	assert_string_contains(boss.stats_line.text, "HP 340")
-	assert_string_contains(boss.stats_line.text, "EVERY 2.4 S")
-	assert_string_contains(boss.stats_line.text, "1,000 XP ON KILL")
-	assert_string_contains(boss.drops_line.text, "ROLLED 2 TIMES", "boss table rolls twice, posted")
+	assert_string_contains(boss.stats_text(), "HP 340")
+	assert_string_contains(boss.stats_text(), "EVERY 2.4 S")
+	assert_string_contains(boss.stats_text(), "1,000 XP ON KILL")
+	assert_string_contains(boss.drops_text(), "ROLLED 2 TIMES", "boss table rolls twice, posted")
 	# Ascending ladder order.
 	var order: Array = docket.get("_content_order")
 	assert_eq(order[0], "junkyard_roach")
@@ -392,10 +393,11 @@ func test_auto_eat_consumption_visible() -> void:
 	_flush(tm)
 	await wait_frames(1)
 
-	# The queue posts the engine's best-first order with live counts.
-	var lines: Array[Label] = docket.get("_food_lines")
-	assert_eq(lines[0].text, "1. MANDATORY GRITS ×5 · MENDS 15", "highest mend first (engine order)")
-	assert_eq(lines[1].text, "2. VINTAGE SNACK CAKE ×2 · MENDS 10")
+	# The queue posts the engine's best-first order with live counts (T19:
+	# ration lines are [food icon][serial] flows — read via the joined text).
+	var lines: Array[HFlowContainer] = docket.get("_food_lines")
+	assert_eq(Docket.flow_text(lines[0]), "1. MANDATORY GRITS ×5 · MENDS 15", "highest mend first (engine order)")
+	assert_eq(Docket.flow_text(lines[1]), "2. VINTAGE SNACK CAKE ×2 · MENDS 10")
 	assert_eq(docket.food_rule.text, "ONE RATION IS CONSUMED AT OR BELOW 50 CONDITION (HALF).")
 
 	(_cards(docket)["feral_snack_dispenser"].button as Button).pressed.emit()
@@ -523,7 +525,7 @@ func test_stats_panel_derives_from_equipment() -> void:
 	var docket: DocketPatrol = packed[1]
 	await wait_frames(1)
 
-	assert_eq(docket.stats_line.text,
+	assert_eq(docket.stats_text(),
 		"ACCURACY 30 · EVADE 10 · MAX HIT 1-4 · SWING EVERY 3.0 S · CONDITION 100",
 		"bare chassis stats posted (engine-derived)")
 	assert_eq(docket.weapon_name.text, "— VACANT —")
@@ -535,15 +537,15 @@ func test_stats_panel_derives_from_equipment() -> void:
 	await wait_frames(1)
 	tm.equip_item("scrap_shiv")
 	assert_eq(docket.weapon_name.text, "POINT OF ORDER", "weapon slot names the equipped gear")
-	assert_eq(docket.weapon_serial.text, "SWING 2.6 S · ACC +10 · MAX HIT +4")
-	assert_eq(docket.stats_line.text,
+	assert_eq(docket.weapon_serial_text(), "SWING 2.6 S · ACC +10 · MAX HIT +4")
+	assert_eq(docket.stats_text(),
 		"ACCURACY 40 · EVADE 10 · MAX HIT 1-8 · SWING EVERY 2.6 S · CONDITION 100",
 		"stats re-derive on equip via the batched signal")
 
 	tm.equip_item("hubcap_vest")
 	assert_eq(docket.armor_name.text, "PEDESTRIAN PLATING")
-	assert_eq(docket.armor_serial.text, "EVA +12 · HP +20")
-	assert_eq(docket.stats_line.text,
+	assert_eq(docket.armor_serial_text(), "EVA +12 · HP +20")
+	assert_eq(docket.stats_text(),
 		"ACCURACY 40 · EVADE 22 · MAX HIT 1-8 · SWING EVERY 2.6 S · CONDITION 120",
 		"armor bonus applied (additive, weapon speed replaces)")
 	# Agreement with the engine's own derivation, value by value.

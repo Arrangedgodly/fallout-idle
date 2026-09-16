@@ -2,7 +2,8 @@
 <!-- Gate rule: every file under assets/ MUST have exactly one row. No row, no ship. -->
 <!-- Format per docs/ultron/research/r3-cc0-assets.md. Fonts (T8) are OFL-licensed
      downloads from the official google/fonts repository; theme textures are
-     original geometry authored in-repo. T11 appends icon rows here. -->
+     original geometry authored in-repo. T11 appends icon rows here; T19 appends
+     the 12 icon-grammar glyph rows (stat/clearance/badge/orientation/button). -->
 
 | Path | Kind | Author | Source | License | Verified | Verifier |
 |------|------|--------|--------|---------|----------|----------|
@@ -60,6 +61,18 @@
 | assets/icons/unbuild_the_overpass.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
 | assets/icons/vintage_snack_cake.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
 | assets/icons/walk_the_glow_rows.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/stat_condition.svg | icon | Valued Resident pipeline (T19, ZCode session) | original | original | 2026-09-16 | T19 agent |
+| assets/icons/stat_accuracy.svg | icon | Valued Resident pipeline (T19, ZCode session) | original | original | 2026-09-16 | T19 agent |
+| assets/icons/stat_evade.svg | icon | Valued Resident pipeline (T19, ZCode session) | original | original | 2026-09-16 | T19 agent |
+| assets/icons/stat_max_hit.svg | icon | Valued Resident pipeline (T19, ZCode session) | original | original | 2026-09-16 | T19 agent |
+| assets/icons/stat_interval.svg | icon | Valued Resident pipeline (T19, ZCode session) | original | original | 2026-09-16 | T19 agent |
+| assets/icons/clearance_step.svg | icon | Valued Resident pipeline (T19, ZCode session) | original | original | 2026-09-16 | T19 agent |
+| assets/icons/deputy_badge.svg | icon | Valued Resident pipeline (T19, ZCode session) | original | original | 2026-09-16 | T19 agent |
+| assets/icons/orient_arrow.svg | icon | Valued Resident pipeline (T19, ZCode session) | original | original | 2026-09-16 | T19 agent |
+| assets/icons/stamp_check.svg | icon | Valued Resident pipeline (T19, ZCode session) | original | original | 2026-09-16 | T19 agent |
+| assets/icons/btn_engage.svg | icon | Valued Resident pipeline (T19, ZCode session) | original | original | 2026-09-16 | T19 agent |
+| assets/icons/btn_withdraw.svg | icon | Valued Resident pipeline (T19, ZCode session) | original | original | 2026-09-16 | T19 agent |
+| assets/icons/btn_deputize.svg | icon | Valued Resident pipeline (T19, ZCode session) | original | original | 2026-09-16 | T19 agent |
 | assets/icons/wasteland_combat.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
 
 ## Dev tooling (exempt from the shipped-asset gate)

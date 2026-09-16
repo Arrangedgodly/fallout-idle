@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Clearance glyph: rising three-step staircase (NEVER a padlock - voice rule 3, clearance language only). Rule: marks any gated card beside the required grade number; red-linework variant is reserved for an actively locked gate off the danger plate. Original stencil-line signage icon (T19). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 26 98 L 26 82 L 52 82 L 52 64 L 78 64 L 78 46 L 102 46 L 102 98 Z" fill="#F2EDE3"/>
+  </g>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - ENGAGE button glyph: double chevron forward, amber ink (echoes the energized double-chevron text prefix; ink inherits the button variant - these verbs live on the Energized plate). Rule: echoes the verb beside the label, never replaces the word. Original stencil-line signage icon (T19). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#FFB000" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="32,36 60,64 32,92"/>
+    <polyline points="64,36 92,64 64,92"/>
+  </g>
+</svg>

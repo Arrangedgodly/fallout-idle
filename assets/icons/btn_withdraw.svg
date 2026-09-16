@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - WITHDRAW button glyph: return arrow (return-to-shelter), amber ink on the Energized plate. Rule: echoes the verb beside the label, never replaces the word. Original stencil-line signage icon (T19). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#FFB000" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 92 90 V 62 C 92 40 74 30 56 34 C 42 37 34 48 34 62 L 34 78"/>
+    <polyline points="20,68 34,90 48,68"/>
+  </g>
+</svg>

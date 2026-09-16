@@ -149,7 +149,8 @@ func _build_lines() -> void:
 			line += " · CLEARANCE %02d » %02d" % [int(crossing["from"]), int(crossing["to"])]
 		if actions.has(skill_id) and String(skill_id) != combat_skill:
 			line += " · %s ACTIONS" % SignageFmt.num(int(actions[skill_id]))
-		body_box.add_child(_paper_serial(line))
+		# T19: each gain line carries its department's mark at small size.
+		body_box.add_child(_serial_with_icon(_skill_icon(String(skill_id)), line))
 
 	var items: Dictionary = _payload.get("items", {})
 	for item_id in items:
@@ -186,10 +187,13 @@ func _build_lines() -> void:
 		var monster := lib.monster(str(combat.get("monster_id", "")))
 		var kills := int(combat.get("kills", 0))
 		if kills > 0:
-			body_box.add_child(_paper_serial("WASTELAND PATROL · %s KILLS — %s" % [
-				SignageFmt.num(kills),
-				String(monster.name).to_upper() if monster != null
-					else str(combat.get("monster_id", "")).to_upper()]))
+			# T19: the patrol line carries the engaged fauna's posting mark.
+			body_box.add_child(_serial_with_icon(
+				_icon_texture(monster.icon if monster != null else ""),
+				"WASTELAND PATROL · %s KILLS — %s" % [
+					SignageFmt.num(kills),
+					String(monster.name).to_upper() if monster != null
+						else str(combat.get("monster_id", "")).to_upper()]))
 		if bool(combat.get("truncated", false)):
 			# T7's honest-truncation flag (replay budget exhausted): the gains
 			# posted stop at the recording limit and the fight resumes live —
@@ -240,6 +244,39 @@ func _paper_serial(text: String) -> Label:
 	l.text = text
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	return l
+
+
+## T19: [icon][wrapped serial] row — the wrapped serial stays the sole
+## EXPAND_FILL child beside the fixed-min-size icon (T15 discipline holds).
+func _serial_with_icon(icon: Texture2D, text: String) -> Control:
+	if icon == null:
+		return _paper_serial(text)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	var mark := TextureRect.new()
+	mark.texture = icon
+	mark.custom_minimum_size = Vector2(18, 18)
+	mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(mark)
+	var serial := _paper_serial(text)
+	serial.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(serial)
+	return row
+
+
+func _icon_texture(icon_id: String) -> Texture2D:
+	if icon_id.is_empty():
+		return null
+	var path := ICON_DIR + icon_id + ".svg"
+	return load(path) as Texture2D if FileAccess.file_exists(path) else null
+
+
+func _skill_icon(skill_id: String) -> Texture2D:
+	var skill := lib.skill(skill_id) if lib != null else null
+	return _icon_texture(skill.icon) if skill != null else null
 
 
 # ------------------------------------------------------------------ focus trap

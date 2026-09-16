@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Evade stat glyph: swerve path curving past the incoming dot. Rule: names exactly the EVADE stat, inline before its mono number. Original stencil-line signage icon (T19). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="54" cy="88" r="9" fill="#20334F" stroke="none"/>
+    <path d="M 26 74 C 44 100 84 100 92 56"/>
+    <polyline points="76,58 94,52 90,72" stroke-width="7"/>
+  </g>
+</svg>

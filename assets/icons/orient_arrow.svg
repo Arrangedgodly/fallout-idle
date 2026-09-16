@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Orientation arrow: heavy shafted pointer, amber (active-cue escort; the SHAPE is the non-color cue, Daredevil floor). Rule: always points toward the current orientation step's destination department plate; never decorative; retires with the tutorial. Render-side rotation re-aims it. Original stencil-line signage icon (T19). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#FFB000" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="28" y1="64" x2="66" y2="64"/>
+    <polyline points="52,38 88,64 52,90"/>
+  </g>
+</svg>

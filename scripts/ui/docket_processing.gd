@@ -40,24 +40,29 @@ func _card_icon(def: RefCounted) -> String:
 	return item.icon if item != null else ""
 
 
-func _rate_line(def: RefCounted) -> String:
-	return "+%s XP / CRAFT · %s S PER CRAFT" % [
-		SignageFmt.num(int(def.get("xp_per_action"))),
-		SignageFmt.seconds(int(def.get("interval_ms")))]
+func _rate_segments(def: RefCounted) -> Array:
+	return [
+		{"icon": "", "text": "+%s XP / CRAFT" % SignageFmt.num(int(def.get("xp_per_action")))},
+		{"icon": GLYPH_INTERVAL, "text": "%s S PER CRAFT" % SignageFmt.seconds(int(def.get("interval_ms")))},
+	]
 
 
-## Inputs » outputs with the live craftable count (honest stock math).
-func _yields_line(def: RefCounted) -> String:
+## Inputs » outputs with the live craftable count (honest stock math), each
+## line carrying its item's icon (T19 yield-line rule).
+func _yields_segments(def: RefCounted) -> Array:
 	var r := def as RecipeDef
-	var parts: Array[String] = []
+	var out: Array = []
 	for input in r.inputs:
 		var item: ItemDef = lib().item(input.item)
 		var name: String = item.name.to_upper() if item != null else input.item
-		parts.append("%d × %s" % [input.qty, name])
+		out.append({"icon": item.icon if item != null else "",
+			"text": "%d × %s" % [input.qty, name]})
 	var out_item: ItemDef = lib().item(r.output.item)
 	var out_name: String = out_item.name.to_upper() if out_item != null else r.output.item
-	var line := " · ".join(parts) + " » %d × %s" % [r.output.qty, out_name]
-	return line + " · CRAFTABLE %s" % SignageFmt.num(craftable_count(r))
+	out.append({"icon": out_item.icon if out_item != null else "",
+		"text": "» %d × %s" % [r.output.qty, out_name]})
+	out.append({"icon": "", "text": "CRAFTABLE %s" % SignageFmt.num(craftable_count(r))})
+	return out
 
 
 ## Max crafts the CURRENT inventory affords (multi-input min, int division —
@@ -72,7 +77,9 @@ func craftable_count(r: RecipeDef) -> int:
 	return maxi(affordable, 0)
 
 
-## Live craftable counts refresh with every inventory flush.
+## Live craftable counts refresh with every inventory flush. The rebuilt
+## segments inherit the card's CURRENT label variation (an inventory-only
+## flush does not re-run the activity pass that sets it).
 func _refresh_inventory_dependent() -> void:
 	if tm == null or state() == null:
 		return
@@ -81,7 +88,12 @@ func _refresh_inventory_dependent() -> void:
 		var r: RecipeDef = lib().recipe(id)
 		if r == null:
 			continue
-		card.yields_line.text = _yields_line(r)
+		var variation := "PlateSerialNavy"
+		for child in card.yields_line.get_children():
+			if child is Label:
+				variation = (child as Label).theme_type_variation
+				break
+		set_segments(card.yields_line, _yields_segments(r), variation)
 
 
 ## Refuse to post a dry recipe BEFORE the engine spins a doomed slot — the
@@ -121,9 +133,10 @@ func _stamp_completed_actions(_slot, count: int) -> void:
 		return
 	var out_item: ItemDef = lib().item(r.output.item)
 	var out_name: String = out_item.name.to_upper() if out_item != null else r.output.item
+	var out_icon := icon_texture(out_item.icon) if out_item != null else null
 	var per := mini(count, 5)
 	for i in per:
-		stamp(log, "CRAFT — %d × %s" % [r.output.qty, out_name])
+		stamp(log, "CRAFT — %d × %s" % [r.output.qty, out_name], out_icon)
 	if count > per:
 		stamp(log, ". . . %d MORE CRAFTS IN THIS POSTING" % (count - per))
 

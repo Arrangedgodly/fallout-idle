@@ -529,9 +529,9 @@ func _check_t10a_dockets() -> void:
 	var open_card: DocketSkill.Card = cards.get("sort_scrap_pile")
 	_check(open_card != null and not open_card.gate_plate.visible,
 		"level-1 tier ungated")
-	_check("YIELDS:" in open_card.yields_line.text and "SCRAPNEL" in open_card.yields_line.text
-			and "70%" in open_card.yields_line.text,
-		"drop rates visible on the tier card (honest math): %s" % open_card.yields_line.text)
+	_check("YIELDS:" in open_card.yields_text() and "SCRAPNEL" in open_card.yields_text()
+			and "70%" in open_card.yields_text(),
+		"drop rates visible on the tier card (honest math): %s" % open_card.yields_text())
 
 	open_card.button.grab_focus()
 	await _frames(1)
@@ -576,17 +576,17 @@ func _check_t10a_dockets() -> void:
 	var smith_cards: Dictionary = smith.get("_cards")
 	var smelt: DocketSkill.Card = smith_cards.get("smelt_scrap_ingot")
 	var craftable_now: int = int(tm.state.inventory.get("scrap_metal", 0)) / 3
-	_check(smelt != null and "CRAFTABLE %d" % craftable_now in smelt.yields_line.text,
+	_check(smelt != null and "CRAFTABLE %d" % craftable_now in smelt.yields_text(),
 		"craftable count reads live inventory (%d craftable): %s" % [
-			craftable_now, smelt.yields_line.text])
+			craftable_now, smelt.yields_text()])
 	tm.state.add_item("scrap_metal", 12)
 	tm.batcher.mark("inventory")
 	tm.batcher.force_flush(tm.sim_time_ms)
 	await _frames(1)
 	var craftable_after: int = int(tm.state.inventory.get("scrap_metal", 0)) / 3
-	_check("CRAFTABLE %d" % craftable_after in smelt.yields_line.text,
+	_check("CRAFTABLE %d" % craftable_after in smelt.yields_text(),
 		"craftable count tracks inventory via the batched signal (+12 scrap -> %d): %s" % [
-			craftable_after, smelt.yields_line.text])
+			craftable_after, smelt.yields_text()])
 	var gated_recipe: DocketSkill.Card = smith_cards.get("forge_scrap_shiv")
 	_check(gated_recipe != null and gated_recipe.gate_plate.visible
 			and "CLEARANCE 8 REQUIRED" in gated_recipe.gate_text.text
@@ -782,10 +782,10 @@ func _check_t10b_patrol() -> void:
 	var cards: Dictionary = patrol.get("_cards")
 	_check(cards.size() == 5, "five fauna postings (4 monsters + boss)")
 	var litter: DocketPatrol.FaunaCard = cards.get("junkyard_roach")
-	_check(litter != null and "HP 18" in litter.stats_line.text
-			and "ACC 15" in litter.stats_line.text and "EVERY 2.8 S" in litter.stats_line.text,
+	_check(litter != null and "HP 18" in litter.stats_text()
+			and "ACC 15" in litter.stats_text() and "EVERY 2.8 S" in litter.stats_text(),
 		"fauna stats visible on the posting (honest math)")
-	_check(litter != null and "65%" in litter.drops_line.text and "×1-2" in litter.drops_line.text,
+	_check(litter != null and "65%" in litter.drops_text() and "×1-2" in litter.drops_text(),
 		"claim table with exact rates visible")
 	var boss: DocketPatrol.FaunaCard = cards.get("sewer_landlord")
 	_check(boss != null and boss.gate_plate.visible and "CLEARANCE 14 REQUIRED" in boss.gate_text.text,
@@ -793,8 +793,8 @@ func _check_t10b_patrol() -> void:
 	_check(boss != null and "EARNED BY PATROLLING THIS ZONE" in boss.gate_text.text,
 		"fauna gate names the earning path (patrol raises combat clearance)")
 	_check(boss != null and "SENIOR FAUNA" in boss.tag_line.text, "boss tagged as senior fauna")
-	_check(patrol.stats_line.text == "ACCURACY 30 · EVADE 10 · MAX HIT 1-4 · SWING EVERY 3.0 S · CONDITION 100",
-		"bare-chassis derived stats posted (got '%s')" % patrol.stats_line.text)
+	_check(patrol.stats_text() == "ACCURACY 30 · EVADE 10 · MAX HIT 1-4 · SWING EVERY 3.0 S · CONDITION 100",
+		"bare-chassis derived stats posted (got '%s')" % patrol.stats_text())
 
 	# Keyboard engage: focus a fauna card, press Enter.
 	litter.button.grab_focus()
@@ -915,8 +915,8 @@ func _check_t10b_patrol() -> void:
 	tm.equip_item("majority_whip")
 	tm.equip_item("carpool_carapace")
 	await _frames(1)
-	_check(patrol.stats_line.text == "ACCURACY 75 · EVADE 40 · MAX HIT 1-18 · SWING EVERY 2.0 S · CONDITION 150",
-		"stats re-derive from equipped gear (got '%s')" % patrol.stats_line.text)
+	_check(patrol.stats_text() == "ACCURACY 75 · EVADE 40 · MAX HIT 1-18 · SWING EVERY 2.0 S · CONDITION 150",
+		"stats re-derive from equipped gear (got '%s')" % patrol.stats_text())
 	var clears := {"n": 0}
 	(tm.zone_cleared as Signal).connect(func(_mid: String) -> void: clears["n"] += 1)
 	_check(not patrol.zone_plate.visible, "zone plate hidden before the first clear")

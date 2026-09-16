@@ -99,10 +99,10 @@ func test_gathering_docket_matches_engine_state() -> void:
 
 	# Honest rates: the tier card prints the table's exact fractions.
 	var first: DocketSkill.Card = cards["sort_scrap_pile"]
-	assert_true("YIELDS:" in first.yields_line.text, "yields line posted")
-	assert_true("SCRAPNEL 70%" in first.yields_line.text, "70%% weight printed: %s" % first.yields_line.text)
-	assert_true("+10 XP / ACTION" in first.rate_line.text, "xp per action in mono")
-	assert_true("3.0 S INTERVAL" in first.rate_line.text, "interval in mono")
+	assert_true("YIELDS:" in first.yields_text(), "yields line posted")
+	assert_true("SCRAPNEL 70%" in first.yields_text(), "70%% weight printed: %s" % first.yields_text())
+	assert_true("+10 XP / ACTION" in first.rate_text(), "xp per action in mono")
+	assert_true("3.0 S INTERVAL" in first.rate_text(), "interval in mono")
 
 	# Start through the card button, then through the primary button.
 	(first.button as Button).pressed.emit()
@@ -188,9 +188,9 @@ func test_processing_craft_consumes_and_stamps() -> void:
 	_flush(tm)
 	await wait_frames(1)
 	var smelt: DocketSkill.Card = cards["smelt_scrap_ingot"]
-	assert_string_contains(smelt.yields_line.text, "CRAFTABLE 3", "craftable count from live inventory: %s" % smelt.yields_line.text)
-	assert_string_contains(smelt.yields_line.text, "3 × SCRAPNEL", "inputs posted")
-	assert_string_contains(smelt.yields_line.text, "» 1 × ALMOST BULLION", "output posted")
+	assert_string_contains(smelt.yields_text(), "CRAFTABLE 3", "craftable count from live inventory: %s" % smelt.yields_text())
+	assert_string_contains(smelt.yields_text(), "3 × SCRAPNEL", "inputs posted")
+	assert_string_contains(smelt.yields_text(), "» 1 × ALMOST BULLION", "output posted")
 
 	(smelt.button as Button).pressed.emit()
 	assert_true(tm.state.active.has("junksmithing"), "recipe shift posted")

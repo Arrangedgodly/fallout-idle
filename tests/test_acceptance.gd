@@ -323,7 +323,7 @@ func test_c3_equipment_changes_derived_stats_engine_and_patrol_panel() -> void:
 		"weapon max-hit bonus applies")
 	assert_eq(int(one["speed"]), _eq_speed(tm, "scrap_shiv"), "weapon speed REPLACES the base")
 	await wait_frames(1)
-	assert_eq(docket.stats_line.text, "ACCURACY %d · EVADE %d · MAX HIT %d-%d · SWING EVERY %s S · CONDITION %d" % [
+	assert_eq(docket.stats_text(), "ACCURACY %d · EVADE %d · MAX HIT %d-%d · SWING EVERY %s S · CONDITION %d" % [
 			int(one["accuracy"]), int(one["evasion"]), int(one["min_hit"]), int(one["max_hit"]),
 			SignageFmt.seconds(int(one["speed"])), int(one["max_hp"])],
 		"UI stats panel derives from equipped gear through the batched signal")
@@ -335,7 +335,7 @@ func test_c3_equipment_changes_derived_stats_engine_and_patrol_panel() -> void:
 	assert_eq(int(mid["evasion"]), 10 + _eq_bonus(tm, "hubcap_vest", "evasion_bonus"),
 		"armor evasion bonus applies")
 	await wait_frames(1)
-	assert_string_contains(docket.stats_line.text, "CONDITION 120", "panel re-derives on the armor swap")
+	assert_string_contains(docket.stats_text(), "CONDITION 120", "panel re-derives on the armor swap")
 
 	assert_true(tm.unequip_slot("weapon")["ok"], "unequip")
 	assert_true(tm.unequip_slot("armor")["ok"], "unequip")

@@ -58,6 +58,20 @@ const ENGAGE_TEXT := "ENGAGE PATROL"
 const WITHDRAW_TEXT := "WITHDRAW PATROL"
 const STAMP_CAP := 160
 const ZONE_NAME := "THE SUNNY EXCLUSION ZONE"
+const GLYPH_ENGAGE := "btn_engage"      # T19 verb-echo marks (icon + label
+const GLYPH_WITHDRAW := "btn_withdraw"  # together — never wordless buttons)
+
+
+func stats_text() -> String:
+	return flow_text(stats_line)
+
+
+func weapon_serial_text() -> String:
+	return flow_text(weapon_serial)
+
+
+func armor_serial_text() -> String:
+	return flow_text(armor_serial)
 
 var primary_button: Button  # the shell's big stencled plate (shell assigns)
 
@@ -76,16 +90,16 @@ var gauge_read: Label
 var cards_box: VBoxContainer
 var log: ItemList
 var weapon_name: Label
-var weapon_serial: Label
+var weapon_serial: HFlowContainer
 var armor_name: Label
-var armor_serial: Label
-var stats_line: Label
+var armor_serial: HFlowContainer
+var stats_line: HFlowContainer
 var food_rule: Label
 var food_box: VBoxContainer
 
 var _cards := {}  # monster_id -> FaunaCard
 var _content_order: Array[String] = []
-var _food_lines: Array[Label] = []
+var _food_lines: Array[HFlowContainer] = []
 var _snap := {}  # last-flush combat snapshot (swing/eat attribution)
 
 
@@ -95,10 +109,16 @@ class FaunaCard:
 	var button: Button
 	var title: Label
 	var tag_line: Label
-	var stats_line: Label
-	var drops_line: Label
+	var stats_line: HFlowContainer
+	var drops_line: HFlowContainer
 	var gate_plate: PanelContainer
 	var gate_text: Label
+
+	func stats_text() -> String:
+		return Docket.flow_text(stats_line)
+
+	func drops_text() -> String:
+		return Docket.flow_text(drops_line)
 
 
 # ------------------------------------------------------------------ build
@@ -152,14 +172,16 @@ func _build_content() -> void:
 	vcol.add_child(board_label)
 	p_gauge = _make_gauge()
 	vcol.add_child(p_gauge)
+	# T19: each gauge read carries the condition stat's glyph beside the
+	# condition number (stat glyphs name exactly their own stat).
 	p_read = label("MonoValue", "RESIDENT · —")
 	p_read.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	vcol.add_child(p_read)
+	vcol.add_child(glyph_beside(GLYPH_CONDITION, p_read))
 	m_gauge = _make_gauge()
 	vcol.add_child(m_gauge)
 	m_read = label("MonoValue", "NO FAUNA ENGAGED")
 	m_read.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	vcol.add_child(m_read)
+	vcol.add_child(glyph_beside(GLYPH_CONDITION, m_read))
 	ration_read = label("PlateSerial", "RATIONS CONSUMED THIS ENGAGEMENT · 0")
 	ration_read.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vcol.add_child(ration_read)
@@ -200,8 +222,9 @@ func _build_content() -> void:
 	var stats_vent := panel_box("VentHousing")
 	stats_vent.name = "StatsHousing"
 	var scol := vbox(6)
-	stats_line = label("MonoValue", "")
-	stats_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# T19: the derived-stats panel — one [stat glyph][mono value] segment per
+	# instrumented stat (glyphs name exactly their stat, inline at 18 px).
+	stats_line = segment_flow(12)
 	scol.add_child(stats_line)
 	var gear_note := label("PlateSerial",
 		"GEAR IS ISSUED AND RETURNED AT THE MANIFEST (D-07). MID-PATROL SWAPS APPLY ON THE NEXT SWING.")
@@ -235,8 +258,8 @@ func _make_gauge() -> ProgressBar:
 
 
 ## One equipment slot plate; returns the name label (serial kept in members).
-## T15: the gear serial wraps — the stat string is the slot plate's widest
-## line at 200% font scale.
+## T19: the gear serial is a [stat glyph][value] segment flow — each bonus
+## number carries its own stat's glyph (icon-grammar gear-line rule).
 func _slot_plate(row: BoxContainer, slot_label: String, vacant_serial: String) -> Label:
 	var plate := panel_box("EnamelPlate")
 	plate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -245,15 +268,15 @@ func _slot_plate(row: BoxContainer, slot_label: String, vacant_serial: String) -
 	var name_l := label("FormTitle", "— VACANT —")
 	name_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(name_l)
-	var serial_l := label("PlateSerialNavy", vacant_serial)
-	serial_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	col.add_child(serial_l)
+	var serial_flow := segment_flow(12)
+	set_segments(serial_flow, [{"icon": "", "text": vacant_serial}], "PlateSerialNavy")
+	col.add_child(serial_flow)
 	plate.add_child(col)
 	row.add_child(plate)
 	if slot_label == "WEAPON":
-		weapon_serial = serial_l
+		weapon_serial = serial_flow
 	else:
-		armor_serial = serial_l
+		armor_serial = serial_flow
 	return name_l
 
 
@@ -308,56 +331,68 @@ func _make_card(mdef: MonsterDef) -> FaunaCard:
 	card.tag_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(card.tag_line)
 
-	# T15: stats wrap — the exact-math serial is the card's widest line at
-	# 200% font scale (longest: the boss posting) and must not push the docket
-	# into horizontal scrolling.
-	card.stats_line = label("PlateSerialNavy", _stats_text(mdef))
-	card.stats_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# T19: fauna stats post as [stat glyph][mono value] segments (honest math
+	# unchanged — the glyphs name exactly the stats their numbers post; XP is
+	# not one of the five instrumented stats and stays bare text).
+	card.stats_line = segment_flow(12)
+	set_segments(card.stats_line, _stats_segments(mdef), "PlateSerialNavy")
 	col.add_child(card.stats_line)
 
-	card.drops_line = label("PlateSerialNavy", _drops_text(mdef))
-	card.drops_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# T19: claim-table entries carry their item's icon beside the exact rate.
+	card.drops_line = segment_flow(12)
+	set_segments(card.drops_line, _drops_segments(mdef), "PlateSerialNavy")
 	col.add_child(card.drops_line)
 
+	# T19: the gate plate carries the clearance staircase beside the grade.
 	card.gate_plate = panel_box("DangerPlate")
 	card.gate_text = label("MonoValue", "")
 	card.gate_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	card.gate_plate.add_child(card.gate_text)
+	card.gate_plate.add_child(glyph_beside(GLYPH_CLEARANCE, card.gate_text))
 	col.add_child(card.gate_plate)
 
 	b.add_child(col)
 	return card
 
 
-## The engine's exact combat math, posted (honest-math principle).
-func _stats_text(mdef: MonsterDef) -> String:
-	return "HP %s · ACC %d · EVA %d · HIT %d-%d · EVERY %s S · %s XP ON KILL" % [
-		SignageFmt.num(mdef.max_hp), mdef.accuracy, mdef.evasion,
-		mdef.min_hit, mdef.max_hit, SignageFmt.seconds(mdef.attack_speed_ms),
-		SignageFmt.num(mdef.xp_reward)]
+## The engine's exact combat math as glyph segments (honest-math principle;
+## segment texts join to the same serial the tests pin).
+func _stats_segments(mdef: MonsterDef) -> Array:
+	return [
+		{"icon": GLYPH_CONDITION, "text": "HP %s" % SignageFmt.num(mdef.max_hp)},
+		{"icon": GLYPH_ACCURACY, "text": "ACC %d" % mdef.accuracy},
+		{"icon": GLYPH_EVADE, "text": "EVA %d" % mdef.evasion},
+		{"icon": GLYPH_MAX_HIT, "text": "HIT %d-%d" % [mdef.min_hit, mdef.max_hit]},
+		{"icon": GLYPH_INTERVAL, "text": "EVERY %s S" % SignageFmt.seconds(mdef.attack_speed_ms)},
+		{"icon": "", "text": "%s XP ON KILL" % SignageFmt.num(mdef.xp_reward)},
+	]
 
 
-func _drops_text(mdef: MonsterDef) -> String:
+func _drops_segments(mdef: MonsterDef) -> Array:
 	var l := lib()
 	var table: DropTableDef = l.drop_table(mdef.drop_table)
 	if table == null:
-		return "NO CLAIM TABLE POSTED"
-	var parts: Array[String] = []
-	var rolls_note := "" if table.rolls == 1 else " (ROLLED %d TIMES)" % table.rolls
+		return [{"icon": "", "text": "NO CLAIM TABLE POSTED"}]
+	var out: Array = [{"icon": "", "text": "CLAIMS:" if table.rolls == 1
+		else "CLAIMS: (ROLLED %d TIMES)" % table.rolls}]
 	for entry in table.entries:
 		var item: ItemDef = l.item(entry.item)
 		var item_name: String = item.name.to_upper() if item != null else entry.item
-		parts.append("%s %s%% %s" % [item_name,
-			SignageFmt.pct(entry.weight, table.total_weight()),
-			SignageFmt.qty(entry.qty_min, entry.qty_max)])
-	return "CLAIMS:" + rolls_note + " " + " · ".join(parts)
+		out.append({"icon": item.icon if item != null else "",
+			"text": "%s %s%% %s" % [item_name,
+				SignageFmt.pct(entry.weight, table.total_weight()),
+				SignageFmt.qty(entry.qty_min, entry.qty_max)]})
+	return out
 
 
 # ------------------------------------------------------------------ bind
 ## Cap-aware stamp into the battle log (combat logs are chatty — a swing every
-## ~2–3 s per side keeps a long fight well past the base cap of 60).
-func _stamp(text: String) -> void:
-	stamp(log, text, null, STAMP_CAP)
+## ~2–3 s per side keeps a long fight well past the base cap of 60). The icon
+## carries the line's subject at small size (T19): the resident's lines wear
+## the condition dial (the same glyph that posts beside the resident gauge),
+## the fauna's lines wear its own posting mark, claims and rations wear the
+## item's mark, and clearance lines wear the staircase.
+func _stamp(text: String, icon: Texture2D = null) -> void:
+	stamp(log, text, icon, STAMP_CAP)
 
 
 func _on_bound() -> void:
@@ -396,12 +431,14 @@ func _stamp_resume_lines() -> void:
 		CombatSession.PHASE_FIGHTING:
 			_stamp("PATROL RESUMED — ENGAGEMENT IN PROGRESS.")
 		CombatSession.PHASE_DEAD:
-			_stamp("RETURN TO SHELTER ON RECORD · ZERO LOSS POSTED.")
+			_stamp("RETURN TO SHELTER ON RECORD · ZERO LOSS POSTED.",
+				icon_texture(GLYPH_CONDITION))
 		CombatSession.PHASE_RECALLED:
-			_stamp("PATROL RECALLED · WITHDRAWN ALIVE · ZERO LOSS.")
+			_stamp("PATROL RECALLED · WITHDRAWN ALIVE · ZERO LOSS.",
+				icon_texture(GLYPH_CONDITION))
 		CombatSession.PHASE_VICTORY:
 			if mname != "":
-				_stamp("VICTORY ON RECORD — %s DECEASED." % mname)
+				_stamp("VICTORY ON RECORD — %s DECEASED." % mname, icon_texture(mdef.icon))
 
 
 # ------------------------------------------------------------------ interaction
@@ -416,9 +453,11 @@ func _engage(monster_id: String) -> void:
 	var mdef: MonsterDef = lib().monster(monster_id)
 	var mname := mdef.name.to_upper() if mdef != null else monster_id.to_upper()
 	if bool(result["ok"]):
-		_stamp("PATROL ENGAGED — %s" % mname)
+		_stamp("PATROL ENGAGED — %s" % mname,
+			icon_texture(mdef.icon) if mdef != null else null)
 	else:
-		_stamp("%s · ELEVATION IS EARNED, NOT REQUESTED" % str(result["reason"]).to_upper())
+		_stamp("%s · ELEVATION IS EARNED, NOT REQUESTED" % str(result["reason"]).to_upper(),
+			icon_texture(GLYPH_CLEARANCE))
 	_refresh({"combat": true, "inventory": true, "xp": true})
 
 
@@ -501,7 +540,8 @@ func _refresh_battle() -> void:
 			or engage_ms != int(_snap.get("engage_ms", -1)) or gear_swapped:
 		if str(_snap.get("phase", "")) == CombatSession.PHASE_FIGHTING:
 			if phase == CombatSession.PHASE_RECALLED:
-				_stamp("PATROL RECALLED · WITHDRAWN ALIVE AT THE LIMIT · ZERO LOSS")
+				_stamp("PATROL RECALLED · WITHDRAWN ALIVE AT THE LIMIT · ZERO LOSS",
+					icon_texture(GLYPH_CONDITION))
 			_stamp_meals()
 		_take_snapshot()
 	elif phase == CombatSession.PHASE_FIGHTING:
@@ -539,7 +579,11 @@ func _refresh_battle() -> void:
 	_refresh_slots(stats)
 	zone_plate.visible = bool(c.get("zone_clear", false))
 	if primary_button != null:
-		primary_button.text = WITHDRAW_TEXT if phase == CombatSession.PHASE_FIGHTING else ENGAGE_TEXT
+		var fighting := phase == CombatSession.PHASE_FIGHTING
+		primary_button.text = WITHDRAW_TEXT if fighting else ENGAGE_TEXT
+		# T19: the verb-echo glyph rides the label (icon + word together).
+		primary_button.expand_icon = true
+		primary_button.icon = icon_texture(GLYPH_WITHDRAW if fighting else GLYPH_ENGAGE)
 
 
 func _apply_phase_plate(phase: String, mdef: MonsterDef) -> void:
@@ -608,17 +652,15 @@ func _apply_card_state(card: FaunaCard, mdef: MonsterDef, energized: bool, locke
 		card.title.theme_type_variation = "FormTitleEnergized"
 		card.title.text = ">> " + display
 		card.tag_line.theme_type_variation = "MonoValueEnergized"
-		card.stats_line.theme_type_variation = "MonoValueEnergized"
-		card.drops_line.theme_type_variation = "MonoValueEnergized"
+		set_flow_variation(card.stats_line, "MonoValueEnergized")
+		set_flow_variation(card.drops_line, "MonoValueEnergized")
 	else:
 		card.button.theme_type_variation = ""
 		card.title.theme_type_variation = "FormTitle"
 		card.title.text = display
 		card.tag_line.theme_type_variation = "PlateSerialNavy"
-		card.stats_line.theme_type_variation = "PlateSerialNavy"
-		card.drops_line.theme_type_variation = "PlateSerialNavy"
-	if mdef != null:
-		card.stats_line.text = _stats_text(mdef)
+		set_flow_variation(card.stats_line, "PlateSerialNavy")
+		set_flow_variation(card.drops_line, "PlateSerialNavy")
 	# Refinement 2 (critique P2#4): the gate plate teaches the earning path —
 	# Wasteland Combat clearance rises on kills while patrolling this zone
 	# (victory XP rides the shared pipeline). Same plate idiom as the workshop
@@ -631,36 +673,45 @@ func _apply_card_state(card: FaunaCard, mdef: MonsterDef, energized: bool, locke
 func _refresh_slots(stats: Dictionary) -> void:
 	_fill_slot(weapon_name, weapon_serial, "weapon", "NO SIDEARM FILED")
 	_fill_slot(armor_name, armor_serial, "armor", "NO PLATING FILED")
-	stats_line.text = "ACCURACY %d · EVADE %d · MAX HIT %d-%d · SWING EVERY %s S · CONDITION %d" % [
-		int(stats["accuracy"]), int(stats["evasion"]), int(stats["min_hit"]),
-		int(stats["max_hit"]), SignageFmt.seconds(int(stats["speed"])), int(stats["max_hp"])]
+	set_segments(stats_line, [
+		{"icon": GLYPH_ACCURACY, "text": "ACCURACY %d" % int(stats["accuracy"])},
+		{"icon": GLYPH_EVADE, "text": "EVADE %d" % int(stats["evasion"])},
+		{"icon": GLYPH_MAX_HIT, "text": "MAX HIT %d-%d" % [int(stats["min_hit"]), int(stats["max_hit"])]},
+		{"icon": GLYPH_INTERVAL, "text": "SWING EVERY %s S" % SignageFmt.seconds(int(stats["speed"]))},
+		{"icon": GLYPH_CONDITION, "text": "CONDITION %d" % int(stats["max_hp"])},
+	], "MonoValue")
 
 
-func _fill_slot(name_label: Label, serial_label: Label, slot_key: String, vacant_serial: String) -> void:
+func _fill_slot(name_label: Label, serial_flow: HFlowContainer, slot_key: String, vacant_serial: String) -> void:
 	var equipped := str(state().combat.get(slot_key, ""))
 	if equipped == "":
 		name_label.text = "— VACANT —"
-		serial_label.text = vacant_serial
+		set_segments(serial_flow, [{"icon": "", "text": vacant_serial}], "PlateSerialNavy")
 		return
 	var item: ItemDef = lib().item(equipped)
 	var eq: EquipmentDef = lib().equipment_for(equipped)
 	name_label.text = item.name.to_upper() if item != null else equipped.to_upper()
-	serial_label.text = _gear_serial(eq) if eq != null else equipped.to_upper()
+	set_segments(serial_flow,
+		_gear_segments(eq) if eq != null else [{"icon": "", "text": equipped.to_upper()}],
+		"PlateSerialNavy")
 
 
-func _gear_serial(eq: EquipmentDef) -> String:
-	var parts: Array[String] = []
+## One [stat glyph][bonus] segment per stat the gear posts (T19 gear lines).
+func _gear_segments(eq: EquipmentDef) -> Array:
+	var out: Array = []
 	if eq.attack_speed_ms > 0:
-		parts.append("SWING %s S" % SignageFmt.seconds(eq.attack_speed_ms))
+		out.append({"icon": GLYPH_INTERVAL, "text": "SWING %s S" % SignageFmt.seconds(eq.attack_speed_ms)})
 	if eq.accuracy_bonus != 0:
-		parts.append("ACC +%d" % eq.accuracy_bonus)
+		out.append({"icon": GLYPH_ACCURACY, "text": "ACC +%d" % eq.accuracy_bonus})
 	if eq.max_hit_bonus != 0:
-		parts.append("MAX HIT +%d" % eq.max_hit_bonus)
+		out.append({"icon": GLYPH_MAX_HIT, "text": "MAX HIT +%d" % eq.max_hit_bonus})
 	if eq.evasion_bonus != 0:
-		parts.append("EVA +%d" % eq.evasion_bonus)
+		out.append({"icon": GLYPH_EVADE, "text": "EVA +%d" % eq.evasion_bonus})
 	if eq.max_hp_bonus != 0:
-		parts.append("HP +%d" % eq.max_hp_bonus)
-	return " · ".join(parts) if not parts.is_empty() else "STANDARD ISSUE"
+		out.append({"icon": GLYPH_CONDITION, "text": "HP +%d" % eq.max_hp_bonus})
+	if out.is_empty():
+		out.append({"icon": "", "text": "STANDARD ISSUE"})
+	return out
 
 
 func _refresh_gauge() -> void:
@@ -705,21 +756,24 @@ func _refresh_food() -> void:
 			return a.heal > b.heal
 		return a.id < b.id)
 	while _food_lines.size() < foods.size():
-		var line := label("MonoValue", "")
+		# T19: each ration line carries its food's mark beside the count.
+		var line := segment_flow(8)
 		_food_lines.append(line)
 		food_box.add_child(line)
 	for i in _food_lines.size():
-		var line: Label = _food_lines[i]
+		var line: HFlowContainer = _food_lines[i]
 		if i >= foods.size():
 			line.visible = false
 			continue
 		var def: ItemDef = foods[i]
 		line.visible = true
-		line.text = "%d. %s ×%s · MENDS %d" % [i + 1, def.name.to_upper(),
-			SignageFmt.num(state().item_count(def.id)), def.heal]
+		set_segments(line, [{"icon": def.icon, "text": "%d. %s ×%s · MENDS %d" % [
+			i + 1, def.name.to_upper(),
+			SignageFmt.num(state().item_count(def.id)), def.heal]}], "MonoValue")
 	if foods.is_empty() and not _food_lines.is_empty():
 		_food_lines[0].visible = true
-		_food_lines[0].text = "NO RATIONS FILED · THE PATROL FIGHTS ONWARD, HUNGRILY."
+		set_segments(_food_lines[0], [{"icon": "",
+			"text": "NO RATIONS FILED · THE PATROL FIGHTS ONWARD, HUNGRILY."}], "MonoValue")
 
 
 # ------------------------------------------------------------------ attribution
@@ -774,13 +828,15 @@ func _stamp_fight_deltas() -> void:
 		if p_swings > 1:
 			tag += " ×%d SWINGS" % p_swings
 		_stamp("%s · %s" % [tag, ("%s DAMAGE" % SignageFmt.num(dmg_to_fauna))
-			if dmg_to_fauna > 0 else _bloodless_wording(p_landed)])
+			if dmg_to_fauna > 0 else _bloodless_wording(p_landed)],
+			icon_texture(GLYPH_CONDITION))
 	if m_swings > 0:
 		var mtag := "%s » RESIDENT" % mname
 		if m_swings > 1:
 			mtag += " ×%d SWINGS" % m_swings
 		_stamp("%s · %s" % [mtag, ("%s DAMAGE" % SignageFmt.num(dmg_to_resident))
-			if dmg_to_resident > 0 else _bloodless_wording(m_landed)])
+			if dmg_to_resident > 0 else _bloodless_wording(m_landed)],
+			icon_texture(mdef.icon))
 	_stamp_meals()
 
 
@@ -820,7 +876,7 @@ func _stamp_meals() -> void:
 			continue
 		var n := was - now
 		_stamp("RATION CONSUMED · %s ×%d (+%d CONDITION)" % [
-			def.name.to_upper(), n, n * def.heal])
+			def.name.to_upper(), n, n * def.heal], icon_texture(def.icon))
 
 
 # ------------------------------------------------------------------ engine events
@@ -830,15 +886,17 @@ func _on_combat_ended(result: Dictionary) -> void:
 	var mdef: MonsterDef = lib().monster(str(result["monster_id"]))
 	var mname := mdef.name.to_upper() if mdef != null else str(result["monster_id"]).to_upper()
 	if str(result["outcome"]) == "victory":
-		_stamp("VICTORY — %s DECEASED · +%s XP" % [mname, SignageFmt.num(int(result["xp"]))])
+		_stamp("VICTORY — %s DECEASED · +%s XP" % [mname, SignageFmt.num(int(result["xp"]))],
+			icon_texture(mdef.icon) if mdef != null else null)
 		var drops: Dictionary = result["drops"]
 		for item_id in drops:
 			var item: ItemDef = lib().item(str(item_id))
 			_stamp("CLAIM · %s ×%s" % [
 				item.name.to_upper() if item != null else str(item_id).to_upper(),
-				SignageFmt.num(int(drops[item_id]))])
+				SignageFmt.num(int(drops[item_id]))], item_icon_texture(str(item_id)))
 	else:
-		_stamp("DECEASED — RETURN TO SHELTER · ZERO LOSS POSTED")
+		_stamp("DECEASED — RETURN TO SHELTER · ZERO LOSS POSTED",
+			icon_texture(GLYPH_CONDITION))
 	_refresh({"combat": true, "inventory": true, "xp": true})
 
 
@@ -853,13 +911,15 @@ func _on_level_up(skill_id: String, _old_level: int, new_level: int) -> void:
 	if skill_id != _combat_skill_id() or log == null:
 		return
 	_stamp("CLEARANCE %02d EARNED · %s" % [
-		new_level, String(lib().skill(skill_id).name).to_upper()])
+		new_level, String(lib().skill(skill_id).name).to_upper()],
+		icon_texture(GLYPH_CLEARANCE))
 	_refresh({"xp": true, "combat": true})
 
 
 func _on_activity_stopped(skill_id: String, _content_id: String, reason: String) -> void:
 	if skill_id == _combat_skill_id() and reason == "patrol_recalled":
-		_stamp("PATROL RECALLED · WITHDRAWN ALIVE AT THE LIMIT · ZERO LOSS")
+		_stamp("PATROL RECALLED · WITHDRAWN ALIVE AT THE LIMIT · ZERO LOSS",
+			icon_texture(GLYPH_CONDITION))
 		_refresh({"combat": true})
 		return
 	super._on_activity_stopped(skill_id, _content_id, reason)

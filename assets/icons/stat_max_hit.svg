@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Max-hit stat glyph: stamp-hammer strike, mallet over a radiating impact mark. Rule: names exactly the MAX-HIT stat, inline before its mono number. Original stencil-line signage icon (T19). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="40" y="22" width="48" height="22" rx="4" fill="#F2EDE3"/>
+    <line x1="64" y1="44" x2="64" y2="60"/>
+    <line x1="52" y1="78" x2="38" y2="64" stroke-width="6"/>
+    <line x1="76" y1="78" x2="90" y2="64" stroke-width="6"/>
+    <line x1="52" y1="94" x2="38" y2="108" stroke-width="6"/>
+    <line x1="76" y1="94" x2="90" y2="108" stroke-width="6"/>
+  </g>
+</svg>

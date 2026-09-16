@@ -19,6 +19,21 @@ extends VBoxContainer
 
 const ICON_DIR := "res://assets/icons/"
 
+## T19 icon-grammar glyph ids (naming-bible §14; silhouettes per the
+## design-brief addendum "Icon grammar additions"). A stat glyph names
+## EXACTLY its own stat and posts inline before that stat's mono number;
+## the clearance staircase marks gated cards beside the grade number.
+const GLYPH_CONDITION := "stat_condition"
+const GLYPH_ACCURACY := "stat_accuracy"
+const GLYPH_EVADE := "stat_evade"
+const GLYPH_MAX_HIT := "stat_max_hit"
+const GLYPH_INTERVAL := "stat_interval"
+const GLYPH_CLEARANCE := "clearance_step"
+
+## T19 inline sizes (16-24 px legibility band, capture-reviewed).
+const GLYPH_INLINE := 18
+const GLYPH_READ := 20
+
 var tm: Node = null  # TickManager instance (soft-typed: script compiles under --check-only)
 
 const TM_SIGNALS := ["bulk_state_changed", "level_up", "activity_stopped"]
@@ -172,6 +187,103 @@ func icon_rect(icon_id: String, size := 26) -> TextureRect:
 	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	t.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	return t
+
+
+## Texture for one log-stamp icon (content item / skill / monster marks and
+## the T19 grammar glyphs). Returns null when unknown — callers pass null
+## through to Docket.stamp, which renders an un-iconed line.
+func icon_texture(icon_id: String) -> Texture2D:
+	if icon_id.is_empty():
+		return null
+	var path := ICON_DIR + icon_id + ".svg"
+	return load(path) as Texture2D if FileAccess.file_exists(path) else null
+
+
+func item_icon_texture(item_id: String) -> Texture2D:
+	if lib() == null:
+		return null
+	var item: ItemDef = lib().item(item_id)
+	return icon_texture(item.icon) if item != null else null
+
+
+# ---------------------------------------------------------- T19 segment flows
+## A wrapping row of [glyph][text] segments (T19 inline-icon idiom). Every
+## segment is short and UNWRAPPED, so the flow replaces the T15 wrapped-serial
+## discipline with something strictly safer: no autowrap label exists anywhere
+## inside a flow (the collapse class cannot occur), and the flow's minimum
+## width is one segment, never the whole line.
+func segment_flow(sep := 10) -> HFlowContainer:
+	var f := HFlowContainer.new()
+	f.add_theme_constant_override("h_separation", sep)
+	f.add_theme_constant_override("v_separation", 2)
+	return f
+
+
+## Append one [glyph][text] segment; glyph_id "" = bare text segment.
+## Returns the segment's label (variation switching keeps the reference).
+func add_segment(flow: HFlowContainer, glyph_id: String, text: String,
+		variation: String, glyph_size := GLYPH_INLINE) -> Label:
+	if not glyph_id.is_empty():
+		flow.add_child(icon_rect(glyph_id, glyph_size))
+	var l := label(variation, text)
+	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	flow.add_child(l)
+	return l
+
+
+## Rebuild a flow from segments [{icon: String, text: String}] (T19 update
+## path for live-refreshing serials). Returns the labels in order. No-op when
+## the content is unchanged — refresh paths run on every 4 Hz bulk flush and
+## must not churn controls (the T6/T14 idle budget) for static serials.
+func set_segments(flow: HFlowContainer, segments: Array, variation: String,
+		glyph_size := GLYPH_INLINE) -> Array[Label]:
+	var sig := variation + "|" + str(glyph_size)
+	for seg in segments:
+		sig += str(seg.get("icon", "")) + "||" + str(seg.get("text", "")) + "::"
+	if String(flow.get_meta("segments_sig", "")) == sig:
+		var existing: Array[Label] = []
+		for child in flow.get_children():
+			if child is Label:
+				existing.append(child)
+		return existing
+	flow.set_meta("segments_sig", sig)
+	for child in flow.get_children():
+		flow.remove_child(child)
+		child.queue_free()
+	var labels: Array[Label] = []
+	for seg in segments:
+		labels.append(add_segment(flow, str(seg.get("icon", "")),
+			str(seg.get("text", "")), variation, glyph_size))
+	return labels
+
+
+## Joined segment text ("A · B · C") — the tests' honest-math readout.
+## Static: inner Card classes (no Docket inheritance) call it through the
+## class itself.
+static func flow_text(flow: Node) -> String:
+	var parts: Array[String] = []
+	for child in flow.get_children():
+		if child is Label:
+			parts.append((child as Label).text)
+	return " · ".join(parts)
+
+
+## Switch every label in a flow between state variations (energized toggle).
+func set_flow_variation(flow: Node, variation: String) -> void:
+	for child in flow.get_children():
+		if child is Label:
+			(child as Label).theme_type_variation = variation
+
+
+## [glyph][wrapped serial] row: the one sanctioned HBox shape for a glyph
+## beside a WRAPPED label — the label is the sole EXPAND_FILL child and the
+## glyph is fixed-min-size (never starves it; T15 discipline holds).
+func glyph_beside(glyph_id: String, wrapped: Label, glyph_size := GLYPH_READ) -> HBoxContainer:
+	var row := hbox(8)
+	row.add_child(icon_rect(glyph_id, glyph_size))
+	wrapped.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(wrapped)
+	return row
 
 
 func vbox(sep: int) -> VBoxContainer:

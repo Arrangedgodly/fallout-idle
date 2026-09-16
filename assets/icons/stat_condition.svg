@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Condition stat glyph (HP): instrument condition gauge, dial arc + needle + pivot. Rule: names exactly the CONDITION stat, inline before its mono number. Original stencil-line signage icon (T19). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 30 86 A 34 34 0 0 1 98 86"/>
+    <line x1="26" y1="86" x2="102" y2="86"/>
+    <line x1="64" y1="86" x2="84" y2="56"/>
+    <circle cx="64" cy="86" r="6" fill="#20334F" stroke="none"/>
+    <line x1="40" y1="64" x2="46" y2="59" stroke-width="6"/>
+    <line x1="88" y1="64" x2="82" y2="59" stroke-width="6"/>
+  </g>
+</svg>

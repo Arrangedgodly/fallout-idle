@@ -41,10 +41,16 @@ class Card:
 	var id := ""
 	var button: Button
 	var title: Label
-	var rate_line: Label
-	var yields_line: Label
+	var rate_line: HFlowContainer
+	var yields_line: HFlowContainer
 	var gate_plate: PanelContainer
 	var gate_text: Label
+
+	func rate_text() -> String:
+		return Docket.flow_text(rate_line)
+
+	func yields_text() -> String:
+		return Docket.flow_text(yields_line)
 
 
 func _init(p_skill_id: String) -> void:
@@ -162,22 +168,25 @@ func _make_card(def: RefCounted) -> Card:
 	title_row.add_child(card.title)
 	col.add_child(title_row)
 
-	# T15 fix round: the serial rate line sits BELOW the title row as a
-	# full-width wrapped row — one horizontal line at 100%, wrapping within
-	# the card at 200% (unwrapped it was the docket's widest line at 200%,
-	# but as a wrapped HBox sibling its ~1 px minimum collapsed it).
-	card.rate_line = label("PlateSerialNavy", _rate_line(def))
-	card.rate_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# T15: rate/yields serials stack below the title row at full card width;
+	# T19 renders them as glyph segment flows (stat glyph before its stat's
+	# mono number, item icon beside each yield rate) — no autowrap anywhere
+	# inside a flow, so nothing side-by-side can starve a wrapped serial.
+	card.rate_line = segment_flow(12)
+	set_segments(card.rate_line, _rate_segments(def), "PlateSerialNavy")
 	col.add_child(card.rate_line)
 
-	card.yields_line = label("PlateSerialNavy", _yields_line(def))
-	card.yields_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	card.yields_line = segment_flow(12)
+	set_segments(card.yields_line, _yields_segments(def), "PlateSerialNavy")
 	col.add_child(card.yields_line)
 
+	# T19: the gate plate carries the clearance staircase glyph beside the
+	# required grade (never a padlock — voice rule 3); the wrapped gate text
+	# stays the sole EXPAND_FILL child of the row.
 	card.gate_plate = panel_box("DangerPlate")
 	card.gate_text = label("MonoValue", "")
 	card.gate_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	card.gate_plate.add_child(card.gate_text)
+	card.gate_plate.add_child(glyph_beside(GLYPH_CLEARANCE, card.gate_text))
 	col.add_child(card.gate_plate)
 
 	b.add_child(col)
@@ -188,25 +197,33 @@ func _card_icon(def: RefCounted) -> String:
 	return str(def.get("icon"))
 
 
-func _rate_line(def: RefCounted) -> String:
-	return "+%s XP / ACTION · %s S INTERVAL" % [
-		SignageFmt.num(int(def.get("xp_per_action"))),
-		SignageFmt.seconds(int(def.get("interval_ms")))]
+## Rate segments: XP per action (no commissioned glyph — XP is not one of the
+## five instrumented stats) and the interval stat, whose stopwatch glyph
+## posts inline before its mono number (icon-grammar rule).
+func _rate_segments(def: RefCounted) -> Array:
+	return [
+		{"icon": "", "text": "+%s XP / ACTION" % SignageFmt.num(int(def.get("xp_per_action")))},
+		{"icon": GLYPH_INTERVAL, "text": "%s S INTERVAL" % SignageFmt.seconds(int(def.get("interval_ms")))},
+	]
 
 
-func _yields_line(def: RefCounted) -> String:
+## Yield segments (gathering): one segment per drop-table entry, each carrying
+## the item's icon beside its exact rate (icon-grammar: item marks are legal
+## wherever the item's number posts).
+func _yields_segments(def: RefCounted) -> Array:
 	var l := lib()
 	var table: DropTableDef = l.drop_table(str(def.get("drop_table")))
 	if table == null:
-		return "NO YIELD TABLE POSTED"
-	var parts: Array[String] = []
+		return [{"icon": "", "text": "NO YIELD TABLE POSTED"}]
+	var out: Array = [{"icon": "", "text": "YIELDS:"}]
 	for entry in table.entries:
 		var item: ItemDef = l.item(entry.item)
 		var item_name: String = item.name.to_upper() if item != null else entry.item
-		parts.append("%s %s%% %s" % [item_name,
-			SignageFmt.pct(entry.weight, table.total_weight()),
-			SignageFmt.qty(entry.qty_min, entry.qty_max)])
-	return "YIELDS: " + " · ".join(parts)
+		out.append({"icon": item.icon if item != null else "",
+			"text": "%s %s%% %s" % [item_name,
+				SignageFmt.pct(entry.weight, table.total_weight()),
+				SignageFmt.qty(entry.qty_min, entry.qty_max)]})
+	return out
 
 
 # ------------------------------------------------------------------ interaction
@@ -221,14 +238,28 @@ func select_content(content_id: String) -> void:
 	selected_id = content_id
 	var result: Dictionary = tm.start_activity(content_id)
 	if bool(result["ok"]):
-		stamp(log, _start_stamp_text(content_id))
+		stamp(log, _start_stamp_text(content_id), _start_stamp_icon(content_id))
 	else:
-		stamp(log, _denied_stamp_text(str(result["reason"])))
+		stamp(log, _denied_stamp_text(str(result["reason"])), icon_texture(GLYPH_CLEARANCE))
 	_refresh({"activity": true, "inventory": true, "xp": true})
 
 
 func _start_stamp_text(content_id: String) -> String:
 	return "SHIFT POSTED — " + _content_name(content_id).to_upper()
+
+
+## T19: the posted-shift stamp carries the posting's own mark (activity icon,
+## or the output item for recipes — the same resolution the card title uses).
+func _start_stamp_icon(content_id: String) -> Texture2D:
+	var def: RefCounted = tm.engine.def_of(content_id)
+	if def == null:
+		return null
+	var icon := str(def.get("icon"))
+	if icon.is_empty() and def is RecipeDef:
+		var r := def as RecipeDef
+		var item: ItemDef = lib().item(r.output.item)
+		icon = item.icon if item != null else ""
+	return icon_texture(icon)
 
 
 func _denied_stamp_text(reason: String) -> String:
@@ -344,14 +375,14 @@ func _apply_card_state(card: Card, energized: bool, locked: bool) -> void:
 		card.button.theme_type_variation = "Energized"
 		card.title.theme_type_variation = "FormTitleEnergized"
 		card.title.text = ">> " + display_name
-		card.rate_line.theme_type_variation = "MonoValueEnergized"
-		card.yields_line.theme_type_variation = "MonoValueEnergized"
+		set_flow_variation(card.rate_line, "MonoValueEnergized")
+		set_flow_variation(card.yields_line, "MonoValueEnergized")
 	else:
 		card.button.theme_type_variation = ""
 		card.title.theme_type_variation = "FormTitle"
 		card.title.text = display_name
-		card.rate_line.theme_type_variation = "PlateSerialNavy"
-		card.yields_line.theme_type_variation = "PlateSerialNavy"
+		set_flow_variation(card.rate_line, "PlateSerialNavy")
+		set_flow_variation(card.yields_line, "PlateSerialNavy")
 	card.gate_text.text = _gate_text(card.id)
 	card.gate_plate.visible = locked
 
@@ -386,7 +417,7 @@ func _stamp_inventory_deltas() -> void:
 		var now_qty := int(current.get(item_id, 0))
 		var was_qty := int(_inv_snapshot.get(item_id, 0))
 		if now_qty != was_qty:
-			stamp(log, _delta_stamp_text(item_id, now_qty - was_qty))
+			stamp(log, _delta_stamp_text(item_id, now_qty - was_qty), item_icon_texture(item_id))
 	_inv_snapshot = current.duplicate()
 
 
@@ -411,8 +442,10 @@ func _stamp_completed_actions(_slot, _count: int) -> void:
 func _on_level_up(skill: String, _old_level: int, new_level: int) -> void:
 	if skill != skill_id or log == null:
 		return
+	# T19: the clearance fanfare carries the staircase glyph beside the grade.
 	stamp(log, "CLEARANCE %02d EARNED · %s" % [
-		new_level, String(lib().skill(skill_id).name).to_upper()])
+		new_level, String(lib().skill(skill_id).name).to_upper()],
+		icon_texture(GLYPH_CLEARANCE))
 
 
 func _on_activity_stopped(skill: String, _content_id: String, reason: String) -> void:

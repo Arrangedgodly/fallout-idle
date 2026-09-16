@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Deputy badge glyph, ASSIGNED state (badge plate FILLED navy): clipped ID-tag silhouette, no lettering, no star roundel, no mascot. Rule: badge = a deputized resident on post; the state pair is the FILL (filled=ASSIGNED, outline=AVAILABLE per the icon-grammar addendum - the T17 posting board pairs this with its outline sibling). Original stencil-line signage icon (T19). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="50" y="22" width="28" height="14" rx="4" fill="#F2EDE3" stroke-width="6"/>
+    <path d="M 38 42 H 90 L 96 48 V 96 Q 96 102 90 102 H 38 Q 32 102 32 96 V 48 Z" fill="#20334F"/>
+    <line x1="46" y1="62" x2="82" y2="62" stroke="#F2EDE3" stroke-width="6"/>
+    <line x1="46" y1="78" x2="68" y2="78" stroke="#F2EDE3" stroke-width="6"/>
+  </g>
+</svg>
