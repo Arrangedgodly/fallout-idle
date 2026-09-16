@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Copper Snarl: stripped wire in a tangle. Original stencil-line signage icon (T11). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M42 42 C70 22 98 40 84 55 C70 70 46 60 54 45 C62 30 94 34 88 52 C82 70 48 78 42 62"/>
+    <line x1="42" y1="42" x2="32" y2="36" stroke-width="5"/>
+    <line x1="42" y1="62" x2="33" y2="70" stroke-width="5"/>
+    <circle cx="30" cy="34" r="3.5" fill="#20334F" stroke="none"/>
+    <circle cx="31" cy="72" r="3.5" fill="#20334F" stroke="none"/>
+  </g>
+</svg>

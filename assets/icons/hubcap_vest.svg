@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Pedestrian Plating: hubcaps over the vitals. Original stencil-line signage icon (T11). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M42 38 L52 30 Q64 44 76 30 L86 38 L92 62 L82 66 V94 H46 V66 L36 62 Z" fill="#F2EDE3"/>
+    <circle cx="64" cy="68" r="14" stroke-width="6"/>
+    <circle cx="64" cy="68" r="5.5" stroke-width="5"/>
+    <line x1="64" y1="54" x2="64" y2="58" stroke-width="4"/>
+    <line x1="64" y1="78" x2="64" y2="82" stroke-width="4"/>
+    <line x1="50" y1="68" x2="54" y2="68" stroke-width="4"/>
+    <line x1="74" y1="68" x2="78" y2="68" stroke-width="4"/>
+  </g>
+</svg>

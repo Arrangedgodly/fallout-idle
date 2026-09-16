@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Walk the Glow Rows activity: rows that glow back (amber = energized). Original stencil-line signage icon (T11). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="26" y1="90" x2="102" y2="90" stroke-width="6"/>
+    <line x1="34" y1="72" x2="94" y2="72" stroke-width="5"/>
+    <path d="M44 90 V76 M44 80 Q38 76 36 70 M44 80 Q50 76 52 70" stroke-width="5"/>
+    <path d="M64 90 V78 M64 82 Q58 78 56 72 M64 82 Q70 78 72 72" stroke-width="5"/>
+    <path d="M84 90 V76 M84 80 Q78 76 76 70 M84 80 Q90 76 92 70" stroke-width="5"/>
+    <circle cx="44" cy="64" r="4.5" fill="#FFB000" stroke-width="4"/>
+    <circle cx="64" cy="66" r="4.5" fill="#FFB000" stroke-width="4"/>
+    <circle cx="84" cy="64" r="4.5" fill="#FFB000" stroke-width="4"/>
+  </g>
+</svg>

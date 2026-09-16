@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Duskcorn: ear of grain in the husk. Original stencil-line signage icon (T11). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M46 94 Q30 72 40 46 Q54 58 58 74" stroke-width="6"/>
+    <path d="M82 94 Q98 72 88 46 Q74 58 70 74" stroke-width="6"/>
+    <ellipse cx="64" cy="62" rx="16" ry="30" fill="#F2EDE3"/>
+    <path d="M64 36 V88" stroke-width="4" stroke-dasharray="5 7"/>
+    <path d="M50 54 H78" stroke-width="4" stroke-dasharray="5 7"/>
+    <path d="M50 70 H78" stroke-width="4" stroke-dasharray="5 7"/>
+  </g>
+</svg>

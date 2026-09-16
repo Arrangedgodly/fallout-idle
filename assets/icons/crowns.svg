@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Crowns currency: crown cork face-on, crimped edge, three punch-notches (naming-bible section 2; no roundel, no lettering). Original stencil-line signage icon (T11). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="64" cy="64" r="32" fill="#FFB000"/>
+    <circle cx="64" cy="64" r="4" fill="#20334F" stroke="none"/>
+    <line x1="96" y1="64" x2="104" y2="64" stroke-width="5"/>
+    <line x1="91.7" y1="80" x2="98.6" y2="84" stroke-width="5"/>
+    <line x1="80" y1="91.7" x2="84" y2="98.6" stroke-width="5"/>
+    <line x1="64" y1="96" x2="64" y2="104" stroke-width="5"/>
+    <line x1="48" y1="91.7" x2="44" y2="98.6" stroke-width="5"/>
+    <line x1="36.3" y1="80" x2="29.4" y2="84" stroke-width="5"/>
+    <line x1="32" y1="64" x2="24" y2="64" stroke-width="5"/>
+    <line x1="36.3" y1="48" x2="29.4" y2="44" stroke-width="5"/>
+    <line x1="48" y1="36.3" x2="44" y2="29.4" stroke-width="5"/>
+    <line x1="64" y1="32" x2="64" y2="24" stroke-width="5"/>
+    <line x1="80" y1="36.3" x2="84" y2="29.4" stroke-width="5"/>
+    <line x1="91.7" y1="48" x2="98.6" y2="44" stroke-width="5"/>
+    <rect x="-3.5" y="-7" width="7" height="14" rx="1.5" fill="#F2EDE3" stroke-width="4" transform="translate(64 46)"/>
+    <rect x="-3.5" y="-7" width="7" height="14" rx="1.5" fill="#F2EDE3" stroke-width="4" transform="translate(78.6 72.5) rotate(-60)"/>
+    <rect x="-3.5" y="-7" width="7" height="14" rx="1.5" fill="#F2EDE3" stroke-width="4" transform="translate(49.4 72.5) rotate(60)"/>
+  </g>
+</svg>

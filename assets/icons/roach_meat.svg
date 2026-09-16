@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Grade-D Bugmeat: butchered cut with its grade stamp. Original stencil-line signage icon (T11). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M40 54 Q38 34 62 34 Q88 34 88 54 Q88 74 64 80 Q40 76 40 54 Z" fill="#F2EDE3"/>
+    <circle cx="35" cy="46" r="6.5" fill="#F2EDE3" stroke-width="6"/>
+    <path d="M40 50 L50 55" stroke-width="5"/>
+    <path d="M56 48 Q68 42 78 50" stroke-width="4" stroke-dasharray="6 6"/>
+    <rect x="54" y="58" width="20" height="15" rx="2" stroke="#B3261E" stroke-width="5" transform="rotate(-8 64 65)"/>
+  </g>
+</svg>

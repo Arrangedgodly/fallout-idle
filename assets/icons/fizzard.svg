@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Fizzard: a lizard that carbonates (amber fizz at the snout). Original stencil-line signage icon (T11). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M38 70 Q24 72 21 60" stroke-width="6"/>
+    <path d="M36 74 Q40 56 58 56 Q66 47 78 51 L89 55 Q96 59 94 67 L84 72 Q70 80 56 78 Q42 82 36 74 Z" fill="#F2EDE3"/>
+    <circle cx="80" cy="60" r="2.8" fill="#20334F" stroke="none"/>
+    <line x1="54" y1="78" x2="50" y2="90" stroke-width="5"/>
+    <line x1="74" y1="75" x2="77" y2="88" stroke-width="5"/>
+    <circle cx="96" cy="46" r="4.5" fill="#FFB000" stroke-width="4"/>
+    <circle cx="103" cy="37" r="3.2" fill="#FFB000" stroke-width="4"/>
+    <circle cx="94" cy="28" r="2.6" fill="#FFB000" stroke-width="4"/>
+  </g>
+</svg>

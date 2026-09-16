@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Iodine Root: civil-defense vitamins (red cross on the root). Original stencil-line signage icon (T11). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M64 42 Q54 30 46 28" stroke-width="6"/>
+    <path d="M64 42 Q63 28 64 24" stroke-width="6"/>
+    <path d="M64 42 Q74 30 82 28" stroke-width="6"/>
+    <path d="M52 46 Q64 38 76 46 L70 84 Q64 96 58 84 Z" fill="#F2EDE3"/>
+    <path d="M60.5 54 H67.5 V60.5 H74 V67.5 H67.5 V74 H60.5 V67.5 H54 V60.5 H60.5 Z" fill="#B3261E" stroke="none"/>
+  </g>
+</svg>

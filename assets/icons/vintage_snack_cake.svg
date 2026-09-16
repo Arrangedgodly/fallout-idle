@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Vintage Snack Cake: wrapped cake, twisted ends. Original stencil-line signage icon (T11). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="32" y="50" width="64" height="28" rx="6" fill="#F2EDE3"/>
+    <path d="M32 56 L21 49 L24 64 L21 79 L32 72 Z" fill="#F2EDE3" stroke-width="6"/>
+    <path d="M96 56 L107 49 L104 64 L107 79 L96 72 Z" fill="#F2EDE3" stroke-width="6"/>
+    <path d="M40 64 Q52 58 64 64 Q76 70 88 64" stroke-width="5"/>
+  </g>
+</svg>

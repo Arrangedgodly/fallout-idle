@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Litterbug (junkyard_roach): scatterbug stitched from foil wrappers. Original stencil-line signage icon (T11); monsters are mundane objects, no mascot figures. -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M44 54 L31 49 L37 64 L31 79 L44 74 Z" fill="#F2EDE3" stroke-width="6"/>
+    <path d="M84 54 L97 49 L91 64 L97 79 L84 74 Z" fill="#F2EDE3" stroke-width="6"/>
+    <rect x="44" y="48" width="40" height="32" rx="8" fill="#F2EDE3"/>
+    <line x1="58" y1="48" x2="58" y2="80" stroke-width="5"/>
+    <line x1="70" y1="48" x2="70" y2="80" stroke-width="5"/>
+    <path d="M46 76 L36 84" stroke-width="5"/>
+    <path d="M50 80 L44 92" stroke-width="5"/>
+    <path d="M82 76 L92 84" stroke-width="5"/>
+    <path d="M78 80 L84 92" stroke-width="5"/>
+    <path d="M56 48 Q50 38 44 36" stroke-width="5"/>
+    <path d="M72 48 Q78 38 84 36" stroke-width="5"/>
+  </g>
+</svg>

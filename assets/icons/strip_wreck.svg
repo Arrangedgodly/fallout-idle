@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Strip a Wreck activity: car body up on stands, rear wheel gone. Original stencil-line signage icon (T11). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M32 62 Q32 49 46 47 L56 34 H72 L80 47 Q94 49 94 62 V68 H32 Z" fill="#F2EDE3"/>
+    <circle cx="46" cy="72" r="10" fill="#F2EDE3" stroke-width="6"/>
+    <circle cx="46" cy="72" r="3.5" stroke-width="4"/>
+    <path d="M76 74 Q86 62 98 72" stroke-width="6"/>
+    <line x1="82" y1="70" x2="78" y2="88" stroke-width="5"/>
+    <line x1="92" y1="70" x2="96" y2="88" stroke-width="5"/>
+    <line x1="74" y1="88" x2="100" y2="88" stroke-width="5"/>
+    <line x1="26" y1="94" x2="102" y2="94" stroke-width="6"/>
+  </g>
+</svg>

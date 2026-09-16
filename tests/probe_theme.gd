@@ -173,8 +173,9 @@ func _check_assets_provenance() -> void:
 	if f.is_empty():
 		return
 	# Every bundled asset file must have a provenance row; every row must resolve.
+	# T11 added assets/icons to the walk (the no-row-no-ship gate covers all of assets/).
 	var asset_paths: Array[String] = []
-	for dir in ["res://assets/fonts", "res://assets/theme"]:
+	for dir in ["res://assets/fonts", "res://assets/theme", "res://assets/icons"]:
 		var d := DirAccess.open(dir)
 		if d == null:
 			continue

@@ -82,9 +82,10 @@ Ranges below are the loader's enforced contract (source of truth:
 - `name`: non-empty display string (T4 owns final names; validated non-empty
   and unique-by-id today; T4 may add checklist verdicts via validator
   extension, not format change).
-- `icon`: icon asset **id** — T11 resolves it to `res://assets/icons/<icon>.svg`
-  and its acceptance gate is that every one resolves. Loader validates format
-  only for now (existence check flips on at T11).
+- `icon`: icon asset **id** — resolves to `res://assets/icons/<icon>.svg`.
+  STRICT since T11: the loader cross-check fails the boot when an icon id has
+  no shipped SVG (error carries record id + `icon` field + expected path);
+  every shipped SVG carries an `ASSETS.md` provenance row (no row, no ship).
 - `level_gate`: clearance level 1–99 ("CLEARANCE N REQUIRED" plates, T9/T10).
 - All rates/intervals are integer milliseconds so T6's tick math and
   closed-form offline math stay int-exact.
@@ -98,7 +99,7 @@ Ranges below are the loader's enforced contract (source of truth:
 | `category` | enum | `resource` \| `material` \| `food` \| `equipment` | y | |
 | `value` | int | 0–1,000,000 | y | caps the Depot pays per unit (sell price) |
 | `heal` | int | 1–10,000 | food only | required iff `category == "food"`; eaten by T7 auto-eat |
-| `icon` | string | snake_case | y | |
+| `icon` | string | snake_case; resolves to `assets/icons/<icon>.svg` (strict) | y | |
 
 ### skills.json
 
@@ -109,7 +110,7 @@ Ranges below are the loader's enforced contract (source of truth:
 | `kind` | enum | `gathering` \| `processing` \| `combat` | y | exactly one combat skill must exist |
 | `max_level` | int | 2–99 | y | must equal the referenced curve's `max_level` |
 | `xp_curve` | string | ref | y | `xp_curves.json` id |
-| `icon` | string | snake_case | y | |
+| `icon` | string | snake_case; resolves to `assets/icons/<icon>.svg` (strict) | y | |
 
 ### activities.json (gathering)
 
@@ -122,7 +123,7 @@ Ranges below are the loader's enforced contract (source of truth:
 | `interval_ms` | int | 100–600,000 | y | time per action |
 | `xp_per_action` | int | 1–1,000,000 | y | |
 | `drop_table` | string | ref | y | rolled `rolls` times per action |
-| `icon` | string | snake_case | y | |
+| `icon` | string | snake_case; resolves to `assets/icons/<icon>.svg` (strict) | y | |
 
 ### recipes.json (processing)
 
@@ -167,7 +168,7 @@ rounding).
 | `max_hit` | int | 1–10,000 | y | |
 | `xp_reward` | int | 1–1,000,000 | y | combat XP on kill |
 | `drop_table` | string | ref | y | rolled on victory |
-| `icon` | string | snake_case | y | |
+| `icon` | string | snake_case; resolves to `assets/icons/<icon>.svg` (strict) | y | |
 
 ### equipment.json
 

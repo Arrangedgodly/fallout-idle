@@ -20,6 +20,47 @@
 | assets/theme/toggle_on.svg | texture | Valued Resident pipeline (T8, ZCode session) | original | original | 2026-09-15 | T8 agent |
 | assets/theme/slider_grabber.svg | texture | Valued Resident pipeline (T9, ZCode session) | original | original | 2026-09-15 | T9 agent |
 | assets/theme/slider_grabber_lit.svg | texture | Valued Resident pipeline (T9, ZCode session) | original | original | 2026-09-15 | T9 agent |
+| assets/icons/carpool_carapace.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/category_food.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/cloth_scraps.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/compliant_casserole.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/compliant_wire.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/cooking.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/copper_wiring.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/crowns.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/dig_the_iodine_beds.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/drain_the_sump.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/duskcorn.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/feral_snack_dispenser.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/fizz_gland.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/fizzard.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/forage_the_far_fence.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/foraging.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/girderling.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/glowshroom.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/greater_dust_bunny.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/harvest_the_614_plot.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/hubcap_vest.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/iodine_root.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/junksmithing.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/junkyard_roach.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/lint_pelt.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/majority_whip.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/mandatory_grits.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/patchwork_bolt.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/radstag_stew.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/roach_meat.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/scavenging.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/scrap_ingot.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/scrap_metal.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/scrap_shiv.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/sewer_landlord.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/sort_scrap_pile.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/strip_wreck.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/unbuild_the_overpass.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/vintage_snack_cake.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/walk_the_glow_rows.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/wasteland_combat.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
 
 ## Dev tooling (exempt from the shipped-asset gate)
 

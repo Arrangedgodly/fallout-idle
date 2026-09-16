@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Compliant Wire: re-educated wire, wound neat on a spool. Original stencil-line signage icon (T11). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="34" y="40" width="13" height="48" rx="3" fill="#F2EDE3"/>
+    <rect x="81" y="40" width="13" height="48" rx="3" fill="#F2EDE3"/>
+    <rect x="47" y="52" width="34" height="24" fill="#F2EDE3" stroke-width="5"/>
+    <path d="M47 60 H81" stroke-width="4" stroke-dasharray="6 5"/>
+    <path d="M47 69 H81" stroke-width="4" stroke-dasharray="6 5"/>
+    <circle cx="64" cy="64" r="4" stroke-width="4"/>
+    <path d="M94 64 H102 Q108 64 105 55" stroke-width="5"/>
+  </g>
+</svg>

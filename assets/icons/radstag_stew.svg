@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Chef's Regret: soup of the day, every day. Original stencil-line signage icon (T11). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M38 58 A26 22 0 0 1 90 58"/>
+    <circle cx="64" cy="31" r="4.5" fill="#F2EDE3" stroke-width="5"/>
+    <path d="M32 58 A32 26 0 0 0 96 58 Z" fill="#F2EDE3"/>
+    <line x1="26" y1="58" x2="102" y2="58" stroke-width="6"/>
+    <line x1="82" y1="52" x2="103" y2="31" stroke-width="6"/>
+    <path d="M46 34 q4 -5 0 -10" stroke-width="5"/>
+  </g>
+</svg>

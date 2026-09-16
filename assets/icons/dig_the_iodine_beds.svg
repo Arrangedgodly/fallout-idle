@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Dig the Iodine Beds activity: spade turning the bed row. Original stencil-line signage icon (T11). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="76" y1="27" x2="56" y2="60"/>
+    <line x1="70" y1="24" x2="84" y2="32" stroke-width="6"/>
+    <path d="M60 56 L44 72 Q37 81 46 90 Q57 85 66 71 Z" fill="#F2EDE3"/>
+    <path d="M28 92 Q64 82 100 92" stroke-width="6"/>
+    <line x1="26" y1="96" x2="102" y2="96" stroke-width="6"/>
+    <path d="M60 92 Q58 101 50 101" stroke-width="5"/>
+  </g>
+</svg>

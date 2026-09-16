@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Nightlight Cap: fungus that glows back (amber = energized glow). Original stencil-line signage icon (T11). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M34 58 A30 26 0 0 1 94 58 Z" fill="#F2EDE3"/>
+    <line x1="52" y1="58" x2="56" y2="66" stroke-width="5"/>
+    <line x1="64" y1="58" x2="64" y2="67" stroke-width="5"/>
+    <line x1="76" y1="58" x2="72" y2="66" stroke-width="5"/>
+    <path d="M58 66 Q57 78 55 88" stroke-width="6"/>
+    <path d="M70 66 Q71 78 73 88" stroke-width="6"/>
+    <line x1="48" y1="88" x2="80" y2="88"/>
+    <circle cx="34" cy="42" r="4.5" fill="#FFB000" stroke-width="4"/>
+    <circle cx="94" cy="42" r="4.5" fill="#FFB000" stroke-width="4"/>
+    <circle cx="64" cy="22" r="4.5" fill="#FFB000" stroke-width="4"/>
+  </g>
+</svg>

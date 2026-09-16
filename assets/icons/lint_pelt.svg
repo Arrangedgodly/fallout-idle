@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Lint Pelt: tufted mass of lint, tailor-grade almost. Original stencil-line signage icon (T11). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M44 34 L82 32 L92 50 L98 82 L76 74 L64 92 L52 74 L30 82 L36 50 Z" fill="#F2EDE3"/>
+    <path d="M52 50 q8 -6 14 0" stroke-width="5"/>
+    <path d="M62 64 q8 -4 14 2" stroke-width="5"/>
+    <path d="M50 68 q6 4 12 0" stroke-width="5"/>
+  </g>
+</svg>

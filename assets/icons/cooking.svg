@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Cooking skill plate: lidded pot on a burner. Original stencil-line signage icon (T11); palette per scripts/theme/signage_tokens.gd. -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="38" y="56" width="52" height="26" rx="4" fill="#F2EDE3"/>
+    <rect x="42" y="46" width="44" height="10" rx="5" fill="#F2EDE3"/>
+    <circle cx="64" cy="42" r="4.5" fill="#F2EDE3"/>
+    <path d="M36 58 C29 58 29 70 36 70" stroke-width="5"/>
+    <path d="M92 58 C99 58 99 70 92 70" stroke-width="5"/>
+    <line x1="48" y1="82" x2="48" y2="88" stroke-width="5"/>
+    <line x1="64" y1="82" x2="64" y2="88" stroke-width="5"/>
+    <line x1="80" y1="82" x2="80" y2="88" stroke-width="5"/>
+    <line x1="40" y1="90" x2="88" y2="90" stroke-width="6"/>
+    <path d="M52 38 q4 -5 0 -11" stroke-width="5"/>
+    <path d="M76 38 q4 -5 0 -11" stroke-width="5"/>
+  </g>
+</svg>

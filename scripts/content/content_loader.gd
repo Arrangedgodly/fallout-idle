@@ -8,6 +8,8 @@ extends RefCounted
 ##   - types + ranges on every field (JSON numbers arrive as float — ints are
 ##     coerced and bounds-checked well below the 2^53 precision cliff),
 ##   - cross-domain reference integrity + duplicate-id detection,
+##   - strict icon resolution: every icon id must resolve to a shipped
+##     res://assets/icons/<id>.svg (T11 no-row-no-ship gate),
 ##   - orphan detection (warnings — T5's "no orphan items" gate reads these).
 ##
 ## Every error is actionable and shaped:
@@ -583,6 +585,20 @@ static func _cross_check(lib: ContentLibrary, res: Result) -> void:
 		if entry.gate_skill != "":
 			_require_ref(lib, res, "data/shop_stock.json", "shop_stock[%s]" % entry.item, "gate.skill", "skills", entry.gate_skill)
 
+	# T11 strict icon gate: every icon id must resolve to a shipped SVG asset
+	# under res://assets/icons/ — an unresolvable icon is a boot error, not a
+	# silent missing sprite (per R3 + the ASSETS.md no-row-no-ship gate).
+	for icon_item in lib.items.values():
+		_require_icon(res, "data/items.json", "items[%s]" % icon_item.id, icon_item.icon)
+	for icon_skill in lib.skills.values():
+		_require_icon(res, "data/skills.json", "skills[%s]" % icon_skill.id, icon_skill.icon)
+	for icon_activity in lib.activities.values():
+		_require_icon(res, "data/activities.json", "activities[%s]" % icon_activity.id, icon_activity.icon)
+	for icon_monster in lib.monsters.values():
+		_require_icon(res, "data/monsters.json", "monsters[%s]" % icon_monster.id, icon_monster.icon)
+	for icon_recipe in lib.recipes.values():
+		_require_icon(res, "data/recipes.json", "recipes[%s]" % icon_recipe.id, icon_recipe.icon)
+
 	# Every equipment-category item must carry an EquipmentDef (both directions).
 	for item in lib.items.values():
 		if item.is_equipment() and not lib.equipment.has(item.id):
@@ -602,6 +618,19 @@ static func _require_ref(lib: ContentLibrary, res: Result, file: String, pointer
 		return
 	res.errors.append("[content] %s · %s · %s: references unknown %s id '%s'" %
 		[file, pointer, field, domain, id])
+
+
+## T11 strict icon gate: an icon id resolves iff res://assets/icons/<id>.svg
+## exists as a loadable resource (ResourceLoader follows .import remaps in
+## exported builds) or as a source file on disk (fresh checkouts pre-import).
+static func _require_icon(res: Result, file: String, pointer: String, icon: String) -> void:
+	if icon == "":
+		return
+	var path := "res://assets/icons/%s.svg" % icon
+	if ResourceLoader.exists(path) or FileAccess.file_exists(path):
+		return
+	res.errors.append("[content] %s · %s · icon: does not resolve — no icon asset '%s' (expected %s; T11 strict gate: every icon id needs a shipped SVG + an ASSETS.md row)" %
+		[file, pointer, icon, path])
 
 
 # ------------------------------------------------------------ field helpers

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Foraging skill plate: sprout on a mound. Original stencil-line signage icon (T11); palette per scripts/theme/signage_tokens.gd. -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M34 88 Q64 66 94 88"/>
+    <line x1="26" y1="88" x2="102" y2="88"/>
+    <path d="M64 78 V50"/>
+    <path d="M64 60 Q48 56 44 40 Q60 40 64 58 Z" fill="#F2EDE3"/>
+    <path d="M64 60 Q80 56 84 40 Q68 40 64 58 Z" fill="#F2EDE3"/>
+    <circle cx="64" cy="34" r="6" fill="#F2EDE3"/>
+  </g>
+</svg>
