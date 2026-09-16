@@ -1,13 +1,19 @@
-# Valued Resident Naming Bible — T4
+# Valued Resident Naming Bible — T4 (+ T16 run-2 extension)
 
-Status: awaiting approval. Owner: Data lane (Mr. Fantastic) carrying Doctor
-Strange's risk gate. Scope: every proper noun in the vertical slice, the
-flavor-copy voice rules, and the per-name trademark-proximity verdicts.
-Inputs: `docs/ultron/town-hall.md` (protected-terms contract), 
-`docs/ultron/design-brief.md` (Shelter Signage System voice), 
+Status: awaiting approval (T16 extension; T4 body previously verified PASS).
+Owner: Data lane (Mr. Fantastic) carrying Doctor Strange's risk gate. Scope:
+every proper noun in the vertical slice, the flavor-copy voice rules, and the
+per-name trademark-proximity verdicts. **Run 2 (2026-09-16): T16 extends this
+bible to the personnel system, the orientation form, and the run-2 icon
+grammar** (town-hall.md Scope Amendment 1) — §10 T16 rows + §14 systems
+vocabulary.
+Inputs: `docs/ultron/town-hall.md` (protected-terms contract),
+`docs/ultron/design-brief.md` (Shelter Signage System voice),
 `docs/content-schema.md` (fields the names fill), `PRODUCT.md` (brand
 commitments). Consumers: T5 (authors content with these display names), T9/T10
-(plate + docket copy), T11 (icon silhouettes), T13 (criterion 7 evidence).
+(plate + docket copy), T11 (icon silhouettes), T13 (criterion 7 evidence);
+run-2 consumers: T17 (staffing engine/UI copy + save fields), T18
+(orientation copy), T19 (icon ids + silhouettes).
 
 Voice in one line: **a shelter bureaucracy that survived the apocalypse and
 never stopped issuing cheerful directives.** Names read like institutional
@@ -214,7 +220,7 @@ Offline gains are mail; saves are records; death is a posted notice. The mechani
 - Offline modal: "MAIL CALL — GAINS ACCRUED IN YOUR ABSENCE. NO ACTION WAS TAKEN WITHOUT YOU. NONE WAS NEEDED."
 - Death plate: "RETURN TO SHELTER — THE ZONE THANKS YOU FOR YOUR CONTRIBUTIONS (PARTIAL)."
 
-## 9. Do-not-use lexicon and pattern gate (binding on T5/T9/T10/T11)
+## 9. Do-not-use lexicon and pattern gate (binding on T5/T9/T10/T11; run 2: T17/T18/T19)
 
 **Words never used, in any construction:**
 - **vault** (any prefix/suffix/compound — evokes Vault-Tec). The game's refuge is the *Shelter*.
@@ -314,6 +320,43 @@ name>` (the pattern T4 itself used: "Smelt Almost Bullion").
 | Simmer Chef's Regret | recipe | Verb + bible item name (Chef's Regret) | **PASS** |
 | Reheat Chef's Regret | recipe | Verb + bible item name; "reheat" is the §6 joke ("TODAY'S MENU IS YESTERDAY'S MENU") made mechanical | **PASS** |
 
+### T16-authored systems vocabulary (Run 2, applied 2026-09-16 under the §13 protocol)
+
+Scope Amendment 1 added three systems (personnel slots, orientation
+tutorial, expanded icon grammar) that needed player-facing names. Coined
+here, run through the same checklist, recorded — **zero new names for
+existing entities** (RESIDENT, Crowns, clearance language, Docket/Depot/
+Manifest/Concourse, MAIL CALL, and all §3–§7 names are reused verbatim).
+Codebase grepped before assignment: no display term below collides with any
+shipped string (PERSONNEL/DEPUTY/deputize/ORIENTATION/DULY/STIPEND/NUISANCE
+had zero hits in scripts/data/scenes/tests); the word "posting" already
+appears in shipped docket copy ("PROVISIONAL POSTING",
+"POSTING WITHDRAWN BY THE DEPARTMENT") — precedent for the slot noun, not a
+collision. Form designations verified in code: `FORM M-1` (mail-call notice,
+`scripts/ui/mail_call_modal.gd`), `D.O.C.S. FORM Z-9` (zone-secured
+certificate, `scripts/ui/docket_patrol.gd`), `FORM 9-A` (provisional docket
+posting footer, `scenes/main.gd`), docket serials `D-01…D-07` — the
+orientation form takes the unused **O** letter (letter-first series, like
+M/Z, unlike 9-A's digit-first): **O-1** collides with nothing shipped.
+
+| Name | Kind | Construction / proximity | Verdict |
+|---|---|---|---|
+| **DEPUTY** (worker noun; verb **deputize**) | personnel | Ordinary civilian job title, the natural subordinate of our own RESIDENT/Superintendent role ladder; chosen over "STAFF BADGE" (an object, not a person — it becomes the badge *glyph* instead) and "ASSIGNEE" (cold legalese, no cheer). Nearest real-world adjacency: Deputy.com, a B2B workforce-scheduling SaaS — different channel, generic dictionary word in its ordinary sense, non-commercial parody project; no Fallout/Melvor term (Fallout's "deputy" NPCs are generic labels, unprotectable); no §9 pattern (the opposite of the banned overseer/dweller roles: a civilian administrative title) | **PASS** |
+| **PERSONNEL** (concourse plate + docket) | personnel | Generic administrative department word, single-plate form matching DEPOT/MANIFEST on the wall; no game, board game, or registered mark adjacency; no protected root | **PASS** |
+| **POSTING** (slot noun) · **ASSIGNED** / **AVAILABLE** (slot states) | personnel | Generic workplace vocabulary already the engine's own idiom ("POSTED SHIFTS", "POSTING WITHDRAWN BY THE DEPARTMENT" — shipped docket copy); one concurrent activity occupies one posting; no protected term or pattern in any of the three words | **PASS** |
+| **POSTING REFUSED** (refusal directive plate) | personnel | Generic bureaucratic refusal phrase; the directive serial states the fact + both remedies (cease a posting / deputize another resident) per the amendment; no protected term; clearance-not-locked voice (§8 R3) — refusal, never denial of service | **PASS** |
+| **DEPUTIZE RESIDENT** (purchase action label; button reads `DEPUTIZE RESIDENT · N CROWNS`) | personnel | Cleared verb (DEPUTY row) + our own RESIDENT noun; supersedes plan T17's provisional "ASSIGN" button wording (ASSIGN survives inside the slot-state word ASSIGNED); no protected term | **PASS** |
+| **ORIENTATION FORM O-1** (the tutorial's official name) | orientation | Bureau paperwork designation continuing the in-world series (M=Mail, Z=Zone, D=Docket; **O=Orientation**, next unused letter — grep-verified). Letter-dash-number ban (§9) scopes to *gear model designations* (T-51 style); the bible's "Harvest the 6:14 Plot" row already reasons institutional paperwork numbering ≠ model designation, and M-1/Z-9 shipped under that reading. No famous real form collided (the famous set W-2/I-9/W-4/1040/1099 is avoided; "O-1" exists only as a US visa category and a military pay grade — different domains, generic letter-number, ours always prefixed FORM, never applied to gear); no Fallout/Melvor term | **PASS** |
+| **WORK A POSTED SHIFT** (orientation step 1) | orientation | Generic words over the docket's own cleared idiom (BEGIN SHIFT, POSTED SHIFTS); maps to the shipped primary action | **PASS** |
+| **EARN A CLEARANCE** (step 2) | orientation | Clearance language per §8 R3, echoing the shipped stamp "CLEARANCE %02d EARNED"; generic words | **PASS** |
+| **FILE A CROWNS CLAIM** (step 3) | orientation | Bureau verb + our own cleared currency noun (Crowns §2); "claims" already the zone's posted-drop idiom ("CLAIMS:" on fauna cards); generic construction | **PASS** |
+| **PROCESS A PRODUCT** (step 4) | orientation | Generic processing-chain words (recipes consume yields, output products); no protected term | **PASS** |
+| **PROVISION THE PATROL** (step 5) | orientation | Military-administrative generic verb + our own PATROL noun (Wasteland Patrol is a carried-over cleared name); covers both qualifying actions (equip gear / cook food); no protected term | **PASS** |
+| **CLEAR A NUISANCE** (step 6) | orientation | Civil-complaint generic words; fauna are classified pests ("FAUNA CLASS: PEST"), so a nuisance is exactly what the bureaucracy calls them; no protected root, no Deathclaw-style violent compound | **PASS** |
+| **DEPUTIZE A RESIDENT** (step 7) | orientation | Cleared verb + own noun (see DEPUTY row); teaches the run-2 system it exists to teach | **PASS** |
+| **DULY ORIENTED · FORM O-1** (completion stamp) | orientation | Stock bureaucratic phrase ("duly noted") + the form's own designation; rubber-stamp idiom matches "POSTED — SECTOR Z · D.O.C.S. FORM Z-9"; generic words, no mark adjacency | **PASS** |
+| **ORIENTATION STIPEND** (reward line; `{N} CROWNS · THANK YOU FOR YOUR PROMPT COMPLIANCE.`, N set by T20) | orientation | Generic administrative-fee words + own currency noun; cheer per §8 R2; no protected term | **PASS** |
+
 ## 11. Carried-over descriptive names — re-verified (all PASS)
 
 These pre-existing approved/generic names were re-run through the same
@@ -381,4 +424,54 @@ RadRoach) are gone from the content set entirely.
   Mandatory Grits, etc.) are binding suggestions: T5 uses them or brings
   replacements back through this checklist before shipping (add rows to §10).
 - Voice rules (§8) and lexicon (§9) bind all player-facing copy in T5 (item
-  flavor), T9/T10 (plates, dockets, notices), and T11 (icon silhouettes).
+  flavor), T9/T10 (plates, dockets, notices), and T11 (icon silhouettes);
+  run 2 extends the binding to T17 (staffing plates + refusal copy), T18
+  (orientation form copy), and T19 (icon silhouettes + ids).
+
+## 14. Run 2 systems vocabulary — display terms ↔ machine ids (T16, 2026-09-16)
+
+The §13 protocol requires new display names to be checklist-cleared and
+recorded (done, §10 T16 table); this section additionally pins the machine-id
+side so T17/T18/T19 bind display term to field without re-coinage. Machine
+ids follow the existing conventions exactly: **snake_case English** for save
+fields and content/icon ids (`save_version`, `skills_xp`, `anchor_unix_ms`,
+`scrap_metal` precedent) — the codebase has no kebab-case namespace, so
+"English machine ids per existing data conventions" resolves to snake_case.
+
+**Personnel (T17; save_version 2):**
+
+| Display term | Machine id | Notes |
+|---|---|---|
+| staffing state namespace | `engine.staffing` | sibling of `active`/`combat` in the PlayerState dict |
+| DEPUTY purchases | `staffing.deputies` | int 0–4 (purchased deputies; total postings = 1 + deputies; cap 4 → 5 concurrent per the amendment's "all 5 skills concurrent" target). v1→v2 migration `_migrate_1_to_2` seeds 0 |
+| POSTING REFUSED notice kind | `posting_refused` | engine/UI refusal payload kind string; payload carries the requested content id — T17 owns mechanics, the kind string is binding |
+| personnel docket script | `docket_personnel.gd` | suggested (follows `docket_depot.gd`); non-binding, collision-checked |
+
+**Orientation (T18; rides the same save_version 2):**
+
+| Display term | Machine id | Notes |
+|---|---|---|
+| orientation namespace | `engine.orientation` | with `steps_done: Array[String]`, `completed: bool`, `stipend_claimed: bool` (T18 owns mechanics; names binding) |
+| WORK A POSTED SHIFT | `work_shift` | step id; fires on first completed gathering/processing action (BEGIN SHIFT exists in `docket_skill.gd`) |
+| EARN A CLEARANCE | `earn_clearance` | step id; fires on the shipped "CLEARANCE %02d EARNED" level-up stamp path |
+| FILE A CROWNS CLAIM | `file_crowns_claim` | step id; fires on first Depot sale (SELL 1/SELL ALL → `add_crowns`) |
+| PROCESS A PRODUCT | `process_product` | step id; fires on first recipe completion (processing chain) |
+| PROVISION THE PATROL | `provision_patrol` | step id; fires on first equip (Manifest EQUIP) OR first cooked food — either qualifies, per the amendment's "[equip or cook]" |
+| CLEAR A NUISANCE | `clear_nuisance` | step id; fires on first combat victory (VICTORY POSTED path) |
+| DEPUTIZE A RESIDENT | `deputize_resident` | step id; fires on first `staffing.deputies` increase (the DEPUTIZE RESIDENT button, T17) |
+
+All 7 steps verified against shipped actions (engine/UI grepped 2026-09-16):
+BEGIN SHIFT (`docket_skill.gd`), clearance stamps (stamped logs), Depot sell
+(`docket_depot.gd` SELL 1/SELL ALL), recipe execution (processing docket),
+EQUIP (`docket_manifest.gd`), ENGAGE PATROL → victory (`docket_patrol.gd` /
+`combat_session.gd`); step 7 targets the T17 machinery by design — the
+tutorial teaches the new system.
+
+**Icon ids (T19; 12 new SVGs, none colliding with the 41 shipped —
+directory-listed 2026-09-16):** `stat_condition`, `stat_accuracy`,
+`stat_evade`, `stat_max_hit`, `stat_interval`, `clearance_step`,
+`deputy_badge`, `orient_arrow`, `stamp_check`, `btn_engage`, `btn_withdraw`,
+`btn_deputize`. Silhouette semantics live in `docs/ultron/design-brief.md` →
+"## Addendum: Personnel, Orientation, Icon Grammar", which is the binding
+silhouette contract, including the §9-derived rules: no padlock silhouette
+for gates, no mascot figures.
