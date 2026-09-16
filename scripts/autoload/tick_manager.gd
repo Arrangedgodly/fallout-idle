@@ -1,6 +1,6 @@
 extends Node
 ## TickManager — T6 idle engine autoload: budgeted fixed-rate sim clock, the
-## activity engine's driver, and the UI's ONLY update surface.
+## activity + combat (T7) engines' driver, and the UI's ONLY update surface.
 ##
 ## ─────────────────────────────────────────────────────────────────────────
 ## UI UPDATE CONTRACT (T10a/T10b bind here — never poll, never per-frame set)
@@ -8,7 +8,7 @@ extends Node
 ## Signals:
 ##   bulk_state_changed(changes: Dictionary)   — RATE-LIMITED to <= 4 Hz.
 ##       `changes` maps dirty region -> true; regions today: "xp",
-##       "inventory", "activity" (crowns/equipment reserved). Re-read what you
+##       "inventory", "activity", "combat" (crowns reserved). Re-read what you
 ##       render from TickManager.state (PlayerState) when a region you show is
 ##       in `changes`; ignore flushes for regions you don't show. Connect
 ##       labels, gauges, Manifest lists, drop-line stamps here. There are NO
@@ -16,15 +16,25 @@ extends Node
 ##   level_up(skill_id: String, old_level: int, new_level: int) — IMMEDIATE,
 ##       discrete, emitted once per level crossed during LIVE play (offline
 ##       crossings ride the mail-call payload instead). Fanfare plates bind
-##       here.
+##       here. Victory combat XP rides this too (shared grant_xp pipeline).
 ##   activity_stopped(skill_id, content_id, reason) — IMMEDIATE, discrete.
 ##       Reasons: "inputs_exhausted" (recipe ran dry), "replaced" (player
 ##       switched that skill's slot), "stopped" (manual stop).
+##   combat_ended(result: Dictionary) — IMMEDIATE, discrete (T7). Fires once
+##       when a fight ends: result.outcome "victory" (result.drops, result.xp,
+##       result.leveled_to) or "death" (RETURN TO SHELTER plate — zero loss).
+##       T10b's battle log + death/victory plates bind here.
+##   zone_cleared(monster_id: String) — IMMEDIATE, once ever (T7): the boss's
+##       first defeat (the slice's win moment). Persistent in
+##       state.combat.zone_clear.
 ##   mail_call_ready(payload: Dictionary) — IMMEDIATE, once per load with a
 ##       positive offline gap. Payload shape (also cached in
 ##       state.last_mail_call): elapsed_ms, skills_xp {skill: gained},
 ##       items {item: gained}, levels {skill: {from, to}}, actions {skill:
 ##       count}, stopped [...]. T10a renders the MAIL CALL notice from this.
+##       COMBAT DOES NOT PROGRESS OFFLINE (balance-notes §1.4 addendum): no
+##       offline kills, deaths, XP or drops — a mid-fight save resumes with
+##       its pending wind-ups exactly as saved.
 ##
 ## Interaction rules:
 ##   • User-initiated actions (start/stop activity) force an immediate bulk
@@ -42,6 +52,8 @@ extends Node
 signal bulk_state_changed(changes: Dictionary)
 signal level_up(skill_id: String, old_level: int, new_level: int)
 signal activity_stopped(skill_id: String, content_id: String, reason: String)
+signal combat_ended(result: Dictionary)
+signal zone_cleared(monster_id: String)
 signal mail_call_ready(payload: Dictionary)
 
 const TICK_MS := 100  ## 10 Hz sim (decoupled from render frames).
@@ -51,6 +63,7 @@ const BULK_MIN_INTERVAL_MS := UpdateBatcher.DEFAULT_MIN_INTERVAL_MS  ## 4 Hz.
 var verbose: bool = false
 var state: PlayerState
 var engine: ActivityEngine
+var combat: CombatSession
 var batcher: UpdateBatcher
 var sim_time_ms: int = 0  ## absolute sim clock (int ms; the engine's anchors live on it)
 var stats := {
@@ -78,6 +91,11 @@ func _boot(p_lib: ContentLibrary, world_seed: int) -> void:
 	engine = ActivityEngine.new(p_lib, batcher)
 	engine.level_up.connect(_on_level_up)
 	engine.activity_stopped.connect(_on_activity_stopped)
+	combat = CombatSession.new(p_lib, batcher, engine)
+	combat.combat_ended.connect(func(result: Dictionary) -> void:
+		combat_ended.emit(result))
+	combat.zone_cleared.connect(func(monster_id: String) -> void:
+		zone_cleared.emit(monster_id))
 	batcher.flushed.connect(func(changes: Dictionary) -> void:
 		bulk_state_changed.emit(changes))
 	new_game(world_seed)
@@ -85,6 +103,7 @@ func _boot(p_lib: ContentLibrary, world_seed: int) -> void:
 
 func new_game(world_seed: int = -1) -> void:
 	state = engine.new_state(world_seed if world_seed >= 0 else _default_seed())
+	combat.ensure_defaults(state)
 	sim_time_ms = 0
 	_accum_ms = 0
 	_last_wall_ms = -1
@@ -101,9 +120,13 @@ func new_game(world_seed: int = -1) -> void:
 ## this then immediately applies the offline gap via apply_offline_from_save()
 ## — the away time rewinds anchors by exactly the elapsed ms (T6 contract), so
 ## live ticking resumes with the phase remainder the save left off with.
+## Combat (T7): hydrate re-types the combat namespace after JSON, sanitize
+## drops fights referencing removed content (never a crash).
 ## Clock stats reset: a loaded session starts a fresh stall/clamp budget.
 func adopt_state(st: PlayerState, resume_sim_ms: int = 0) -> void:
 	state = st
+	combat.hydrate(state)
+	combat.sanitize(state)
 	sim_time_ms = maxi(resume_sim_ms, 0)
 	_accum_ms = 0
 	_last_wall_ms = -1
@@ -152,6 +175,7 @@ func _sim_tick() -> void:
 	sim_time_ms += TICK_MS
 	stats["ticks_executed"] = int(stats["ticks_executed"]) + 1
 	engine.tick(state, sim_time_ms)
+	combat.tick(state, sim_time_ms)  # T7: combat advances ONLY through this funnel
 	batcher.flush_due(sim_time_ms)
 
 
@@ -168,6 +192,37 @@ func start_activity(content_id: String) -> Dictionary:
 func stop_skill(skill_id: String) -> void:
 	engine.stop(state, skill_id)
 	batcher.force_flush(sim_time_ms)
+
+# -- Combat façade (T7; Wasteland Patrol calls these, never ActivityEngine) --
+
+## Engage (or switch to) a monster — the auto-battle starts. Returns
+## {"ok": bool, "reason": String} — CLEARANCE wording on gate failure.
+func engage_monster(monster_id: String) -> Dictionary:
+	var result: Dictionary = combat.engage(state, monster_id, sim_time_ms)
+	batcher.force_flush(sim_time_ms)
+	return result
+
+
+## Manual retreat: stop the fight (phase idle). Death needs no stop — combat
+## halts itself (phase "dead", RETURN TO SHELTER, zero loss).
+func stop_combat() -> void:
+	combat.retreat(state)
+	batcher.force_flush(sim_time_ms)
+
+
+## Equip one owned equipment item (Consumes a Manifest unit; EquipmentDef
+## decides the slot; the previous item returns to the Manifest).
+func equip_item(item_id: String) -> Dictionary:
+	var result: Dictionary = combat.equip(state, item_id)
+	batcher.force_flush(sim_time_ms)
+	return result
+
+
+## Empty "weapon" | "armor"; the item returns to the Manifest.
+func unequip_slot(slot_key: String) -> Dictionary:
+	var result: Dictionary = combat.unequip(state, slot_key)
+	batcher.force_flush(sim_time_ms)
+	return result
 
 
 # -- Offline catch-up --
@@ -192,9 +247,13 @@ func apply_offline_from_save(saved_unix_ms: int, now_unix_ms: int = -1) -> Dicti
 
 
 ## Core offline entry: `elapsed_ms` of wall gap applied via closed-form
-## arithmetic on the persisted per-slot RNG streams.
+## arithmetic on the persisted per-slot RNG streams. COMBAT DOES NOT PROGRESS
+## OFFLINE (balance-notes §1.4 addendum): combat.apply_offline is the
+## documented no-op seam — a mid-fight save resumes with its pending attack
+## wind-ups exactly as saved (absolute sim-ms on a resumed sim clock).
 func apply_offline_elapsed(elapsed_ms: int) -> Dictionary:
 	var payload: Dictionary = engine.apply_offline(state, sim_time_ms, elapsed_ms)
+	combat.apply_offline(state, elapsed_ms)
 	if int(payload["elapsed_ms"]) > 0:
 		mail_call_ready.emit(payload)
 		batcher.force_flush(sim_time_ms)

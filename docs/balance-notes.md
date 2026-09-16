@@ -69,6 +69,61 @@ Derived loadouts the sim uses (names per naming bible):
 | Mid = Point of Order + Pedestrian Plating | 120 | 2600 | 40 | 22 | 1–8 (avg 4.5) |
 | Max = Majority Whip + Carpool Carapace | 150 | 2000 | 75 | 40 | 1–18 (avg 9.5) |
 
+### 1.4 T7 spec addenda (choices where §1.1–§1.3 were silent — binding)
+
+Authored by T7 (Game loop lane) 2026-09-15; each fills a gap the probe's sim
+never had to cross. Live implementations: `scripts/engine/combat_session.gd`.
+
+1. **HP reset between fights:** §1.2 did not say what HP carries across
+   fights. Ruling: **player HP resets to full (derived max_hp) and monster
+   HP to its max_hp on every engage.** Consequences: death has zero
+   aftertaste (already zero loss, now zero limp), retreat-and-re-engage is a
+   full reset for both sides, and no cross-fight HP state needs persisting
+   except mid-fight saves.
+2. **Offline combat does not progress.** Town-hall grants uncapped full-rate
+   offline gains "for all activities," and combat is an activity category —
+   but balance-notes never defined offline combat, so T7 had to rule. **Combat
+   is the one exception: no attacks resolve, no XP, no drops, and no deaths
+   accrue while away.** Rationale: (a) a mid-away DEATH with no player agency
+   would violate the town-hall death rule's spirit (stop, no loss — being
+   killed in your sleep is a loss); (b) unbounded offline boss farming at
+   full rates would collapse the §2 boss gate overnight (the win moment is
+   tuned to max-gear + food, ~110 s active); (c) genre convention — Melvor
+   does not progress combat offline either. Honesty rule for mid-fight
+   saves: combat's attack times are absolute sim-ms and the sim clock
+   resumes at its saved value, so the fight resumes with its pending
+   wind-ups **exactly as saved** — the swing that was 800 ms out at save is
+   800 ms out at load: nothing resolves while away, nothing re-waits the
+   gap, and the RNG stream continues exactly. **Accepted divergence from
+   "all activities" — flagged for the coordinator and T13** (idle offline
+   gains remain full-rate and uncapped for every non-combat skill).
+3. **Equipment is consumed from the Manifest on equip** (unequip returns
+   it): equipped gear cannot also be sold or double-equipped; the Manifest
+   is the single honest ledger. Slots: one weapon, one armor; the
+   EquipmentDef decides which slot an item fills.
+4. **Combat runs concurrently with all non-combat skill slots**
+   (Melvor-style, matching T6's per-skill concurrency model). §4's "combat
+   either runs as the activity or between sessions" assumption is therefore
+   the conservative reading of a richer rule — a superset that only
+   accelerates the timeline estimates.
+5. **Mid-fight equip recomputes derived stats next tick** (§1.3 already
+   chose recompute-next-tick): a pending attack keeps its scheduled time;
+   the NEXT interval uses the new attack speed; HP clamps into a lowered
+   max_hp. Engaging a new monster mid-fight abandons the old fight (both
+   sides reset per addendum 1).
+6. **Hit rolls are the integer form of §1.2:** basis points
+   `clamp(acc * 10000 / (acc + eva), 500, 9500)` vs one d10000
+   (`randi_range(0, 9999) < bp`) — the spec's prescribed int-exact
+   representation (T14's int-math rule). The T5 probe's float sim
+   (`randf() < clampf(...)`) remains the balance reference; the two agree in
+   distribution to < 0.01% per roll (integer floor of the same ratio).
+7. **RNG streams:** one combat stream per world seed, FNV-1a of
+   `world_seed|wasteland_combat` (T6's formula over the combat skill id);
+   engaging reseeds it, so the same seed + gear + monster reproduces the
+   same fight bit-for-bit; mid-fight saves persist the stream state exactly
+   (int64-as-string, T3's convention). Victory drops roll on the same
+   stream in ActivityEngine's draw order (pick, then qty, entry order).
+
 ## 2. Monster ladder and the boss gate
 
 One zone, The Sunny Exclusion Zone (`dusty_flats`). Gates are Wasteland

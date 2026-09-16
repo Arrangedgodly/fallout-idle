@@ -26,7 +26,10 @@ var inventory: Dictionary = {}  ## item_id -> int stack
 var active: Dictionary = {}  ## skill_id -> ActiveSlot (gathering + processing; combat is T7's)
 var last_mail_call: Dictionary = {}  ## last offline payload (presentation cache; not saved)
 
-## Reserved namespace for T7 combat state (hp, equipped ids, food bar, ...).
+## Reserved namespace for T7 combat state (hp, equipped ids, food bar, ...) —
+## LIVE since T7: the shape + semantics are owned by CombatSession
+## (scripts/engine/combat_session.gd); pass-through only here (ints + rng
+## int64-as-strings keep the JSON round-trip exact).
 var combat: Dictionary = {}
 
 

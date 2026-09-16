@@ -11,8 +11,10 @@ extends Node
 ##   UiTheme     (T8) — LIVE: signage Theme + font-scale setting
 ##               (scripts/theme/, assets/theme/signage_theme.tres).
 ##   TickManager (T6) — LIVE: budgeted 10 Hz sim loop + activity engine +
-##               offline catch-up (scripts/engine/, UI UPDATE CONTRACT in
-##               scripts/autoload/tick_manager.gd).
+##               offline catch-up, and — since T7 — the combat engine
+##               (CombatSession: tick auto-battle, gear, auto-eat, drops)
+##               driven by the same funnel (scripts/engine/, UI UPDATE
+##               CONTRACT in scripts/autoload/tick_manager.gd).
 ##
 ## Tests (R2): GUT 9.7.1 under res://tests, wired by T12. Until then the plain
 ## --script probe tests/probe_content.gd covers content validation headless.
