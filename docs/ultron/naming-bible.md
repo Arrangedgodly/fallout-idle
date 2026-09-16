@@ -1,19 +1,26 @@
-# Valued Resident Naming Bible — T4 (+ T16 run-2 extension)
+# Valued Resident Naming Bible — T4 (+ T16 run-2, T22 run-3 extensions)
 
-Status: awaiting approval (T16 extension; T4 body previously verified PASS).
+Status: awaiting approval (T22 extension; T4 body previously verified PASS,
+T16 extension verified PASS).
 Owner: Data lane (Mr. Fantastic) carrying Doctor Strange's risk gate. Scope:
 every proper noun in the vertical slice, the flavor-copy voice rules, and the
 per-name trademark-proximity verdicts. **Run 2 (2026-09-16): T16 extends this
 bible to the personnel system, the orientation form, and the run-2 icon
 grammar** (town-hall.md Scope Amendment 1) — §10 T16 rows + §14 systems
-vocabulary.
+vocabulary. **Run 3 (2026-09-16): T22 extends this bible to the objectives
+system, the second combat zone + boss, and the T24/T25 registration
+protocol** (town-hall.md Scope Amendment 2) — §3 second-zone subsection,
+§10 T22 rows, §13.1 registration protocol, §15 systems vocabulary.
 Inputs: `docs/ultron/town-hall.md` (protected-terms contract),
 `docs/ultron/design-brief.md` (Shelter Signage System voice),
 `docs/content-schema.md` (fields the names fill), `PRODUCT.md` (brand
 commitments). Consumers: T5 (authors content with these display names), T9/T10
 (plate + docket copy), T11 (icon silhouettes), T13 (criterion 7 evidence);
 run-2 consumers: T17 (staffing engine/UI copy + save fields), T18
-(orientation copy), T19 (icon ids + silhouettes).
+(orientation copy), T19 (icon ids + silhouettes); run-3 consumers: T23
+(objectives engine — notice strings + §15 field contract), T24 (content
+depth — all new display names via §13.1), T25 (objective descriptions via
+§13.1 + design-brief Addendum 2 voice rules), T26 (dossier UI copy).
 
 Voice in one line: **a shelter bureaucracy that survived the apocalypse and
 never stopped issuing cheerful directives.** Names read like institutional
@@ -120,6 +127,41 @@ Signage treats these as classifications, not characters: monster plates read
 "FAUNA CLASS: PEST (LITTERING)" etc.; the boss plate reads "SENIOR FAUNA —
 ESCORT NOT PROVIDED."
 
+### Second combat zone — The Gift Court (Run 3, T22)
+
+Scope Amendment 2 supersedes the run-1 "no second combat zone" non-goal for
+exactly one additional zone. Same register as §3 above — cheerful signage
+over a place the bureaucracy never stopped administering — and a distinct
+one: retail instead of outdoors, no shared "Exclusion/Sector" wording with
+zone 1.
+
+- Display name: **The Gift Court** (machine id `gift_court`, §15; T24
+  authors the zone record — monsters.json `zone` field).
+- Signage form: "GIFT COURT — DESIGNATED RETAIL AMENITY AREA" (parallel to
+  the Sunny Exclusion Zone's "DESIGNATED OUTDOOR AMENITY AREA").
+- Concept: a collapsed mid-century shopping palace — food court, dry
+  fountain, directory kiosk — whose management never stopped managing. The
+  D.O.C.S. classifies the whole retail sector as a gift-giving amenity;
+  returns are not processed (sibling of the Depot's own "RETURNS ARE A
+  FUTURE DEPARTMENT").
+- Copy direction (T24 authors final copy per §8, registered via §13.1):
+  signage-plate register, e.g. "PLEASE PRESENT RECEIPTS. RECEIPTS ARE NO
+  LONGER ISSUED." / "WET FLOOR. THE FLOOR HAS ALWAYS BEEN WET."
+- Zone-secured certificate: re-rides the shipped ZONE SECURED paper idiom
+  (the FORM Z-9 family) with the zone's own sector line (§15); no new form
+  series, no new visual language.
+
+| # | Name | Machine id | Concept | Tier intent (T24) |
+|---|---|---|---|---|
+| Boss | **The Regional Manager** | `regional_manager` (§15) | Senior Fauna, Retail Division. A formally dressed display mannequin — visitor badge, name tag, a headset answering no one — conducting an eternal walkthrough of the sales floor. Approves nothing, eventually | Boss, gates the Gift Court clear; the lateral authority counterpart to The Superintendent (Exterior Division) |
+
+The new boss plate keeps the classification idiom, not character copy:
+"REGIONAL AUTHORITY DETECTED. APPROVAL IS NOT FORTHCOMING. NEITHER ARE
+REFUNDS." — mirroring The Superintendent's "SENIOR FAUNA DETECTED. ESCORT IS
+NOT PROVIDED. REFUNDS ARE NOT EITHER." The Gift Court's ordinary fauna
+(~4, level-gated above the Sunny set) are T24's to coin under §13.1 —
+mundane retail objects misclassified by bureaucracy, per the §9 fauna rule.
+
 ## 4. Item catalog (~21 display names across the chains)
 
 Ids are machine-y and descriptive; only display names carry the comedy
@@ -220,7 +262,7 @@ Offline gains are mail; saves are records; death is a posted notice. The mechani
 - Offline modal: "MAIL CALL — GAINS ACCRUED IN YOUR ABSENCE. NO ACTION WAS TAKEN WITHOUT YOU. NONE WAS NEEDED."
 - Death plate: "RETURN TO SHELTER — THE ZONE THANKS YOU FOR YOUR CONTRIBUTIONS (PARTIAL)."
 
-## 9. Do-not-use lexicon and pattern gate (binding on T5/T9/T10/T11; run 2: T17/T18/T19)
+## 9. Do-not-use lexicon and pattern gate (binding on T5/T9/T10/T11; run 2: T17/T18/T19; run 3: T23/T24/T25/T26)
 
 **Words never used, in any construction:**
 - **vault** (any prefix/suffix/compound — evokes Vault-Tec). The game's refuge is the *Shelter*.
@@ -357,6 +399,61 @@ M/Z, unlike 9-A's digit-first): **O-1** collides with nothing shipped.
 | **DULY ORIENTED · FORM O-1** (completion stamp) | orientation | Stock bureaucratic phrase ("duly noted") + the form's own designation; rubber-stamp idiom matches "POSTED — SECTOR Z · D.O.C.S. FORM Z-9"; generic words, no mark adjacency | **PASS** |
 | **ORIENTATION STIPEND** (reward line; `{N} CROWNS · THANK YOU FOR YOUR PROMPT COMPLIANCE.`, N set by T20) | orientation | Generic administrative-fee words + own currency noun; cheer per §8 R2; no protected term | **PASS** |
 
+### T22-authored systems vocabulary (Run 3, applied 2026-09-16 under the §13 protocol)
+
+Scope Amendment 2 added the objectives system (vocabulary for the whole
+display grammar: system name, per-skill titles, form series, progress/stamp
+readouts, reward nouns, auto-grant notices) and the second combat zone +
+boss. Coined here, run through the same checklist, recorded — **zero new
+names for existing entities** (RESIDENT, Crowns, Docket/Depot/Manifest/
+Concourse/Personnel, clearance language, O-1 form copy, and all §3–§7 names
+are reused verbatim). Codebase grepped before assignment (scripts/, scenes/,
+data/, tests/ — display strings, save-field namespace included):
+**DOSSIER / DEPARTMENTAL / RECLAMATION / GROUNDSKEEPING / FABRICATION /
+MESS / EXTERIOR / MERIT / COMMENDATION / GIFT / COURT / REGIONAL had zero
+hits**. Form designations re-verified in code: `FORM M-1`, `D.O.C.S. FORM
+Z-9`, `FORM O-1`, `FORM 9-A`, docket serials `D-01…D-08` (dev theme gallery
+also carries `FORM 8-B` / `D-09`, dev-only) — series letters **R** and
+**S** are both unused; the dossier takes **R** (S stays free).
+
+Candidate rejections, recorded with reasons (voice + collision, the T16
+precedent):
+- **"OBJECTIVES REGISTER"** (system name) — outs the game-mechanic word
+  "objectives" onto an enamel plate; voice Rule 5 says the mechanic's UI
+  name comes from the bureau, and no D.O.C.S. form would say "objectives".
+  Also "register(ed)" is the theme system's own internal word for contrast
+  pairs — dev-vocabulary collision, not a shipped-string one.
+- **"SERVICE RECORD"** (system name) — collides with the save console's
+  shipped vocabulary (FILE RECORD button, "RECORD FILED", "RECORD DAMAGED ·
+  LAST-GOOD BACKUP FILED INTO SERVICE", "RECORD QUEUED"): a player-facing
+  ambiguity between the objectives system and the save system. Rejected on
+  the grep-collision test.
+- **"BONUS"** (reward noun) — plain corporate, no cheer, and
+  `accuracy_bonus`-style field names already use the word in code.
+- **"BOUNTY"** (reward noun) — frontier/western register, not HR-bureau.
+- **"FILED"** (progress verb) — already the save verb (FILE RECORD / RECORD
+  FILED / FORM O-1 FILED); stamping is the objectives' own shipped idiom
+  (the amendment: "progress stamped in the O-1 form idiom" — and the O-1
+  tooltip already ships "stamped steps stay stamped").
+
+| Name | Kind | Construction / proximity | Verdict |
+|---|---|---|---|
+| **DEPARTMENTAL DOSSIER** (objectives system name — the section posted in each of the 5 skill dockets) | objectives | Generic administrative phrase; the mechanic's bureau name per Rule 5. Web-verified scan (2026-09-16): no game, board game, software product, or registered mark by this name (USPTO search empty); wild use is generic government-filing English — nearest delight: France's civil-defense DDRM is literally a "Departmental Dossier on Major Hazards" — mundane bureaucratic provenance is itself the parody. No protected term or §9 pattern | **PASS** |
+| **FORM R-1** (the dossier's form-series designation; serial posts "D.O.C.S. FORM R-1") | objectives | Bureau paperwork designation continuing the in-world series (M=Mail, Z=Zone, D=Docket, O=Orientation; **R = the resident's Record of duty** — next unused letter, grep-verified incl. the dev gallery). Letter-dash-number ban (§9) scopes to gear model designations (T-51 style) — the O-1 row's reasoning (institutional paperwork numbering ≠ model designation) applies verbatim; no famous real form collided (the famous set W-2/I-9/W-4/1040/1099 stays avoided per the O-1 row; "R-1" exists in the wild as a US visa category — religious workers — and assorted technical numbering: different domains, generic letter-number, ours always prefixed FORM, never applied to gear) | **PASS** |
+| **RECLAMATION DOSSIER** (Scavenging dossier title) | objectives | Real materials-industry word (reclamation centers) + dossier — the bureau's name for scavenging; generic words, no protected root, no collision with the SCAVENGING plate | **PASS** |
+| **GROUNDSKEEPING DOSSIER** (Foraging dossier title) | objectives | Generic landscaping word — the bureaucracy misclassifies mutant flora as grounds to keep (the fauna-as-classification joke, applied to flora); no protected root | **PASS** |
+| **FABRICATION DOSSIER** (Junksmithing dossier title) | objectives | Generic manufacturing word whose second meaning (to fabricate = to fib) is the junksmithing pun; no protected root | **PASS** |
+| **MESS DOSSIER** (Cooking dossier title) | objectives | Mess-hall noun (military cafeteria) with its domestic double meaning; generic word, no protected root, no collision with the COOKING plate | **PASS** |
+| **EXTERIOR DOSSIER** (Wasteland Combat dossier title) | objectives | Generic word tying to The Superintendent's own "Exterior Division" (§3) — the dossier of exterior operations; no protected root | **PASS** |
+| **N/M STAMPED** (progress readout; verb **STAMPED** — e.g. "12/24 STAMPED", mono digits) | objectives | The O-1 form's own idiom word (the amendment pins "progress stamped in the O-1 form idiom"; shipped tooltip "stamped steps stay stamped" is precedent, not collision — the T16 "posting" ruling); generic word, no protected root | **PASS** |
+| **ALL N STAMPED · FORM R-1** (dossier completion stamp + the ALL-STAMPED state; N data-derived, e.g. "ALL 24 STAMPED · FORM R-1") | objectives | Stock rubber-stamp family ("DULY ORIENTED · FORM O-1" pattern) with the register's own count; generic words | **PASS** |
+| **FORM R-1 STAMPED · N CROWNS POSTED** (auto-grant notice — console flash + docket log stamp; XP leg "FORM R-1 STAMPED · N XP POSTED") | objectives | Exact parallel to the shipped "FORM O-1 FILED · N CROWNS POSTED"; cleared form series + own currency noun; no protected term | **PASS** |
+| **MERIT PAY · N CROWNS** (reward line, crowns leg) | objectives | Generic HR term — payment for merit, exactly as ridiculous as the bureau finds it; distinct noun from ORIENTATION STIPEND (O-1 keeps "stipend" as its one-time intake payment; MERIT PAY is the recurring objectives reward); no protected term | **PASS** |
+| **COMMENDATION · N XP** (reward line, XP leg) | objectives | Generic service-record term (a commendation for duty) — the non-monetary leg of merit; no protected term; "N XP" follows the shipped "+N XP" mono idiom | **PASS** |
+| **NO-CLAIM NOTICE** ("MERIT PAY POSTS ITSELF. NO CLAIM IS REQUIRED. NONE HAS EVER BEEN." — standing footer line on every dossier) | objectives | Own nouns + the MAIL CALL echo construction ("NO ACTION WAS TAKEN WITHOUT YOU. NONE WAS NEEDED."); cheer per §8 R2; no protected term | **PASS** |
+| **The Gift Court** (second combat zone; machine id `gift_court`) | zone | Retail-architecture "court" (the food-court word) + gift — the mall-as-amenity misclassification. Web-verified scan (2026-09-16): no game, boss, zone, or registered mark; wild use is generic department-store English (a 1979 department-store "gift court" section; a university donor "gift court") plus an event-usher business in Nigeria — different channels entirely, no famous-mark overlap; mundane retail provenance is the parody. No Fallout location shares the construction (nearest Fallout retail is Super-Duper Mart — different words, no brand echo); no Melvor zone by any root | **PASS** |
+| **The Regional Manager** (second boss; machine id `regional_manager`) | boss | Ordinary job title, deliberately the lateral authority counterpart to The Superintendent (generic-title precedent row) and the opposite of the banned "Overseer" — a mid-level civilian manager. Web-verified scan (2026-09-16): no registered mark; no notable game boss by the name (nearest hits: a fan-made non-commercial office-sim doc on Scribd; the TV-comedy role usage — generic dictionary title, unprotectable, and parody-favorable); no Fallout/Melvor creature shares the name or construction | **PASS** |
+
 ## 11. Carried-over descriptive names — re-verified (all PASS)
 
 These pre-existing approved/generic names were re-run through the same
@@ -426,7 +523,41 @@ RadRoach) are gone from the content set entirely.
 - Voice rules (§8) and lexicon (§9) bind all player-facing copy in T5 (item
   flavor), T9/T10 (plates, dockets, notices), and T11 (icon silhouettes);
   run 2 extends the binding to T17 (staffing plates + refusal copy), T18
-  (orientation form copy), and T19 (icon silhouettes + ids).
+  (orientation form copy), and T19 (icon silhouettes + ids); run 3 extends
+  it to T23 (notice payload strings), T24 (content names + flavor), T25
+  (objective descriptions), and T26 (dossier UI copy).
+
+### 13.1 Run-3 registration protocol (T24/T25 binding prep, T22 2026-09-16)
+
+Run 3 adds roughly **~40 new content display names** (T24: ~5 new gathering
+activities + materials per gathering skill, ~12 new recipes per processing
+skill incl. the T1–T4 gear ladder + food tiers, ~4 Gift Court fauna + drop
+headers, extended shop stock) and **~100 objective descriptions** (T25).
+Registering every one as a full per-name §10 row would add noise without
+adding risk — the bible therefore codifies the T5/T16 precedent as two
+registration classes:
+
+- **Class A — generic-word / verb+existing-name constructions** (institutional
+  phrases, `<verb> + <bible item name>` recipes, `<cleared name> Yields`
+  drop headers, plural-item objective lines): **auto-PASS with a row**. The
+  row records the name + kind + the one-line proximity ("generic words /
+  verb + bible name, no protected root — §9 pattern gate walked, clean").
+  No web scan — no T5 or T16 row at this class ever needed one.
+- **Class B — new proper nouns** (coined compounds of Scrapnel/Fizzard/
+  Girderling rank, new fauna names, any new system display term): **full
+  checklist row** — construction, nearest-protected-term proximity, §9
+  pattern-gate check. Zone/boss-rank names additionally get a game/mark
+  conflict web scan (the T16 verifier precedent; T22's Gift Court /
+  Regional Manager rows above are the worked examples).
+- **Objective descriptions (T25)** bind the voice rules in
+  `design-brief.md` → Addendum 2 (plate idiom, verb-first, ≤ 6 words, mono
+  numerals, no exclamation, bible names only). A description built only
+  from checklist-cleared display names + generic verbs registers as **one
+  Class-A row citing the rules + the shipped count** (the set registers,
+  not each line); any description that coins a new noun pulls that noun
+  through Class A or B before it ships.
+- T24/T25 add their rows to §10 under their own table headers (the T5/T16/
+  T22 pattern); T13-style criterion-7 evidence reads those tables.
 
 ## 14. Run 2 systems vocabulary — display terms ↔ machine ids (T16, 2026-09-16)
 
@@ -475,3 +606,37 @@ directory-listed 2026-09-16):** `stat_condition`, `stat_accuracy`,
 "## Addendum: Personnel, Orientation, Icon Grammar", which is the binding
 silhouette contract, including the §9-derived rules: no padlock silhouette
 for gates, no mascot figures.
+
+## 15. Run 3 systems vocabulary — display terms ↔ machine ids (T22, 2026-09-16)
+
+Same contract as §14: the §13 protocol requires new display names to be
+checklist-cleared and recorded (done, §10 T22 table); this section pins the
+machine-id side so T23–T26 bind display term to field without re-coinage.
+Machine ids follow the existing conventions exactly: **snake_case English**
+for save fields and content ids (`save_version`, `staffing.deputies`,
+`dusty_flats`, `scrap_metal` precedent).
+
+**Objectives (T23 engine + T26 UI; save_version 3):**
+
+| Display term | Machine id | Notes |
+|---|---|---|
+| objectives state namespace | `engine.objectives` | sibling of `staffing`/`orientation` in the PlayerState dict; rides **save_version 3** (T23 owns `_migrate_2_to_3` + the intact v1→v2→v3 chain) |
+| stamped objectives | `objectives.stamped` | Array[String] of objective ids in canonical posted order — the `orientation.steps_done` pattern generalized (T23 owns mechanics; the names are binding) |
+| per-objective progress | `objectives.progress` | Dictionary objective_id → int lifetime count (suggested shape; T23 owns the final contract) |
+| auto-grant notice kind | `objective_stamped` | engine/UI notice payload kind string, sibling of `posting_refused`; payload carries the objective id + reward legs — T23 owns mechanics, the kind string is binding |
+| objectives data file | `data/objectives.json` | plan T23; T2-grammar validation; ids snake_case, one stable id per objective |
+| condition kinds | `level_reach` · `gather_count` · `craft_count` · `kill_count` · `sell_count` · `equip_item` · `zone_clear` · `set_complete` | suggested snake_case kinds covering the amendment's condition list (level reach, gather/craft/kill/sell counts, equip, zone clear, complete-the-set); T23 owns the final set — keep kinds generic-word snake_case |
+| dossier UI section | `docket_skill.gd` / `docket_patrol.gd` extension | suggested (a DossierRegister control mounted by the existing dockets — no ninth department plate); non-binding, collision-checked |
+
+**Second zone (T24):**
+
+| Display term | Machine id | Notes |
+|---|---|---|
+| The Gift Court (zone 2) | `gift_court` | follows the `dusty_flats` precedent (descriptive snake_case); monsters.json `zone` field + the zone tab's content swap |
+| The Regional Manager (boss 2) | `regional_manager` | title-style id matching its display name (the `sewer_landlord` id predates a rename; a fresh id may match from day one); `is_boss: true`, gates the zone clear |
+| Gift Court sector line | `SECTOR G` | the Z-9 certificate's sector-letter idiom ("POSTED — SECTOR Z"); the Gift Court's ZONE SECURED certificate re-rides FORM Z-9 with its own sector line — final serial T24, registered via §13.1 |
+
+O-1 orientation stays a separate system per plan T23 — shared idioms (the
+check-stamp family, rubber-stamp completions, the "· N CROWNS POSTED"
+notice), no migration of its logic; `orientation` and `objectives` remain
+distinct save namespaces.
