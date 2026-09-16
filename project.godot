@@ -23,16 +23,15 @@ UiTheme="*res://scripts/autoload/ui_theme.gd"
 TickManager="*res://scripts/autoload/tick_manager.gd"
 SaveStore="*res://scripts/autoload/save_store.gd"
 
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/gut/plugin.cfg")
-
 [display]
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
 window/stretch/mode="canvas_items"
-window/stretch/aspect="keep"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/gut/plugin.cfg")
 
 [rendering]
 
