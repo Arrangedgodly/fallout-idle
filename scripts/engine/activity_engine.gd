@@ -232,8 +232,12 @@ func _grant_xp(state: PlayerState, skill_id: String, amount: int, emit_levels: b
 
 
 ## Debug/cheat + T7 hook: raw xp grant through the same level pipeline.
-func grant_xp(state: PlayerState, skill_id: String, amount: int) -> void:
-	_grant_xp(state, skill_id, amount, true)
+## `emit_levels = false` is T7's offline-combat path (crossings ride the MAIL
+## CALL payload instead of immediate signals — the same policy T6 applies to
+## offline activity level-ups; the one small ActivityEngine API extension of
+## T7, default-preserving).
+func grant_xp(state: PlayerState, skill_id: String, amount: int, emit_levels: bool = true) -> void:
+	_grant_xp(state, skill_id, amount, emit_levels)
 
 
 func _stop_slot(state: PlayerState, slot: PlayerState.ActiveSlot, reason: String) -> void:

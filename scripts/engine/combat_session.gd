@@ -10,7 +10,7 @@ extends RefCounted
 ##     subsequent interval after that. All integer ms on the T6 sim clock.
 ##   • Hit roll §1.2: harmonic accuracy clamped to [5%, 95%], computed INTEGER-
 ##     EXACT as basis points — hit_bp = clamp(acc * 10000 / (acc + eva), 500,
-##     9500) vs one d10000 (randi_range(0, 9999) < hit_bp). This is the
+##     9500) vs a d10000 (randi_range(0, 9999) < hit_bp). This is the
 ##     spec's prescribed int-math form of clamp(acc/(acc+eva), 0.05, 0.95)
 ##     (T14's int-math rule; no float anywhere in the hot path).
 ##   • Damage §1.2: on hit, randi_range(attacker_min_hit, attacker_max_hit).
@@ -46,12 +46,13 @@ extends RefCounted
 ## SPEC ADDENDA (§1.4 in balance-notes.md — T7 choices where §1 was silent):
 ##   • HP reset: player HP resets to full (derived max_hp) and monster HP to
 ##     its max_hp on every engage.
-##   • Offline: combat does NOT progress offline (uncapped offline gains apply
-##     to non-combat skills only). Combat times are ABSOLUTE sim-ms and the
-##     sim clock resumes at its saved value — a mid-fight save therefore
-##     resumes with its pending wind-ups exactly as saved: nothing resolves
-##     while away, nothing re-waits the gap (see the offline note at the
-##     bottom of this file).
+##   • OFFLINE COMBAT PROGRESSES AT FULL RATE (coordinator ruling 2026-09-15,
+##     superseding this file's original no-offline-combat disposition): a
+##     seeded, event-ordered survivable replay through the SAME swing/eat
+##     helpers as the live tick — see apply_offline below for the full
+##     contract. A would-be killing blow NEVER lands: the patrol is recalled
+##     (phase "recalled", player alive, zero loss) — no-agency death can
+##     never occur offline.
 ##   • Equipment: equipping CONSUMES one unit from the Manifest; unequipping
 ##     returns it (no phantom-gear duplication through the Depot).
 ##   • Concurrency: combat runs alongside all non-combat skill slots
@@ -66,16 +67,21 @@ signal combat_ended(result: Dictionary)
 ##   "eaten": int (foods auto-eaten this fight), "xp": int (victory only),
 ##   "drops": {item_id: qty} (victory only), "leveled_to": int (0 if no cross),
 ## }
+## LIVE only. Offline outcomes (kills, recalls, level crossings) ride the
+## MAIL CALL payload instead — the same policy T6 applies to level_up.
 
 signal zone_cleared(monster_id: String)
 ## Immediate, discrete, emitted ONCE ever — the boss's false→true transition
-## (the slice's win moment). Persistent via combat.zone_clear.
+## (the slice's win moment). Persistent via combat.zone_clear. A first boss
+## clear that happens OFFLINE sets the state but does not emit (the MAIL CALL
+## payload's combat section carries it for T10 to present).
 
 const PHASE_IDLE := "idle"          ## no fight (initial / after retreat)
 const PHASE_FIGHTING := "fighting"  ## auto-battle running
 const PHASE_DEAD := "dead"          ## player died: stopped, RETURN TO SHELTER
 const PHASE_VICTORY := "victory"    ## monster died: stopped, drops granted
-const PHASES := [PHASE_IDLE, PHASE_FIGHTING, PHASE_DEAD, PHASE_VICTORY]
+const PHASE_RECALLED := "recalled"  ## offline survivability stop: the patrol was recalled mid-blow — player ALIVE (T10b renders the RETURN TO SHELTER plate family), zero loss, re-engage anytime
+const PHASES := [PHASE_IDLE, PHASE_FIGHTING, PHASE_DEAD, PHASE_VICTORY, PHASE_RECALLED]
 
 # Player chassis — balance-notes §1.1 (T7 engine constants; content never
 # overrides these; tests/test_combat.gd + T13 assert them).
@@ -85,6 +91,12 @@ const BASE_ACCURACY := 30
 const BASE_EVASION := 10
 const BASE_MIN_HIT := 1  ## player damage floor (not equipment-bonusable)
 const BASE_MAX_HIT := 4
+
+## Replay budget: ~145 days of continuous combat at content intervals. Beyond
+## it the replay truncates honestly at that instant (fight resumes live,
+## payload flags `truncated`) — an O(events) catch-all for absurd gaps; T14's
+## hardening pass can revisit.
+const MAX_OFFLINE_EVENTS := 5_000_000
 
 var lib: ContentLibrary
 var batcher: UpdateBatcher
@@ -179,7 +191,7 @@ var _stats_cache: Dictionary = {}
 
 
 func derived_stats(state: PlayerState) -> Dictionary:
-	var key := "%s|%s" % [String(state.combat.get("weapon", "")), String(state.combat.get("armor", ""))]
+	var key := "%s|%s" % [str(state.combat.get("weapon", "")), str(state.combat.get("armor", ""))]
 	if key == _stats_cache_key and not _stats_cache.is_empty():
 		return _stats_cache
 	var speed := BASE_ATTACK_SPEED_MS
@@ -229,7 +241,7 @@ func engage(state: PlayerState, monster_id: String, now_ms: int) -> Dictionary:
 			mdef.level_gate, lib.skill(combat_skill_id).name]}
 	var c: Dictionary = state.combat
 	ensure_defaults(state)
-	# §1.4 addendum: fresh HP on every engage; re-engaging abandons any fight.
+	# §1.4 addendum 1: fresh HP on every engage; re-engaging abandons any fight.
 	var stats := derived_stats(state)
 	c["monster_id"] = monster_id
 	c["phase"] = PHASE_FIGHTING
@@ -247,14 +259,49 @@ func engage(state: PlayerState, monster_id: String, now_ms: int) -> Dictionary:
 
 
 ## Manual retreat: the fight stops (phase idle). HP is not persisted across
-## fights (§1.4 addendum) — re-engaging starts both sides at full HP.
+## fights (§1.4 addendum 1) — re-engaging starts both sides at full HP.
 func retreat(state: PlayerState) -> void:
-	if String(state.combat.get("phase", PHASE_IDLE)) != PHASE_FIGHTING:
+	if str(state.combat.get("phase", PHASE_IDLE)) != PHASE_FIGHTING:
 		return
 	state.combat["phase"] = PHASE_IDLE
 	state.combat["p_next_ms"] = 0
 	state.combat["m_next_ms"] = 0
 	batcher.mark("combat")
+
+
+# --------------------------------------------------- shared §1.2 primitives --
+# The live tick and the offline replay BOTH resolve swings and auto-eat
+# through these helpers, so roll order and outcomes are live-identical by
+# construction (pinned by the replay-vs-live-twin test).
+
+## One player swing → damage dealt (0 on miss). Draw order: hit roll, then a
+## damage roll ONLY on hit. Returns 0 on a miss that rolled 0-equivalent.
+func _player_swing(rng: RandomNumberGenerator, stats: Dictionary, mdef: MonsterDef) -> int:
+	if rng.randi_range(0, 9999) < hit_chance_bp(int(stats["accuracy"]), mdef.evasion):
+		return rng.randi_range(int(stats["min_hit"]), int(stats["max_hit"]))
+	return 0
+
+
+## One monster swing → damage dealt (0 on miss).
+func _monster_swing(rng: RandomNumberGenerator, stats: Dictionary, mdef: MonsterDef) -> int:
+	if rng.randi_range(0, 9999) < hit_chance_bp(mdef.accuracy, int(stats["evasion"])):
+		return rng.randi_range(mdef.min_hit, mdef.max_hit)
+	return 0
+
+
+## §1.2 auto-eat: while at/below half HP (integer division) and edible food
+## remains, eat one unit of the highest-heal food. Returns the new HP.
+func _auto_eat(state: PlayerState, c: Dictionary, p_hp: int, p_hp_cap: int) -> int:
+	while p_hp <= p_hp_cap / 2:
+		var food_id := _best_food(state)
+		if food_id == "":
+			break
+		var heal: int = (lib.item(food_id) as ItemDef).heal
+		state.take_item(food_id, 1)
+		p_hp = mini(p_hp_cap, p_hp + heal)
+		c["eaten_total"] = int(c["eaten_total"]) + 1
+		batcher.mark("inventory")
+	return p_hp
 
 
 # -------------------------------------------------------------- live ticks --
@@ -266,9 +313,9 @@ func retreat(state: PlayerState) -> void:
 ## tick with nothing due marks nothing dirty (no idle signal churn).
 func tick(state: PlayerState, now_ms: int) -> void:
 	var c: Dictionary = state.combat
-	if String(c.get("phase", PHASE_IDLE)) != PHASE_FIGHTING:
+	if str(c.get("phase", PHASE_IDLE)) != PHASE_FIGHTING:
 		return
-	var mdef: MonsterDef = lib.monster(String(c["monster_id"]))
+	var mdef: MonsterDef = lib.monster(str(c["monster_id"]))
 	if mdef == null:  # content vanished mid-session: stop honestly
 		c["phase"] = PHASE_IDLE
 		return
@@ -291,8 +338,7 @@ func tick(state: PlayerState, now_ms: int) -> void:
 		if p_next > now_ms and m_next > now_ms:
 			break
 		if p_next <= m_next:  # player resolves first on ties (§1.2)
-			if rng.randi_range(0, 9999) < hit_chance_bp(int(stats["accuracy"]), mdef.evasion):
-				m_hp -= rng.randi_range(int(stats["min_hit"]), int(stats["max_hit"]))
+			m_hp -= _player_swing(rng, stats, mdef)
 			c["p_next_ms"] = p_next + int(stats["speed"])
 			if m_hp <= 0:
 				c["p_hp"] = p_hp
@@ -301,8 +347,7 @@ func tick(state: PlayerState, now_ms: int) -> void:
 				_victory(state, mdef, p_next)
 				return
 		else:
-			if rng.randi_range(0, 9999) < hit_chance_bp(mdef.accuracy, int(stats["evasion"])):
-				p_hp -= rng.randi_range(mdef.min_hit, mdef.max_hit)
+			p_hp -= _monster_swing(rng, stats, mdef)
 			c["m_next_ms"] = m_next + mdef.attack_speed_ms
 			if p_hp <= 0:
 				c["p_hp"] = 0
@@ -310,16 +355,7 @@ func tick(state: PlayerState, now_ms: int) -> void:
 				_store_rng(c, rng)
 				_death(state, mdef, m_next)
 				return
-		# Auto-eat §1.2 (after any attack; only monster damage moves HP down).
-		while p_hp <= p_hp_cap / 2:
-			var food_id := _best_food(state)
-			if food_id == "":
-				break
-			var heal: int = (lib.item(food_id) as ItemDef).heal
-			state.take_item(food_id, 1)
-			p_hp = mini(p_hp_cap, p_hp + heal)
-			c["eaten_total"] = int(c["eaten_total"]) + 1
-			batcher.mark("inventory")
+		p_hp = _auto_eat(state, c, p_hp, p_hp_cap)
 		c["p_hp"] = p_hp
 		c["m_hp"] = m_hp
 		resolved = true
@@ -343,33 +379,39 @@ func _best_food(state: PlayerState) -> String:
 		if a.heal != b.heal:
 			return a.heal > b.heal
 		return a.id < b.id)
-	return String(foods[0].id) if not foods.is_empty() else ""
+	return str(foods[0].id) if not foods.is_empty() else ""
+
+
+## Victory drops, drawn in ActivityEngine's exact order (pick, then qty,
+## entry order) on the given stream — shared by the live and offline paths.
+func _roll_drops(state: PlayerState, mdef: MonsterDef, rng: RandomNumberGenerator) -> Dictionary:
+	var drops := {}
+	var table := lib.drop_table(mdef.drop_table)
+	if table == null:
+		return drops
+	var total := table.total_weight()
+	for r in table.rolls:
+		var pick := rng.randi_range(1, total)
+		var acc := 0
+		for entry in table.entries:
+			acc += entry.weight
+			if pick <= acc:
+				var qty := entry.qty_min
+				if entry.qty_max > entry.qty_min:
+					qty = rng.randi_range(entry.qty_min, entry.qty_max)
+				state.add_item(entry.item, qty)
+				drops[entry.item] = int(drops.get(entry.item, 0)) + qty
+				break
+	return drops
 
 
 func _victory(state: PlayerState, mdef: MonsterDef, kill_time_ms: int) -> void:
 	var c: Dictionary = state.combat
 	var rng := _session_rng(c)
-	# Drop roll: identical draw order to ActivityEngine._roll_action (pick
-	# then qty, entry order) on the fight's own stream — oracle-replayable.
-	var drops := {}
-	var table := lib.drop_table(mdef.drop_table)
-	if table != null:
-		var total := table.total_weight()
-		for r in table.rolls:
-			var pick := rng.randi_range(1, total)
-			var acc := 0
-			for entry in table.entries:
-				acc += entry.weight
-				if pick <= acc:
-					var qty := entry.qty_min
-					if entry.qty_max > entry.qty_min:
-						qty = rng.randi_range(entry.qty_min, entry.qty_max)
-					state.add_item(entry.item, qty)
-					drops[entry.item] = int(drops.get(entry.item, 0)) + qty
-					break
+	var drops := _roll_drops(state, mdef, rng)
 	_store_rng(c, rng)
 	var level_before := int(state.skills_level.get(combat_skill_id, 1))
-	xp_engine.grant_xp(state, combat_skill_id, mdef.xp_reward)  # shared pipeline
+	xp_engine.grant_xp(state, combat_skill_id, mdef.xp_reward)  # shared pipeline (immediate level_up)
 	c["phase"] = PHASE_VICTORY
 	c["p_next_ms"] = 0
 	c["m_next_ms"] = 0
@@ -428,7 +470,7 @@ func equip(state: PlayerState, item_id: String) -> Dictionary:
 	ensure_defaults(state)
 	state.take_item(item_id, 1)
 	var slot_key := "weapon" if eq.is_weapon() else "armor"
-	var previous := String(c[slot_key])
+	var previous := str(c[slot_key])
 	if previous != "":
 		state.add_item(previous, 1)
 	c[slot_key] = item_id
@@ -446,7 +488,7 @@ func unequip(state: PlayerState, slot_key: String) -> Dictionary:
 		return {"ok": false, "reason": "unknown slot '%s'" % slot_key}
 	var c: Dictionary = state.combat
 	ensure_defaults(state)
-	var id := String(c[slot_key])
+	var id := str(c[slot_key])
 	if id == "":
 		return {"ok": false, "reason": "slot already empty"}
 	state.add_item(id, 1)
@@ -462,9 +504,9 @@ func unequip(state: PlayerState, slot_key: String) -> Dictionary:
 
 func _session_rng(c: Dictionary) -> RandomNumberGenerator:
 	var rng := RandomNumberGenerator.new()
-	rng.seed = int(String(c["rng_seed"]))
+	rng.seed = int(str(c["rng_seed"]))
 	if bool(c["stream_started"]):
-		rng.state = int(String(c["rng_state"]))
+		rng.state = int(str(c["rng_state"]))
 	return rng
 
 
@@ -486,14 +528,182 @@ func _stream_seed(world_seed: int, stream_id: String) -> int:
 
 # --------------------------------------------------------------- offline --
 
-## Offline disposition (§1.4 addendum 2): combat does NOT progress offline.
-## Intentionally does NOTHING to the fight — offline catch-up never calls
-## combat.tick, and combat's p_next_ms/m_next_ms are ABSOLUTE sim-ms while
-## the sim clock resumes at exactly its saved value (TickManager.adopt_state).
-## The saved wind-up remainder therefore fires that many live ms after load:
-## zero resolutions during the gap, zero re-waiting of the gap, exact stream
-## continuation. A seam rather than an omission (tests pin the behavior; a
-## future "combat progresses offline" mode would implement an event-ordered
-## replay here, mirroring T6's anchor rewind).
-func apply_offline(_state: PlayerState, _elapsed_ms: int) -> void:
-	pass
+## OFFLINE COMBAT (coordinator ruling 2026-09-15 — balance-notes §1.4
+## addendum 2, superseding the original no-offline-combat disposition):
+## combat PROGRESSES at full rate, bounded by survivability. A seeded,
+## event-ordered replay advances the saved fight exactly as the live tick
+## would (same swing/eat helpers, same roll order, same stream) until:
+##   (a) the monster dies → the normal victory chain: drops rolled, XP
+##       granted (level crossings ride the payload — no immediate signals,
+##       T6's offline policy), first boss clear sets zone_clear; while a
+##       monster is selected the patrol RE-ENGAGES it at the kill instant and
+##       keeps farming (each engage reseeds the combat stream — the same
+##       deterministic farm loop live play produces);
+##   (b) a monster blow WOULD reduce player HP to <= 0 → the blow NEVER
+##       LANDS: the patrol is recalled at that instant (phase "recalled",
+##       player alive at pre-blow HP, zero loss, pendings cleared) — a
+##       no-agency death can never occur offline. Food exhaustion is the
+##       usual path here: auto-eat extends survival exactly as live until
+##       the stack runs dry, then the next killing-blow-in-waiting recalls.
+## The replay runs ONLY when the save left a fight in progress (idle /
+## victory / dead / recalled saves never auto-start fights), is bounded by
+## the gap's elapsed ms and the food stack (plus MAX_OFFLINE_EVENTS as an
+## O(events) catch-all), and is bit-deterministic. A still-fighting resume
+## mirrors T6's anchor rewind: pending attack times shift back by exactly
+## the gap, preserving the wind-up phase for live continuation.
+## Ordering note: activities replay FIRST (T6), so combat fights against the
+## post-catch-up Manifest — combat can eat food a Cooking slot banked during
+## the same gap (the honest live-concurrency interplay).
+## Mutates `payload` (the MAIL CALL dictionary): merged skills_xp/items
+## deltas, levels from/to, an actions entry (kills), a "combat" section
+## ({kills, monster_id, outcome, notice: "PATROL RECALLED" on recall, ...})
+## and — on recall — a PATROL RECALLED stopped-line for T10 to render.
+func apply_offline(state: PlayerState, now_ms: int, elapsed_ms: int, payload: Dictionary) -> void:
+	if elapsed_ms <= 0:
+		return
+	var c: Dictionary = state.combat
+	if str(c.get("phase", PHASE_IDLE)) != PHASE_FIGHTING:
+		return  # no fight in progress at the save — offline combat is a no-op
+	var xp0 := int(state.skills_xp.get(combat_skill_id, 0))
+	var lvl0 := int(state.skills_level.get(combat_skill_id, 1))
+	var inv0 := state.inventory.duplicate()
+	var zone_clear_before := bool(c["zone_clear"])
+	var horizon := now_ms + elapsed_ms
+	var kills := 0
+	var recalled := false
+	var recalled_at := 0
+	var events_used := 0
+	while not recalled and events_used < MAX_OFFLINE_EVENTS:
+		var mdef: MonsterDef = lib.monster(str(c["monster_id"]))
+		if mdef == null:
+			c["phase"] = PHASE_IDLE
+			break
+		var stats := derived_stats(state)
+		var rng := _session_rng(c)
+		var r := _replay_fight(state, c, mdef, rng, stats, horizon, MAX_OFFLINE_EVENTS - events_used)
+		events_used += int(r["events"])
+		if str(r["outcome"]) == "victory":
+			_roll_drops(state, mdef, rng)
+			_store_rng(c, rng)
+			xp_engine.grant_xp(state, combat_skill_id, mdef.xp_reward, false)  # crossings ride the payload
+			kills += 1
+			if mdef.is_boss and not bool(c["zone_clear"]):
+				c["zone_clear"] = true
+			_reengage_at(state, c, int(r["blow_ms"]))  # keep farming (ruling a)
+			continue
+		_store_rng(c, rng)
+		if str(r["outcome"]) == "recall":
+			recalled = true
+			recalled_at = int(r["blow_ms"])
+			c["phase"] = PHASE_RECALLED  # alive, zero loss (ruling b)
+			c["p_hp"] = int(r["p_hp"])  # pre-blow HP: the killing blow never landed
+			c["m_hp"] = int(r["m_hp"])
+			c["p_next_ms"] = 0
+			c["m_next_ms"] = 0
+		break  # horizon (or budget) reached mid-fight
+	# Still fighting: mirror T6's anchor rewind so live ticking resumes with
+	# the wind-up phase the gap ended on (pending times are gap-relative now).
+	if str(c["phase"]) == PHASE_FIGHTING:
+		c["p_next_ms"] = int(c["p_next_ms"]) - elapsed_ms
+		c["m_next_ms"] = int(c["m_next_ms"]) - elapsed_ms
+		c["engage_ms"] = int(c["engage_ms"]) - elapsed_ms
+	_merge_offline_payload(state, payload, xp0, inv0, lvl0, kills, recalled,
+		recalled_at, zone_clear_before, events_used >= MAX_OFFLINE_EVENTS)
+
+
+## One fight of the offline replay, up to `horizon` (absolute virtual ms) or
+## the event budget. Mutates c (pendings/HP/eaten) and the Manifest (eats).
+## Returns {"outcome": "horizon"|"victory"|"recall", "blow_ms": int,
+## "p_hp": int, "m_hp": int, "events": int used}. On "recall" the killing
+## blow has NOT been applied and the monster's pending time is NOT advanced —
+## the caller stops the fight at that instant.
+func _replay_fight(state: PlayerState, c: Dictionary, mdef: MonsterDef, rng: RandomNumberGenerator,
+		stats: Dictionary, horizon: int, event_budget: int) -> Dictionary:
+	var p_hp_cap := int(stats["max_hp"])
+	var p_hp := mini(int(c["p_hp"]), p_hp_cap)
+	var m_hp := mini(int(c["m_hp"]), mdef.max_hp)
+	var used := 0
+	while used < event_budget:
+		var p_next := int(c["p_next_ms"])
+		var m_next := int(c["m_next_ms"])
+		if p_next > horizon and m_next > horizon:
+			break  # gap exhausted mid-fight
+		used += 1
+		if p_next <= m_next:  # player resolves first on ties (§1.2)
+			m_hp -= _player_swing(rng, stats, mdef)
+			c["p_next_ms"] = p_next + int(stats["speed"])
+			if m_hp <= 0:
+				c["p_hp"] = p_hp
+				c["m_hp"] = 0
+				return {"outcome": "victory", "blow_ms": p_next, "p_hp": p_hp, "m_hp": 0, "events": used}
+		else:
+			var dmg := _monster_swing(rng, stats, mdef)
+			if p_hp - dmg <= 0:
+				# The blow never lands — no-agency death can not occur (ruling b).
+				return {"outcome": "recall", "blow_ms": m_next, "p_hp": p_hp, "m_hp": m_hp, "events": used}
+			p_hp -= dmg
+			c["m_next_ms"] = m_next + mdef.attack_speed_ms
+		p_hp = _auto_eat(state, c, p_hp, p_hp_cap)
+		c["p_hp"] = p_hp
+		c["m_hp"] = m_hp
+	return {"outcome": "horizon", "blow_ms": 0, "p_hp": p_hp, "m_hp": m_hp, "events": used}
+
+
+## Chain re-engage at the kill instant (ruling a: keep farming while a
+## monster is selected). Identical reset semantics to engage(): both sides
+## full HP, stream reseeded (the deterministic live farm loop), fresh eater.
+func _reengage_at(state: PlayerState, c: Dictionary, at_ms: int) -> void:
+	var mdef: MonsterDef = lib.monster(str(c["monster_id"]))
+	var stats := derived_stats(state)
+	c["phase"] = PHASE_FIGHTING
+	c["p_hp"] = int(stats["max_hp"])
+	c["m_hp"] = mdef.max_hp
+	c["engage_ms"] = at_ms
+	c["p_next_ms"] = at_ms + int(stats["speed"])
+	c["m_next_ms"] = at_ms + mdef.attack_speed_ms
+	c["rng_seed"] = str(_stream_seed(state.world_seed, combat_skill_id))
+	c["rng_state"] = "0"
+	c["stream_started"] = false
+	c["eaten_total"] = 0
+
+
+## Fold the replay's deltas into the MAIL CALL payload (additive merges over
+## whatever the activity catch-up already banked — disjoint skills/items, so
+## plain addition is exact) and describe the combat outcome for T10.
+func _merge_offline_payload(state: PlayerState, payload: Dictionary, xp0: int, inv0: Dictionary,
+		lvl0: int, kills: int, recalled: bool, recalled_at: int, zone_clear_before: bool,
+		truncated: bool) -> void:
+	var c: Dictionary = state.combat
+	var gained_xp := int(state.skills_xp.get(combat_skill_id, 0)) - xp0
+	if gained_xp != 0:
+		payload["skills_xp"][combat_skill_id] = int(payload["skills_xp"].get(combat_skill_id, 0)) + gained_xp
+	var level := int(state.skills_level.get(combat_skill_id, 1))
+	if level > lvl0:
+		payload["levels"][combat_skill_id] = {"from": lvl0, "to": level}
+	if kills > 0:
+		payload["actions"][combat_skill_id] = kills
+	for item_id in state.inventory:
+		var delta := int(state.inventory[item_id]) - int(inv0.get(item_id, 0))
+		if delta != 0:
+			payload["items"][item_id] = int(payload["items"].get(item_id, 0)) + delta
+	var section := {
+		"kills": kills,
+		"monster_id": str(c["monster_id"]),
+		"outcome": "recalled" if recalled else ("farming" if kills > 0 else "resumed"),
+	}
+	if recalled:
+		section["notice"] = "PATROL RECALLED"
+		section["recalled_at_ms"] = recalled_at
+		payload["stopped"].append({
+			"skill_id": combat_skill_id,
+			"content_id": str(c["monster_id"]),
+			"reason": "patrol_recalled",
+		})
+	if bool(c["zone_clear"]) and not zone_clear_before:
+		section["zone_cleared"] = true  # offline first clear: state set, signal withheld (payload carries it)
+	if truncated:
+		section["truncated"] = true
+	payload["combat"] = section
+	batcher.mark("xp")
+	batcher.mark("inventory")
+	batcher.mark("combat")

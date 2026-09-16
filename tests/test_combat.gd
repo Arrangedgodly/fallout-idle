@@ -24,10 +24,15 @@ extends GutTest
 ##       adopt_state -> apply_offline_elapsed(0) resumes a split fight to the
 ##       SAME outcome/duration/eaten/drops as an uninterrupted twin (exact
 ##       stream continuation);
-##   (i) offline disposition (§1.4 addendum 2): a mid-fight gap resolves
-##       nothing — combat gains NOTHING offline while a concurrent gathering
-##       slot banks full-rate actions, pending wind-ups stay exactly as
-##       saved, and the resumed fight ends identically to a no-gap twin;
+##   (i) offline combat (coordinator ruling — §1.4 addendum 2, superseding
+##       the no-offline-combat disposition): full-rate survivable replay —
+##       survivable prefix == live twin EXACTLY (HP/pendings/rng stream);
+##       farming chains (re-engage at kill instants) == a live auto-re-engage
+##       twin on kills/XP/Manifest/stream; a would-be killing blow NEVER
+##       lands (recall: alive, zero loss, PATROL RECALLED payload line, no
+##       signals — no-agency death impossible); food exhaustion recalls;
+##       boss farming offline is bounded by the deterministic kill rate;
+##       only mid-fight saves replay (idle/victory/dead never auto-start);
 ##   (j) combat advances ONLY through the tick-manager funnel
 ##       (advance_wall_ms); same-seed twins are bit-identical;
 ##   (k) signal budget: bulk <= 4 Hz over a 60 s fighting window;
@@ -664,56 +669,191 @@ func test_save_round_trip_resumes_exactly() -> void:
 # (i) offline disposition: no combat progress, pending shifted, others full-rate
 # ---------------------------------------------------------------------------
 
-func test_offline_gap_skips_combat_and_preserves_windup() -> void:
-	const SPLIT_MS := 30_000
-	const GAP := 3_600_000  # one hour away
+# ---------------------------------------------------------------------------
+# (i) offline combat: full-rate survivable replay (coordinator ruling)
+# ---------------------------------------------------------------------------
 
-	var split: Variant = _make_tm(SWEEP_BASE_SEED)
-	_boss_setup(split)
-	assert_true(split.start_activity("walk_the_glow_rows")["ok"], "foraging runs alongside combat")
-	_pump(split, SPLIT_MS, 1_000)
-	assert_eq(String(split.state.combat["phase"]), "fighting", "mid-fight at the save")
-	var saved_p_next: int = int(split.state.combat["p_next_ms"])
-	var saved_m_next: int = int(split.state.combat["m_next_ms"])
-	var saved_stews: int = split.state.item_count("radstag_stew")
-	var saved_combat_xp: int = int(split.state.skills_xp["wasteland_combat"])
+func _offline_setup(seed: int, stews: int) -> Variant:
+	var tm: Variant = _make_tm(seed)
+	tm.engine.grant_xp(tm.state, "wasteland_combat", L14_XP)
+	for pair in [["majority_whip", 1], ["carpool_carapace", 1], ["radstag_stew", stews]]:
+		tm.state.add_item(pair[0], pair[1])
+	assert_true(tm.equip_item("majority_whip")["ok"], "max weapon")
+	assert_true(tm.equip_item("carpool_carapace")["ok"], "max armor")
+	assert_true(tm.engage_monster("sewer_landlord")["ok"], "engage the boss at sim 0")
+	return tm
 
-	var doc: Dictionary = JSON.parse_string(JSON.stringify(split.state.to_dict()))
-	var resume: Variant = _make_tm(SWEEP_BASE_SEED)
-	resume.adopt_state(PlayerState.from_dict(doc, _lib()), split.sim_time_ms)
-	var payload: Dictionary = resume.apply_offline_elapsed(GAP)
 
-	assert_eq(int(payload["elapsed_ms"]), GAP, "offline gap applied")
-	assert_true(int(payload["actions"].get("foraging", 0)) > 1_000,
-		"non-combat slot banked full-rate offline actions (%d)" % int(payload["actions"].get("foraging", 0)))
-	# Combat gained NOTHING during the gap...
-	assert_eq(int(resume.state.skills_xp["wasteland_combat"]), saved_combat_xp,
-		"combat XP unchanged by the offline gap")
-	assert_eq(resume.state.item_count("radstag_stew"), saved_stews,
-		"no food eaten offline")
-	assert_eq(String(resume.state.combat["phase"]), "fighting", "fight still live (no offline death/kill)")
-	# ...and its pending wind-ups are EXACTLY as saved (§1.4 addendum 2: combat
-	# times are absolute sim-ms; the sim clock resumes where it stopped — the
-	# swing that was X ms out at save is X ms out at load, no re-waiting).
-	var c: Dictionary = resume.state.combat
-	assert_eq(int(c["p_next_ms"]), saved_p_next, "player pending unchanged by the gap")
-	assert_eq(int(c["m_next_ms"]), saved_m_next, "monster pending unchanged by the gap")
+func test_offline_survivable_prefix_equals_live_exactly() -> void:
+	const GAP := 30_000  # below the 38 s mathematical minimum boss kill: mid-fight for certain
+	# LIVE twin: play the same 30 s through the funnel.
+	var live: Variant = _offline_setup(SWEEP_BASE_SEED, 6)
+	_pump(live, GAP, TICK_MS)
+	# OFFLINE twin: the same 30 s as an away gap (replay path).
+	var off: Variant = _offline_setup(SWEEP_BASE_SEED, 6)
+	var payload: Dictionary = off.apply_offline_elapsed(GAP)
+	var cl: Dictionary = live.state.combat
+	var co: Dictionary = off.state.combat
+	assert_eq(String(co["phase"]), "fighting", "replay resumed mid-fight")
+	assert_eq(String(co["phase"]), String(cl["phase"]), "same phase as the live twin")
+	assert_eq(int(co["p_hp"]), int(cl["p_hp"]), "player HP == live twin after the same elapsed fight")
+	assert_eq(int(co["m_hp"]), int(cl["m_hp"]), "monster HP == live twin")
+	assert_eq(int(co["eaten_total"]), int(cl["eaten_total"]), "same foods auto-eaten")
+	assert_eq(off.state.inventory, live.state.inventory, "same Manifest")
+	assert_eq(String(co["rng_state"]), String(cl["rng_state"]), "RNG stream at the exact same position")
+	# Pendings: offline times are gap-relative (T6 anchor-rewind parity).
+	assert_eq(int(co["p_next_ms"]) + GAP, int(cl["p_next_ms"]), "player wind-up phase preserved")
+	assert_eq(int(co["m_next_ms"]) + GAP, int(cl["m_next_ms"]), "monster wind-up phase preserved")
+	# Live continuation from the replayed state finishes identically. Absolute
+	# ms differs by exactly GAP (the sim clock never lived through the away
+	# time — every other field, including fight DURATION, must match).
+	var ends_live: Array = []
+	live.combat_ended.connect(func(result: Dictionary) -> void: ends_live.append(result))
+	var ends_off: Array = []
+	off.combat_ended.connect(func(result: Dictionary) -> void: ends_off.append(result))
+	_pump(live, 400_000, 2_500)
+	_pump(off, 400_000, 2_500)
+	assert_eq(String(ends_off[0]["outcome"]), String(ends_live[0]["outcome"]), "same outcome")
+	assert_eq(int(ends_off[0]["ms"]) + GAP, int(ends_live[0]["ms"]),
+		"kill lands GAP earlier on the resumed sim clock — same live fight")
+	assert_eq(int(ends_off[0]["duration_ms"]), int(ends_live[0]["duration_ms"]), "same fight duration")
+	assert_eq(int(ends_off[0]["eaten"]), int(ends_live[0]["eaten"]), "same foods eaten")
+	assert_eq(ends_off[0]["drops"], ends_live[0]["drops"], "same drops")
+	assert_eq(off.state.inventory, live.state.inventory, "identical final Manifest")
 
-	# The resumed fight ends IDENTICALLY to a no-gap twin, at the SAME absolute
-	# sim ms (same live fight; the away hour simply did not exist for combat).
-	var whole: Variant = _make_tm(SWEEP_BASE_SEED)
-	_boss_setup(whole)
-	var ends_whole: Array = []
-	whole.combat_ended.connect(func(result: Dictionary) -> void: ends_whole.append(result))
-	_pump(whole, 400_000, 2_500)
-	var ends_resume: Array = []
-	resume.combat_ended.connect(func(result: Dictionary) -> void: ends_resume.append(result))
-	_pump(resume, 400_000, 2_500)
-	assert_eq(String(resume.state.combat["phase"]), "victory", "resumed fight finishes")
-	assert_eq(ends_resume[0], ends_whole[0],
-		"resumed payload == no-gap payload (same ms/eaten/drops — the gap is invisible to combat)")
-	assert_eq(int(ends_resume[0]["duration_ms"]), int(ends_whole[0]["duration_ms"]),
-		"active fight duration identical")
+
+func test_offline_farming_chain_equals_live_twin() -> void:
+	const GAP := 300_000  # ~3 deterministic boss kills at the seed's pace
+	# LIVE twin: plays every tick; on each victory instantly re-engages (the
+	# live model of the offline chain, which re-engages at the kill instant).
+	var live: Variant = _offline_setup(SWEEP_BASE_SEED, 20)
+	var live_kills := 0
+	for i in GAP / TICK_MS:
+		live.advance_wall_ms(TICK_MS)
+		if String(live.state.combat["phase"]) == "victory":
+			live_kills += 1
+			assert_true(live.engage_monster("sewer_landlord")["ok"], "twin re-engages at the kill tick")
+	# OFFLINE twin: the same window as one away gap.
+	var off: Variant = _offline_setup(SWEEP_BASE_SEED, 20)
+	var payload: Dictionary = off.apply_offline_elapsed(GAP)
+	var kills: int = payload["combat"]["kills"]
+	assert_gt(kills, 1, "the chain farmed multiple bosses offline (%d kills)" % kills)
+	assert_eq(kills, live_kills, "offline kills == live twin kills")
+	assert_eq(String(off.state.combat["phase"]), String(live.state.combat["phase"]), "same phase")
+	assert_eq(int(off.state.combat["p_hp"]), int(live.state.combat["p_hp"]), "same HP")
+	assert_eq(int(off.state.combat["m_hp"]), int(live.state.combat["m_hp"]), "same monster HP")
+	assert_eq(off.state.inventory, live.state.inventory, "identical Manifest (drops + eaten food)")
+	assert_eq(int(off.state.skills_xp["wasteland_combat"]), int(live.state.skills_xp["wasteland_combat"]),
+		"identical XP (%d kills banked)" % kills)
+	assert_eq(String(off.state.combat["rng_state"]), String(live.state.combat["rng_state"]),
+		"stream positions identical")
+	assert_eq(int(off.state.combat["p_next_ms"]) + GAP, int(live.state.combat["p_next_ms"]),
+		"wind-up phase preserved across the whole chain")
+	assert_eq(int(payload["skills_xp"]["wasteland_combat"]), kills * 1000,
+		"MAIL CALL reports the combat XP delta")
+	assert_eq(int(payload["actions"]["wasteland_combat"]), kills,
+		"MAIL CALL reports kills as the combat action count")
+
+
+func test_offline_recall_when_death_would_occur() -> void:
+	# Mid gear, NO food vs the boss: live play dies at ~48 s (§2). Offline the
+	# killing blow NEVER lands — the patrol is recalled alive, zero loss.
+	var tm: Variant = _make_tm(SWEEP_BASE_SEED)
+	tm.engine.grant_xp(tm.state, "wasteland_combat", L14_XP)
+	for pair in [["scrap_shiv", 1], ["hubcap_vest", 1]]:
+		tm.state.add_item(pair[0], pair[1])
+	assert_true(tm.equip_item("scrap_shiv")["ok"], "mid weapon")
+	assert_true(tm.equip_item("hubcap_vest")["ok"], "mid armor")
+	assert_true(tm.engage_monster("sewer_landlord")["ok"], "engage under-geared, food-free")
+	var ends: Array = []
+	var levelups: Array = []
+	tm.combat_ended.connect(func(result: Dictionary) -> void: ends.append(result))
+	tm.level_up.connect(func(skill_id: String, o: int, n: int) -> void: levelups.append([skill_id, o, n]))
+	var xp_before: int = int(tm.state.skills_xp["wasteland_combat"])
+
+	var payload: Dictionary = tm.apply_offline_elapsed(300_000)
+	var c: Dictionary = tm.state.combat
+	assert_eq(String(c["phase"]), "recalled", "recalled (not dead) when the blow would kill")
+	assert_ne(String(c["phase"]), "dead", "a no-agency DEATH never occurs offline")
+	assert_gt(int(c["p_hp"]), 0, "player ALIVE at pre-blow HP (blow never landed): %d" % int(c["p_hp"]))
+	assert_eq(int(c["p_next_ms"]), 0, "no pending swings while recalled")
+	assert_eq(int(payload["combat"]["kills"]), 0, "no kills")
+	assert_eq(int(tm.state.skills_xp["wasteland_combat"]), xp_before, "zero XP change")
+	assert_true(tm.state.inventory.is_empty(), "zero loss (empty Hands stay empty)")
+	assert_eq(String(payload["combat"]["notice"]), "PATROL RECALLED", "payload carries the recall notice")
+	assert_eq(payload["stopped"][0]["reason"], "patrol_recalled", "PATROL RECALLED stopped-line for T10")
+	assert_gt(int(payload["combat"]["recalled_at_ms"]), 0, "recall instant reported")
+	assert_eq(ends.size(), 0, "no combat_ended signal offline (payload carries it)")
+	assert_eq(levelups.size(), 0, "no level_up signal offline")
+	# Alive and able to go back out immediately.
+	assert_true(tm.engage_monster("junkyard_roach")["ok"], "re-engage after a recall works")
+	assert_eq(int(tm.state.combat["p_hp"]), 120, "fresh fight resets HP to the equipped max (§1.4 addendum 1)")
+
+
+func test_offline_food_exhaustion_recalls() -> void:
+	# Seed 1001 vs the boss with 2 stews: fight 1 wins eating both, fight 2
+	# replays foodless, hits its would-be killing blow, and recalls.
+	var tm: Variant = _offline_setup(1001, 2)
+	var payload: Dictionary = tm.apply_offline_elapsed(900_000)
+	var c: Dictionary = tm.state.combat
+	assert_eq(String(c["phase"]), "recalled", "food exhaustion leads to recall (ruling b)")
+	assert_eq(int(payload["combat"]["kills"]), 1, "exactly the food-funded kill happened (deterministic)")
+	assert_eq(int(tm.state.skills_xp["wasteland_combat"]), L14_XP + 1000, "one kill's XP banked")
+	assert_eq(tm.state.item_count("radstag_stew"), 0, "stews exhausted")
+	assert_gt(int(c["p_hp"]), 0, "player alive at the recall instant")
+	assert_eq(String(payload["combat"]["notice"]), "PATROL RECALLED", "recall notice posted")
+	assert_true(tm.state.inventory.size() >= 1, "the first kill's drops were banked: %s" % str(tm.state.inventory))
+	# The banked drops equal ONE deterministic boss-table double roll (the
+	# re-engaged fight reseeds, so every kill drops the same stack).
+	assert_eq(int(tm.state.inventory.get("scrap_metal", 0)) % 4, 0,
+		"boss scrap drops come in 4-8 stacks (one kill banked)")
+
+
+func test_offline_boss_farm_bounded_and_zone_clear() -> void:
+	# 50 stews, 15 min away: the boss falls repeatedly at the deterministic
+	# farm rate — the win moment is achievable offline, but only with food,
+	# and never faster than the fight itself can end.
+	var tm: Variant = _offline_setup(SWEEP_BASE_SEED, 50)
+	var payload: Dictionary = tm.apply_offline_elapsed(900_000)
+	var c: Dictionary = tm.state.combat
+	var kills: int = payload["combat"]["kills"]
+	assert_gt(kills, 4, "the boss farm chained (%d kills in 15 min)" % kills)
+	assert_true(kills <= 900_000 / 38_000,
+		"farm rate bounded by the fastest possible kill (38 s min): %d kills" % kills)
+	assert_eq(int(tm.state.skills_xp["wasteland_combat"]), L14_XP + kills * 1000,
+		"XP == kills * xp_reward (no phantom gains)")
+	assert_true(bool(c["zone_clear"]), "offline first clear sets the persistent zone-clear state")
+	assert_eq(bool(payload["combat"].get("zone_cleared")), true,
+		"MAIL CALL carries the offline win moment (signal withheld per offline policy)")
+	assert_eq(String(c["phase"]), "fighting", "gap ended mid-next-fight")
+	assert_between(int(c["p_next_ms"]), 1, 2000,
+		"resume wind-up is one weapon interval out (anchor-rewind parity)")
+	assert_gt(tm.state.item_count("radstag_stew"), 0, "well-stocked food survives the gap")
+	# A mid-fight gap end still LIVE-CONTINUES identically: pump to the next
+	# kill and it matches the deterministic fight's payload shape.
+	var ends: Array = []
+	tm.combat_ended.connect(func(result: Dictionary) -> void: ends.append(result))
+	_pump(tm, 400_000, 2_500)
+	assert_eq(String(tm.state.combat["phase"]), "victory", "live continuation completes the fight")
+	assert_eq(int(ends[0]["xp"]), 1000, "victory chain intact after the offline farm")
+
+
+func test_offline_combat_requires_a_live_fight() -> void:
+	# Only a mid-fight save replays: idle/victory/dead saves never auto-start.
+	var idle: Variant = _make_tm(SWEEP_BASE_SEED)
+	var idle_payload: Dictionary = idle.apply_offline_elapsed(3_600_000)
+	assert_false(idle_payload.has("combat"), "idle save: no combat section (nothing started)")
+	assert_eq(String(idle.state.combat["phase"]), "idle", "still idle")
+
+	var victor: Variant = _offline_setup(SWEEP_BASE_SEED, 6)
+	_pump(victor, 400_000, 2_500)
+	assert_eq(String(victor.state.combat["phase"]), "victory", "fight won live")
+	var xp_after_kill: int = int(victor.state.skills_xp["wasteland_combat"])
+	var inv_after_kill: Dictionary = victor.state.inventory.duplicate()
+	var v_payload: Dictionary = victor.apply_offline_elapsed(3_600_000)
+	assert_false(v_payload.has("combat"), "victory-phase save does not auto-farm offline")
+	assert_eq(int(victor.state.skills_xp["wasteland_combat"]), xp_after_kill, "no offline XP")
+	assert_eq(victor.state.inventory, inv_after_kill, "no offline drops/food")
 
 
 # ---------------------------------------------------------------------------

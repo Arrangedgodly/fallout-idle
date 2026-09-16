@@ -32,9 +32,16 @@ extends Node
 ##       state.last_mail_call): elapsed_ms, skills_xp {skill: gained},
 ##       items {item: gained}, levels {skill: {from, to}}, actions {skill:
 ##       count}, stopped [...]. T10a renders the MAIL CALL notice from this.
-##       COMBAT DOES NOT PROGRESS OFFLINE (balance-notes §1.4 addendum): no
-##       offline kills, deaths, XP or drops — a mid-fight save resumes with
-##       its pending wind-ups exactly as saved.
+##       COMBAT PROGRESSES OFFLINE at full rate, bounded by survivability
+##       (§1.4 addendum 2): a mid-fight save replays live-identically —
+##       kills chain (drops + XP + boss zone-clear while a monster is
+##       selected) — and a would-be killing blow NEVER lands: the patrol is
+##       recalled alive (zero loss). Combat gains fold into the same payload
+##       (skills_xp/items/levels/actions) plus payload.combat
+##       ({kills, monster_id, outcome, notice: "PATROL RECALLED" on recall,
+##       zone_cleared on an offline first boss clear}) and a PATROL RECALLED
+##       entry in `stopped`. Idle/victory/dead/recalled saves never
+##       auto-start fights offline.
 ##
 ## Interaction rules:
 ##   • User-initiated actions (start/stop activity) force an immediate bulk
@@ -247,13 +254,15 @@ func apply_offline_from_save(saved_unix_ms: int, now_unix_ms: int = -1) -> Dicti
 
 
 ## Core offline entry: `elapsed_ms` of wall gap applied via closed-form
-## arithmetic on the persisted per-slot RNG streams. COMBAT DOES NOT PROGRESS
-## OFFLINE (balance-notes §1.4 addendum): combat.apply_offline is the
-## documented no-op seam — a mid-fight save resumes with its pending attack
-## wind-ups exactly as saved (absolute sim-ms on a resumed sim clock).
+## arithmetic on the persisted per-slot RNG streams. COMBAT PROGRESSES
+## OFFLINE at full rate, bounded by survivability (coordinator ruling —
+## balance-notes §1.4 addendum 2): combat.apply_offline runs the seeded
+## event-ordered replay over the same gap and folds kills/drops/XP deltas
+## plus a PATROL RECALLED notice (when the patrol hit its survivability
+## bound) into the same MAIL CALL payload.
 func apply_offline_elapsed(elapsed_ms: int) -> Dictionary:
 	var payload: Dictionary = engine.apply_offline(state, sim_time_ms, elapsed_ms)
-	combat.apply_offline(state, elapsed_ms)
+	combat.apply_offline(state, sim_time_ms, elapsed_ms, payload)
 	if int(payload["elapsed_ms"]) > 0:
 		mail_call_ready.emit(payload)
 		batcher.force_flush(sim_time_ms)

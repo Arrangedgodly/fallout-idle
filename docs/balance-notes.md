@@ -80,23 +80,39 @@ never had to cross. Live implementations: `scripts/engine/combat_session.gd`.
    aftertaste (already zero loss, now zero limp), retreat-and-re-engage is a
    full reset for both sides, and no cross-fight HP state needs persisting
    except mid-fight saves.
-2. **Offline combat does not progress.** Town-hall grants uncapped full-rate
-   offline gains "for all activities," and combat is an activity category —
-   but balance-notes never defined offline combat, so T7 had to rule. **Combat
-   is the one exception: no attacks resolve, no XP, no drops, and no deaths
-   accrue while away.** Rationale: (a) a mid-away DEATH with no player agency
-   would violate the town-hall death rule's spirit (stop, no loss — being
-   killed in your sleep is a loss); (b) unbounded offline boss farming at
-   full rates would collapse the §2 boss gate overnight (the win moment is
-   tuned to max-gear + food, ~110 s active); (c) genre convention — Melvor
-   does not progress combat offline either. Honesty rule for mid-fight
-   saves: combat's attack times are absolute sim-ms and the sim clock
-   resumes at its saved value, so the fight resumes with its pending
-   wind-ups **exactly as saved** — the swing that was 800 ms out at save is
-   800 ms out at load: nothing resolves while away, nothing re-waits the
-   gap, and the RNG stream continues exactly. **Accepted divergence from
-   "all activities" — flagged for the coordinator and T13** (idle offline
-   gains remain full-rate and uncapped for every non-combat skill).
+2. **Offline combat progresses at full rate, bounded by survivability**
+   (coordinator ruling 2026-09-15 — SUPERSEDES this addendum's original
+   no-offline-combat disposition of the same day; the faithful reading of
+   town-hall's "uncapped full-rate offline for all activities"). On load
+   with mid-fight combat state, a **seeded event-ordered survivable replay**
+   advances the fight exactly as the live tick would (same swing/auto-eat
+   helpers, same roll order, same RNG stream) until either:
+   **(a) the monster dies** → the normal victory chain: drops rolled, XP
+   granted (level crossings ride the MAIL CALL payload, no immediate
+   signals — T6's offline policy), first boss clear sets `zone_clear`;
+   while a monster is selected the patrol **re-engages it at the kill
+   instant and keeps farming** (each engage reseeds the combat stream, so
+   the offline farm loop is the same deterministic loop live play
+   produces: identical fight, identical drops, identical food cost per
+   iteration); or **(b) a monster blow would reduce player HP to ≤ 0** →
+   the blow **never lands**: the patrol is recalled at that instant
+   (phase `"recalled"` — RETURN TO SHELTER presentation, player ALIVE at
+   pre-blow HP, zero loss, pendings cleared). **A no-agency death can never
+   occur offline.** Food exhaustion is the usual recall path: auto-eat
+   extends survival exactly as live until the stack runs dry, then the next
+   killing-blow-in-waiting recalls. Scope + bounds: the replay runs only
+   when the save left a fight in progress (idle/victory/dead/recalled
+   saves never auto-start fights); it is bounded by the gap's elapsed ms
+   and the food stack (plus an O(events) catch-all far beyond any sane
+   gap); activities replay first, so combat can eat food a Cooking slot
+   banked during the same gap (the honest live-concurrency interplay);
+   boss-clear is achievable offline only with sufficient food, at the
+   bounded deterministic farm rate. A still-fighting resume mirrors T6's
+   anchor rewind: pending attack times shift back by exactly the gap,
+   preserving the wind-up phase. The MAIL CALL payload reports combat gains
+   (kills, drops/XP deltas, level crossings) plus a **"PATROL RECALLED"**
+   line when the survivability bound tripped. No divergence from
+   "all activities" remains.
 3. **Equipment is consumed from the Manifest on equip** (unequip returns
    it): equipped gear cannot also be sold or double-equipped; the Manifest
    is the single honest ledger. Slots: one weapon, one armor; the
