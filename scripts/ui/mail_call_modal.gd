@@ -165,9 +165,15 @@ func _build_lines() -> void:
 			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			row.add_child(icon)
-		row.add_child(_paper_serial("%s %s" % [
+		# T15 fix round: the wrapped gain serial EXPANDS to the row's leftover
+		# width — as a plain HBox child its ~1 px autowrap minimum starved it
+		# to a vertical one-character column (caught by the retry collapse
+		# pin; the same class as the skill-docket serial collapse).
+		var gain_serial := _paper_serial("%s %s" % [
 			String(item.name).to_upper() if item != null else String(item_id).to_upper(),
-			SignageFmt.delta(int(items[item_id]))]))
+			SignageFmt.delta(int(items[item_id]))])
+		gain_serial.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(gain_serial)
 		body_box.add_child(row)
 
 	if skills_xp.is_empty() and items.is_empty():

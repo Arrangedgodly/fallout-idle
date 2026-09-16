@@ -20,7 +20,12 @@ extends GutTest
 ##   6. the MAIL CALL modal traps focus and escapes by Esc AND Enter;
 ##   7. the settings slider changes the scale through arrow keys;
 ##   8. card buttons contain their content (the T10a/T10b overlap bug);
-##   9. motion is brief, bounded and never loops.
+##   9. motion is brief, bounded and never loops;
+##  10. COLLAPSE GUARD: no visible Label anywhere renders narrower than its
+##      longest word (the T15 fix-round pin — an autowrapped Label's ~1 px
+##      minimum, starved by an HBox, stacked serials one character per line
+##      at BOTH font scales), checked on every department at 100% AND 200%,
+##      plus the MAIL CALL modal and the save-notice board.
 ## The runtime CONTRAST re-audit and the 200% captures live in
 ## tests/probe_a11y.gd (they need the probe's render-adjacent pass).
 
@@ -620,3 +625,86 @@ func test_motion_brief_bounded_never_looping() -> void:
 		fa.close()
 		assert_false(src.contains("set_loops("), "no looping tweens in %s" % path)
 		assert_false(src.contains("Tween.LOOP_INFINITE"), "no infinite tweens in %s" % path)
+
+
+# ---------------------------------------------------------------------------
+# 10. collapse guard: no Label renders narrower than its longest word
+# ---------------------------------------------------------------------------
+## The T15 fix-round regression pin. An autowrapped Label's minimum width
+## collapses to ~1 px, so a wrapped serial placed as an HBox sibling of an
+## EXPAND_FILL label is starved to a vertical one-character column — exactly
+## what the T15 wrapping fix did to every skill-docket rate line and status
+## serial (verifier-measured 1x491 at 100%, 1x1089 at 200%). A legible
+## layout always owes a Label at least the width of its widest unbreakable
+## word, at every font scale, on every screen: assert it.
+func test_no_label_collapses_below_its_longest_word() -> void:
+	var tm: Variant = await _boot()
+	tm.state.add_item("scrap_metal", 30)
+	tm.state.add_item("scrap_shiv", 2)
+	tm.state.add_crowns(1_000)
+	_flush(tm)
+	# A running shift renders the energized status plate + serial too.
+	tm.start_activity("sort_scrap_pile")
+	await wait_frames(1)
+	for slider_value in [0.0, 2.0]:
+		_concourse.font_slider.value = slider_value
+		await wait_frames(3)
+		var pct := int((1.0 + 0.5 * slider_value) * 100.0)
+		for id in DEPT_IDS:
+			_concourse.select_department(id, true)
+			await wait_frames(2)
+			_assert_no_collapsed_labels(_concourse, "%s @%d%%" % [id, pct], 4)
+	tm.stop_skill("scavenging")
+
+	# The overlay screens carry wrapped serials too (the MAIL CALL item rows
+	# shipped the same collapse class) — guard them at both scales.
+	for slider_value in [0.0, 2.0]:
+		_concourse.font_slider.value = slider_value
+		await wait_frames(3)
+		var pct := int((1.0 + 0.5 * slider_value) * 100.0)
+		_concourse.mail_call.present({"elapsed_ms": 3_600_000,
+			"skills_xp": {"scavenging": 120}, "items": {"scrapnel": 3, "scrap_metal": 12},
+			"levels": {}, "actions": {"scavenging": 12}, "stopped": []}, _lib())
+		await wait_frames(1)
+		assert_true(_concourse.mail_call.is_presenting(), "modal presents @%d%%" % pct)
+		_assert_no_collapsed_labels(_concourse.mail_call, "mail call modal @%d%%" % pct)
+		_concourse.mail_call.acknowledge()
+		_concourse.save_board.post("save_write_failed", {"reason": "desk full"})
+		await wait_frames(2)
+		_assert_no_collapsed_labels(_concourse.save_board, "save notice @%d%%" % pct)
+		_concourse.save_board.ack_button.pressed.emit()
+	_concourse.font_slider.value = 0.0
+
+
+## Shared collapse assertion: every visible Label in the subtree renders at
+## least as wide as its longest word (see test 10 for the defect class).
+func _assert_no_collapsed_labels(root_node: Node, where: String, min_count := 1) -> void:
+	var checked := 0
+	for l in root_node.find_children("*", "Label", true, false):
+		var lab := l as Label
+		if not lab.is_visible_in_tree() or lab.text.strip_edges() == "":
+			continue
+		checked += 1
+		var floor := _longest_word_width(lab)
+		assert_gte(lab.size.x, floor - 1.0,
+			"%s: %s width %.1f >= longest word %.1f" % [
+				where, lab.name, lab.size.x, floor])
+		assert_false(lab.size.x < 8.0 and lab.size.y > 40.0,
+			"%s: %s renders as a vertical column (%.1fx%.1f)" % [
+				where, lab.name, lab.size.x, lab.size.y])
+	assert_gt(checked, min_count, "%s renders labels to guard" % where)
+
+
+## The rendered width of the label's widest unbreakable chunk, in the label's
+## own font at its own (theme-scaled) size — the floor a legible layout owes
+## every wrapped serial.
+func _longest_word_width(lab: Label) -> float:
+	var font := lab.get_theme_font("font")
+	if font == null:
+		return 0.0
+	var fs := lab.get_theme_font_size("font_size")
+	var widest := 0.0
+	for word in lab.text.split(" ", false):
+		widest = maxf(widest, font.get_string_size(
+			word, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x)
+	return widest

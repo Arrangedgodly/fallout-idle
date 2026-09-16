@@ -27,8 +27,13 @@ extends SceneTree
 ##   3. MOTION: the two authored durations are bounded constants, a real
 ##      keyboard-driven bulkhead slide completes well under a second, and no
 ##      UI source loops a tween (no >3 Hz flashing of any kind).
-##   4. (capture mode) 200% PNGs of three departments + the modal under
-##      .impeccable/review/t15/ — validated for dimensions + real content.
+##   4. COLLAPSE GUARD (T15 fix round): every visible Label, on every
+##      department at BOTH 100% and 200%, renders at least as wide as its
+##      longest word — the autowrap-in-an-HBox collapse class (1 px vertical
+##      character columns) can never pass silently again.
+##   5. (capture mode) 200% PNGs of three departments + the modal, plus
+##      scavenging at 100%, under .impeccable/review/t15/ — validated for
+##      dimensions + real content.
 
 const REVIEW_DIR := "res://.impeccable/review/t15"
 const CAPTURE_UNSUPPORTED_EXIT := 42
@@ -134,6 +139,7 @@ func _contrast_audit() -> void:
 			_tm().equip_item("scrap_shiv")
 			await _frames(1)
 		_sweep_contrast(_concourse, "dept " + id)
+		_collapse_sweep(_concourse, "dept " + id)
 		if id == "wasteland_patrol":
 			# Phase plates: the four wordings swap label variations — sweep
 			# each rendering (the wording cue itself is pinned in test_a11y).
@@ -172,6 +178,7 @@ func _contrast_audit() -> void:
 	}, _tm().engine.lib)
 	await _frames(1)
 	_sweep_contrast(_concourse.mail_call, "mail call modal")
+	_collapse_sweep(_concourse.mail_call, "mail call modal")
 	_concourse.mail_call.acknowledge()
 
 	# Save-notice board posting.
@@ -179,6 +186,7 @@ func _contrast_audit() -> void:
 		{"found_save_version": 99, "supported_save_version": 1})
 	await _frames(2)
 	_sweep_contrast(_concourse.save_board, "save notice")
+	_collapse_sweep(_concourse.save_board, "save notice")
 	_concourse.save_board.ack_button.pressed.emit()
 
 	# The tooltip pair (posted paper): navy ink on paper via the theme.
@@ -233,6 +241,38 @@ func _sweep_contrast(node: Node, where: String) -> void:
 			_pair_check("%s list %s [selected]" % [where, il.name],
 				il.get_theme_color("font_selected_color"),
 				_stylebox_ground(il.get_theme_stylebox("selected")), il)
+
+
+## T15 fix-round COLLAPSE GUARD: every visible text-bearing Label must render
+## at least as wide as its widest unbreakable word (its own font, its own
+## theme-scaled size). An autowrapped Label's minimum width collapses to ~1
+## px, so an HBox starves it into a vertical one-character column — the
+## skill-docket serial collapse this pin exists to catch, at any scale.
+func _collapse_sweep(node: Node, where: String) -> void:
+	for c in _text_controls(node):
+		if c is Label:
+			var l := c as Label
+			if l.text.strip_edges() == "":
+				continue
+			var floor := _longest_word_width(l)
+			_check(l.size.x >= floor - 1.0,
+				"%s label %s not collapsed (%.1f wide >= longest word %.1f)" % [
+					where, l.name, l.size.x, floor])
+			_check(not (l.size.x < 8.0 and l.size.y > 40.0),
+				"%s label %s is a vertical column (%.1fx%.1f)" % [
+					where, l.name, l.size.x, l.size.y])
+
+
+func _longest_word_width(l: Label) -> float:
+	var font: Font = l.get_theme_font("font")
+	if font == null:
+		return 0.0
+	var fs := l.get_theme_font_size("font_size")
+	var widest := 0.0
+	for word in l.text.split(" ", false):
+		widest = maxf(widest, font.get_string_size(
+			word, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x)
+	return widest
 
 
 ## One sampled pair -> WCAG verdict. Class chosen by size/weight at runtime.
@@ -352,6 +392,7 @@ func _font_scale_200_sweep() -> void:
 		var budget: float = scroll.size.x - 44.0 - 48.0
 		var need: float = _concourse.docket_controller(id).get_combined_minimum_size().x
 		_check(need <= budget, "200%% docket %s fits (%.0f <= %.0f)" % [id, need, budget])
+		_collapse_sweep(_concourse, "200%% dept %s" % id)
 		var focusables := _concourse.focusable_controls()
 		var visited := {}
 		var cur: Control = _concourse.initial_focus()
@@ -393,6 +434,7 @@ func _font_scale_200_sweep() -> void:
 	_tm().apply_offline_elapsed(3_600_000)
 	await _frames(3)
 	_check(_concourse.mail_call.is_presenting(), "200%: MAIL CALL presents")
+	_collapse_sweep(_concourse.mail_call, "200% mail call modal")
 	var ack := _concourse.mail_call.ack_button
 	_check(ack.get_global_rect().end.x <= 1280.0 and ack.get_global_rect().end.y <= 720.0,
 		"200%%: acknowledge on screen (%s)" % ack.get_global_rect())
@@ -462,12 +504,15 @@ func _capture_set() -> void:
 	tm.batcher.force_flush(tm.sim_time_ms)
 	_concourse.set_first_run(false)
 
-	# Scavenging at 200%: a running shift with stamped yield lines.
+	# Scavenging at 200%: a running shift with stamped yield lines. The
+	# scroll shows the energized status plate — the previously-collapsed
+	# control the verifier's evidence was about.
 	_concourse.select_department("scavenging", true)
 	await _frames(2)
 	tm.start_activity("sort_scrap_pile")
 	_pump(tm, 12_500)
 	await _frames(2)
+	await _docket_show((_concourse.docket_controller("scavenging") as DocketSkill).status_plate)
 	if not _snap("a11y200_scavenging_1280x720.png"):
 		return
 	tm.stop_skill("scavenging")
@@ -478,6 +523,7 @@ func _capture_set() -> void:
 	tm.batcher.force_flush(tm.sim_time_ms)
 	_concourse.select_department("manifest", true)
 	await _frames(4)
+	await _docket_show(_concourse.docket_controller("manifest"))
 	if not _snap("a11y200_manifest_1280x720.png"):
 		return
 
@@ -485,6 +531,7 @@ func _capture_set() -> void:
 	tm.equip_item("carpool_carapace")
 	_concourse.select_department("wasteland_patrol", true)
 	await _frames(2)
+	await _docket_show(_concourse.docket_controller("wasteland_patrol"))
 	var patrol := _concourse.docket_controller("wasteland_patrol") as DocketPatrol
 	((patrol.get("_cards") as Dictionary)["junkyard_roach"].button as Button).pressed.emit()
 	_pump(tm, 20_000)
@@ -501,7 +548,33 @@ func _capture_set() -> void:
 		return
 	_concourse.mail_call.acknowledge()
 	tm.stop_skill("scavenging")
+
+	# T15 fix round: scavenging at 100% too — the serial collapse was
+	# verifier-measured at BOTH scales, so the horizontal reading is pinned
+	# by capture at both scales (running shift + stamped yields, like 200%).
+	_concourse.font_slider.value = 0.0
+	await _frames(3)
+	_concourse.select_department("scavenging", true)
+	await _frames(2)
+	tm.start_activity("sort_scrap_pile")
+	_pump(tm, 12_500)
+	await _frames(2)
+	await _docket_show((_concourse.docket_controller("scavenging") as DocketSkill).status_plate)
+	if not _snap("a11y100_scavenging_1280x720.png"):
+		return
+	tm.stop_skill("scavenging")
 	_validate_pngs()
+
+
+## Deterministic capture state: scroll the docket viewport to the docket's
+## own content (the housing chrome above it fills the whole 200% viewport),
+## so the previously-collapsed serials are IN the frame — the status plate
+## for the skill docket, the docket top for the others.
+func _docket_show(control: Control) -> void:
+	var scroll: ScrollContainer = _concourse.find_child("DocketScroll", true, false) as ScrollContainer
+	if scroll != null and control != null:
+		scroll.ensure_control_visible(control)
+		await _frames(1)
 
 
 func _snap(file_name: String) -> bool:
@@ -523,6 +596,7 @@ func _validate_pngs() -> void:
 		"a11y200_manifest_1280x720.png": Vector2i(1280, 720),
 		"a11y200_patrol_1280x720.png": Vector2i(1280, 720),
 		"a11y200_mail_call_1280x720.png": Vector2i(1280, 720),
+		"a11y100_scavenging_1280x720.png": Vector2i(1280, 720),
 	}
 	for file_name: String in expects:
 		var path := REVIEW_DIR + "/" + file_name
@@ -573,7 +647,7 @@ func _check(ok: bool, label: String) -> void:
 func _report_and_quit() -> void:
 	_done = true
 	if failures.is_empty():
-		print("PROBE_OK checks=%d (contrast re-audit of final screens: %d distinct rendered pairs, all AA, amber-on-steel large-only, energized hover >= 4.5; font 200%%: column fits 1280, all 7 dockets fit, every focusable reachable + scrolled into view, CLOCK OUT on screen, modal trapped + escaped; motion bounded, no looping tweens)" % [checks, _pairs.size()])
+		print("PROBE_OK checks=%d (contrast re-audit of final screens: %d distinct rendered pairs, all AA, amber-on-steel large-only, energized hover >= 4.5; font 200%%: column fits 1280, all 7 dockets fit, every focusable reachable + scrolled into view, CLOCK OUT on screen, modal trapped + escaped; collapse guard: every visible Label >= its longest word at 100%% and 200%% on all departments + the modal; motion bounded, no looping tweens)" % [checks, _pairs.size()])
 		quit(0)
 	else:
 		printerr("PROBE_FAILED checks=%d failures=%d" % [checks, failures.size()])

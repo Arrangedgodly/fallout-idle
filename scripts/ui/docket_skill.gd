@@ -61,11 +61,15 @@ func _build_content() -> void:
 
 	status_plate = panel_box("EnergizedPlate")
 	status_plate.visible = false
-	var srow := hbox(12)
+	# T15 fix round: the running-status line + serial STACK as full-width
+	# VBox rows (the patrol phase plate's pattern). As HBox siblings beside
+	# an EXPAND_FILL label, their WORD_SMART autowrap collapsed the minimum
+	# width to ~1 px and the HBox starved each serial into a vertical
+	# one-character column (verifier-measured at BOTH font scales).
+	var srow := vbox(4)
 	status_line = label("MonoValueEnergized", "")
 	# T15: the long running-status serials wrap (mono, the plate's widest
 	# lines at 200% font scale).
-	status_line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	status_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	srow.add_child(status_line)
 	status_serial = label("PlateBodyEnergized", "")
@@ -140,9 +144,11 @@ func _make_card(def: RefCounted) -> Card:
 	b.tooltip_text = "Post this shift — %s" % str(def.get("name"))
 	card.button = b
 
-	# Full-width stacked rows: the title row keeps icon + name + rate on one
-	# line; yields and the clearance plate stack below at full card width —
-	# nothing side-by-side can outgrow the docket (no horizontal overflow).
+	# Full-width stacked rows: the title row keeps icon + name on one line;
+	# the rate/yields serials stack below at full card width — nothing
+	# side-by-side can outgrow the docket (no horizontal overflow), and a
+	# wrapped serial must never sit beside an EXPAND_FILL sibling (T15 fix
+	# round: that placement starved it to a 1 px vertical column).
 	var col := vbox(3)
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
@@ -152,12 +158,15 @@ func _make_card(def: RefCounted) -> Card:
 	card.title = label("FormTitle", str(def.get("name")))
 	card.title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_row.add_child(card.title)
-	# T15: the serial rate line wraps — unwrapped it is the docket's widest
-	# line at 200% font scale and pushed the docket past its column.
+	col.add_child(title_row)
+
+	# T15 fix round: the serial rate line sits BELOW the title row as a
+	# full-width wrapped row — one horizontal line at 100%, wrapping within
+	# the card at 200% (unwrapped it was the docket's widest line at 200%,
+	# but as a wrapped HBox sibling its ~1 px minimum collapsed it).
 	card.rate_line = label("PlateSerialNavy", _rate_line(def))
 	card.rate_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	title_row.add_child(card.rate_line)
-	col.add_child(title_row)
+	col.add_child(card.rate_line)
 
 	card.yields_line = label("PlateSerialNavy", _yields_line(def))
 	card.yields_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

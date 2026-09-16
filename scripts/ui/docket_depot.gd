@@ -26,6 +26,11 @@ func _build_content() -> void:
 	var wrow := hbox(14)
 	wrow.add_child(icon_rect("crowns", 34))
 	var wcol := vbox(2)
+	# T15 fix round: the column EXPANDS to the plate's full width — without
+	# the flag the HBox sized it to its widest minimum (the "0" read, ~16 px)
+	# and the wrapped crowns serial stacked two characters per line (the
+	# same autowrap-starvation class the retry pin guards).
+	wcol.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	crowns_serial = label("PlateBodyEnergized", "CROWNS ON HAND · TENDERS EXACT · NO CREDIT")
 	crowns_serial.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	wcol.add_child(crowns_serial)
