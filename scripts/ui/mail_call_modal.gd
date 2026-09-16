@@ -217,11 +217,37 @@ func _build_lines() -> void:
 			body_box.add_child(_paper_serial(
 				"WASTELAND PATROL · FIGHT RESUMED ON YOUR RETURN."))
 
+	var staffing: Dictionary = _payload.get("staffing", {})
+	if not staffing.is_empty():
+		# T17: the v1-migration over-subscription resolution — an honest
+		# notice plate (danger ground, matching the recall idiom), one line
+		# per parked posting. The exact directive wording is the engine's
+		# (ActivityEngine.SUSPENDED_NOTICE), carried verbatim in the payload.
+		var plate := PanelContainer.new()
+		plate.name = "ShortagePlate"
+		plate.theme_type_variation = "DangerPlate"
+		var scol := VBoxContainer.new()
+		scol.add_theme_constant_override("separation", 4)
+		var head := Label.new()
+		head.theme_type_variation = "MonoValue"
+		head.text = str(staffing.get("notice", ""))
+		scol.add_child(head)
+		for parked in staffing.get("suspended", []):
+			var p: Dictionary = parked
+			var serial := _paper_serial("%s · %s — SUSPENDED AND PARKED. RE-POST IT FROM ITS DEPARTMENT WHEN A POSTING FREES." % [
+				_skill_display_name(str(p.get("skill_id", ""))),
+				_content_display_name(str(p.get("skill_id", "")), str(p.get("content_id", "")))])
+			scol.add_child(serial)
+		plate.add_child(scol)
+		body_box.add_child(plate)
+
 	for stop in _payload.get("stopped", []):
 		var s: Dictionary = stop
 		var reason := str(s.get("reason", ""))
 		if reason == "patrol_recalled":
 			continue  # already posted as the red plate above
+		if reason == "posting_suspended":
+			continue  # already posted as the shortage plate above
 		if reason == "inputs_exhausted":
 			body_box.add_child(_paper_serial("SUPPLIES EXHAUSTED · %s SHIFT ENDED ITSELF." %
 				_skill_display_name(str(s.get("skill_id", "")))))
@@ -310,6 +336,24 @@ func _combat_skill_id() -> String:
 func _skill_display_name(skill_id: String) -> String:
 	var skill := lib.skill(skill_id) if lib != null else null
 	return String(skill.name).to_upper() if skill != null else skill_id.to_upper()
+
+
+## The parked posting's content, named: activity/recipe name for a skill
+## slot, the fauna designation for a suspended patrol.
+func _content_display_name(skill_id: String, content_id: String) -> String:
+	if lib == null:
+		return content_id.to_upper()
+	var skill: SkillDef = lib.skills.get(skill_id)
+	if skill != null and skill.is_combat():
+		var monster := lib.monster(content_id)
+		return ("%s PATROL" % String(monster.name).to_upper()) if monster != null else content_id.to_upper()
+	var adef: ActivityDef = lib.activities.get(content_id)
+	if adef != null:
+		return String(adef.name).to_upper()
+	var rdef: RecipeDef = lib.recipes.get(content_id)
+	if rdef != null:
+		return String(rdef.name).to_upper()
+	return content_id.to_upper()
 
 
 func _has_recall_stop() -> bool:

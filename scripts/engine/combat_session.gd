@@ -63,8 +63,10 @@ extends RefCounted
 ##     never occur offline.
 ##   • Equipment: equipping CONSUMES one unit from the Manifest; unequipping
 ##     returns it (no phantom-gear duplication through the Depot).
-##   • Concurrency: combat runs alongside all non-combat skill slots
-##     (Melvor-style; T6 already ships per-skill concurrency).
+##   • Concurrency: T17 — an ENGAGED patrol occupies one POSTING like any
+##     skill slot (coordinator decision; engage with none free is refused
+##     with kind "posting_refused", no state change); withdraw/death/victory/
+##     recall end the posting immediately (phase leaves "fighting").
 ##   • Mid-fight equip: stats recompute next tick; a pending attack keeps its
 ##     scheduled time, and the NEXT interval uses the new speed.
 
@@ -246,7 +248,10 @@ static func hit_chance_bp(attacker_accuracy: int, defender_evasion: int) -> int:
 # ------------------------------------------------------------- engage/stop --
 
 ## Engage (or switch to) a monster. Gate: Wasteland Combat clearance.
-## Returns {"ok": bool, "reason": String} — CLEARANCE wording on gate failure.
+## Posting rule (T17): a FIGHTING patrol holds one posting; engaging while
+## already fighting keeps it (switch), engaging from any stopped phase with
+## no free posting is REFUSED — {"ok": false, "kind": "posting_refused", ...},
+## no state change. Gate failures carry CLEARANCE wording as before.
 func engage(state: PlayerState, monster_id: String, now_ms: int) -> Dictionary:
 	var mdef := lib.monster(monster_id)
 	if mdef == null:
@@ -256,6 +261,9 @@ func engage(state: PlayerState, monster_id: String, now_ms: int) -> Dictionary:
 		return {"ok": false, "reason": "CLEARANCE %d REQUIRED (%s)" % [
 			mdef.level_gate, lib.skill(combat_skill_id).name]}
 	var c: Dictionary = state.combat
+	var switching := str(c.get("phase", PHASE_IDLE)) == PHASE_FIGHTING
+	if not switching and xp_engine != null and xp_engine.free_postings(state) <= 0:
+		return xp_engine.posting_refused(monster_id)
 	ensure_defaults(state)
 	# §1.4 addendum 1: fresh HP on every engage; re-engaging abandons any fight.
 	var stats := derived_stats(state)

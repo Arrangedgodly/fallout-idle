@@ -42,6 +42,16 @@ extends Node
 ##       zone_cleared on an offline first boss clear}) and a PATROL RECALLED
 ##       entry in `stopped`. Idle/victory/dead/recalled saves never
 ##       auto-start fights offline.
+##       T17 STAFFING MIGRATION NOTICE: a v1 save (or any over-subscribed
+##       record) that arrived with more running postings than the
+##       establishment holds carries payload.staffing = {notice:
+##       "POSTINGS SUSPENDED — PERSONNEL SHORTAGE", suspended: [{skill_id,
+##       content_id, kind}]} plus one stopped line per suspended posting
+##       (reason "posting_suspended") — the mail call posts even when the
+##       offline gap is zero, because the notice is the point.
+##   bulk_state_changed regions: "xp", "inventory", "activity", "combat" —
+##       and since T17 "staffing" (deputize purchases, posting enforcement).
+##       Crowns ride "inventory" (Depot precedent: wallet-class changes).
 ##
 ## Interaction rules:
 ##   • User-initiated actions (start/stop activity) force an immediate bulk
@@ -83,6 +93,10 @@ var stats := {
 
 var _accum_ms := 0
 var _last_wall_ms := -1
+## T17: postings suspended by the load-time staffing enforcement, waiting for
+## the next apply_offline_elapsed to ride the MAIL CALL payload (cleared once
+## presented). Empty on every normal load.
+var _staffing_notice: Array = []
 
 
 func _ready() -> void:
@@ -129,11 +143,16 @@ func new_game(world_seed: int = -1) -> void:
 ## live ticking resumes with the phase remainder the save left off with.
 ## Combat (T7): hydrate re-types the combat namespace after JSON, sanitize
 ## drops fights referencing removed content (never a crash).
+## T17: staffing enforcement — an over-subscribed save (v1 migration, or a
+## hand-edited record) suspends its oldest postings beyond the establishment
+## with zero loss; the descriptions queue for the MAIL CALL notice.
 ## Clock stats reset: a loaded session starts a fresh stall/clamp budget.
 func adopt_state(st: PlayerState, resume_sim_ms: int = 0) -> void:
 	state = st
 	combat.hydrate(state)
 	combat.sanitize(state)
+	engine.ensure_staffing(state)
+	_staffing_notice = engine.enforce_staffing(state)
 	sim_time_ms = maxi(resume_sim_ms, 0)
 	_accum_ms = 0
 	_last_wall_ms = -1
@@ -199,6 +218,57 @@ func start_activity(content_id: String) -> Dictionary:
 func stop_skill(skill_id: String) -> void:
 	engine.stop(state, skill_id)
 	batcher.force_flush(sim_time_ms)
+
+
+# -- T17 staffing façade (the PERSONNEL docket calls these) --
+
+## Posting-board readouts for the UI (single source: the engine).
+func posting_slots() -> int:
+	return engine.posting_slots(state)
+
+
+func occupied_postings() -> int:
+	return engine.occupied_postings(state)
+
+
+func free_postings() -> int:
+	return engine.free_postings(state)
+
+
+## Crowns the next DEPUTIZE RESIDENT purchase costs at the current rung
+## (-1 at the full establishment — the board hides the purchase row there).
+func next_deputy_price() -> int:
+	return engine.deputy_price(state)
+
+
+## Postings suspended by a staffing shortage, as skill-id -> slot dict (the
+## parked v1-migration state; cleared per-skill on a successful re-post).
+func suspended_postings() -> Dictionary:
+	return state.staffing.get("suspended", {})
+
+
+## DEPUTIZE RESIDENT (naming-bible §10 label): buy the next deputy, opening
+## one posting. Refuses without funds (in-voice Depot wording) and at the
+## full establishment (4 deputies = 5 postings). Prices come from the
+## staffing ladder in content — never hardcoded here.
+func deputize_resident() -> Dictionary:
+	var current := clampi(int(state.staffing.get("deputies", 0)), 0, engine.MAX_DEPUTIES)
+	if current >= engine.MAX_DEPUTIES:
+		return {"ok": false, "reason": "FULL ESTABLISHMENT — ALL FIVE POSTINGS STAFFED",
+			"deputies": current, "price": 0}
+	var price := engine.deputy_price(state)
+	if price <= 0:
+		return {"ok": false, "reason": "no deputy posting is stocked at this counter",
+			"deputies": current, "price": 0}
+	if not state.try_spend_crowns(price):
+		return {"ok": false, "reason": "INSUFFICIENT CROWNS (%d REQUIRED)" % price,
+			"deputies": current, "price": price}
+	state.staffing["deputies"] = current + 1
+	batcher.mark("staffing")
+	batcher.mark("inventory")  # wallet-class change (Depot precedent)
+	batcher.force_flush(sim_time_ms)
+	return {"ok": true, "reason": "", "deputies": current + 1,
+		"price": price, "posting_opened": current + 2}
 
 # -- Combat façade (T7; Wasteland Patrol calls these, never ActivityEngine) --
 
@@ -325,7 +395,22 @@ func apply_offline_from_save(saved_unix_ms: int, now_unix_ms: int = -1) -> Dicti
 func apply_offline_elapsed(elapsed_ms: int) -> Dictionary:
 	var payload: Dictionary = engine.apply_offline(state, sim_time_ms, elapsed_ms)
 	combat.apply_offline(state, sim_time_ms, elapsed_ms, payload)
-	if int(payload["elapsed_ms"]) > 0:
+	# T17: the staffing-migration notice rides the same MAIL CALL (posted even
+	# with a zero gap — see the UI UPDATE CONTRACT above), then clears: it is
+	# a one-time load event, never a standing deduction.
+	if not _staffing_notice.is_empty():
+		payload["staffing"] = {
+			"notice": engine.SUSPENDED_NOTICE,
+			"suspended": _staffing_notice.duplicate(true),
+		}
+		for s in _staffing_notice:
+			payload["stopped"].append({
+				"skill_id": String(s.get("skill_id", "")),
+				"content_id": String(s.get("content_id", "")),
+				"reason": engine.STOP_POSTING_SUSPENDED,
+			})
+		_staffing_notice = []
+	if int(payload["elapsed_ms"]) > 0 or payload.has("staffing"):
 		mail_call_ready.emit(payload)
 		batcher.force_flush(sim_time_ms)
 	state.last_mail_call = payload

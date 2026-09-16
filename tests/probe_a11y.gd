@@ -38,7 +38,7 @@ extends SceneTree
 const REVIEW_DIR := "res://.impeccable/review/t15"
 const CAPTURE_UNSUPPORTED_EXIT := 42
 const DEPT_IDS := ["scavenging", "foraging", "junksmithing", "cooking",
-	"wasteland_patrol", "requisition_depot", "manifest"]
+	"wasteland_patrol", "requisition_depot", "manifest", "personnel"]
 const SOURCE_SCAN := [
 	"res://scenes/main.gd",
 	"res://scripts/ui/docket.gd",
@@ -125,6 +125,11 @@ func _contrast_audit() -> void:
 	# RUNNING (craft), patrol FIGHTING (+ all four phase wordings), the rest
 	# idle (gates visible at low clearances; depot poor-wallet BUY x0
 	# disabled; manifest with an equipped weapon + vacant armor slot).
+	# T17: the sweep's concurrency (scavenging + junksmithing + an engaged
+	# patrol = 3 postings) staffs through the engine seam — the purchase flow
+	# itself is tests/test_staffing.gd's subject.
+	_tm().engine.ensure_staffing(_tm().state)
+	_tm().state.staffing["deputies"] = 4
 	_tm().start_activity("sort_scrap_pile")
 	for id in DEPT_IDS:
 		if id == "junksmithing":
@@ -647,7 +652,7 @@ func _check(ok: bool, label: String) -> void:
 func _report_and_quit() -> void:
 	_done = true
 	if failures.is_empty():
-		print("PROBE_OK checks=%d (contrast re-audit of final screens: %d distinct rendered pairs, all AA, amber-on-steel large-only, energized hover >= 4.5; font 200%%: column fits 1280, all 7 dockets fit, every focusable reachable + scrolled into view, CLOCK OUT on screen, modal trapped + escaped; collapse guard: every visible Label >= its longest word at 100%% and 200%% on all departments + the modal; motion bounded, no looping tweens)" % [checks, _pairs.size()])
+		print("PROBE_OK checks=%d (contrast re-audit of final screens: %d distinct rendered pairs, all AA, amber-on-steel large-only, energized hover >= 4.5; font 200%%: column fits 1280, all %d dockets fit, every focusable reachable + scrolled into view, CLOCK OUT on screen, modal trapped + escaped; collapse guard: every visible Label >= its longest word at 100%% and 200%% on all departments + the modal; motion bounded, no looping tweens)" % [checks, _pairs.size(), DEPT_IDS.size()])
 		quit(0)
 	else:
 		printerr("PROBE_FAILED checks=%d failures=%d" % [checks, failures.size()])

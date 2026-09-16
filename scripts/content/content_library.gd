@@ -16,6 +16,7 @@ var monsters: Dictionary = {}  ## String -> MonsterDef
 var equipment: Dictionary = {}  ## String (item id) -> EquipmentDef
 var shop_stock: Array[ShopEntryDef] = []  ## File order = Depot display order.
 var xp_curves: Dictionary = {}  ## String -> XpCurveDef
+var deputies: Array[DeputyDef] = []  ## T17 staffing ladder; file order = purchase order.
 
 
 func item(id: String) -> ItemDef:
@@ -54,6 +55,15 @@ func shop_entries() -> Array[ShopEntryDef]:
 	return shop_stock
 
 
+## Crowns the NEXT deputy costs at the current rung (deputies owned so far =
+## `rung`, 0-based). -1 when the establishment is already at full strength
+## (rung >= ladder size) — the engine surfaces that as its own refusal.
+func deputy_price_at(rung: int) -> int:
+	if rung < 0 or rung >= deputies.size():
+		return -1
+	return deputies[rung].price
+
+
 ## The id -> def dictionary backing a domain name (loader cross-check helper).
 func _pool(domain: String) -> Dictionary:
 	match domain:
@@ -71,7 +81,7 @@ func _pool(domain: String) -> Dictionary:
 func record_count() -> int:
 	return items.size() + skills.size() + activities.size() + recipes.size() \
 		+ drop_tables.size() + monsters.size() + equipment.size() \
-		+ shop_stock.size() + xp_curves.size()
+		+ shop_stock.size() + xp_curves.size() + deputies.size()
 
 
 ## Items with no obtainment path (no drop table, recipe output, or shop stock

@@ -60,9 +60,15 @@ const T19_IDS := ["stat_condition", "stat_accuracy", "stat_evade", "stat_max_hit
 	"stat_interval", "clearance_step", "deputy_badge", "orient_arrow",
 	"stamp_check", "btn_engage", "btn_withdraw", "btn_deputize"]
 const T19_UI_CONSUMED := ["stat_condition", "stat_accuracy", "stat_evade", "stat_max_hit",
-	"stat_interval", "clearance_step", "btn_engage", "btn_withdraw"]
-const T19_RESERVED := ["deputy_badge", "orient_arrow", "stamp_check", "btn_deputize"]
-const EXPECTED_COUNT := 53
+	"stat_interval", "clearance_step", "btn_engage", "btn_withdraw",
+	# T17 shipped the posting board: the badge pair + the deputize verb glyph
+	# are live consumers now (moved off the reserved list).
+	"deputy_badge", "btn_deputize"]
+const T19_RESERVED := ["orient_arrow", "stamp_check"]
+# T17: the badge's outline sibling (AVAILABLE state — the posting board's
+# empty rows). Authored this task per the grammar's state-pair rule.
+const T17_IDS := ["deputy_badge_outline"]
+const EXPECTED_COUNT := 54
 
 var checks := 0
 var failures: Array[String] = []
@@ -319,6 +325,14 @@ func _check_t19_surface() -> void:
 		if icon == "deputy_badge":
 			check('fill="#20334F"' in text,
 				"deputy_badge ships the FILLED state (ASSIGNED — fill, not color)")
+		if icon == "deputy_badge_outline":
+			# The state pair is the FILL on an otherwise identical silhouette:
+			# the tag body must be bone (outline), never navy-filled.
+			var body := 'd="M 38 42 H 90 L 96 48 V 96 Q 96 102 90 102 H 38 Q 32 102 32 96 V 48 Z"'
+			check(body in text and 'fill="#F2EDE3"' in text,
+				"deputy_badge_outline ships the OUTLINE state (bone body = AVAILABLE)")
+			check(not ('<path d="M 38 42 H 90 L 96 48 V 96 Q 96 102 90 102 H 38 Q 32 102 32 96 V 48 Z" fill="#20334F"' in text),
+				"deputy_badge_outline never navy-fills the tag body (that is the ASSIGNED glyph)")
 		# The clearance glyph is a staircase, NEVER a padlock: the silhouette
 		# contract pins the three-step rise as the file's only closed form.
 		if icon == "clearance_step":
@@ -400,8 +414,8 @@ func _build_gallery() -> bool:
 	var col := VBoxContainer.new()
 	margin.add_child(col)
 	var title := Label.new()
-	title.text = "ICON SET - %d ORIGINAL SVG (%d CONTENT-REFERENCED + CROWNS + FOOD MARK + 12 T19 GLYPHS)" % [
-		_icon_files.size(), _icon_files.size() - EXTRA_IDS.size() - T19_IDS.size()]
+	title.text = "ICON SET - %d ORIGINAL SVG (%d CONTENT-REFERENCED + CROWNS + FOOD MARK + 12 T19 GLYPHS + 1 T17 OUTLINE SIBLING)" % [
+		_icon_files.size(), _icon_files.size() - EXTRA_IDS.size() - T19_IDS.size() - T17_IDS.size()]
 	title.add_theme_color_override("font_color", SignageTokens.BONE_ENAMEL)
 	col.add_child(title)
 
@@ -469,7 +483,7 @@ func _validate_saved_png() -> void:
 	check(colors.has(SignageTokens.STEEL_DEEP.to_html(true)), "%s shows the steel-deep gallery ground" % CAPTURE_PNG)
 	check(colors.has(SignageTokens.BONE_ENAMEL.to_html(true)), "%s shows bone enamel platelets" % CAPTURE_PNG)
 	# Every icon must be fully on-canvas: detect the bone-enamel badge rows and
-	# require complete grid rows (53 icons / 8 columns = 7 rows), none clipped
+	# require complete grid rows (54 icons / 8 columns = 7 rows), none clipped
 	# at the bottom edge. The title band (text, not badges) is the first run.
 	var bone_rows: Array[int] = []
 	for y in range(0, img.get_height(), 2):

@@ -16,7 +16,8 @@ extends Node
 ##     observe a torn primary (the rename is atomic), and a machine power loss
 ##     degrades to the previous last-good file — never garbage.
 ##   • save_version migrations: ordered, named `_migrate_<n>_to_<n+1>` chain
-##     (v1 is current; a save loads only after reaching SAVE_VERSION).
+##     (v2 is current — v1→v2 seeds the T17 staffing namespace; a save loads
+##     only after reaching SAVE_VERSION).
 ##   • load path: primary -> quarantine on hard failure -> backup ring
 ##     newest-first by mtime -> fresh state + corruption NOTICE (a signal + a
 ##     flag — never a crash). Corrupt files are NEVER deleted: the primary is
@@ -71,7 +72,7 @@ signal save_completed(result: Dictionary)
 ## result: {"ok": bool, "reason": String, "unix_ms": int}
 signal notice_raised(kind: String, detail: Dictionary)
 
-const SAVE_VERSION := 1
+const SAVE_VERSION := 2
 const SAVE_NAME := "save.json"
 const TMP_NAME := "save.json.tmp"
 const BACKUP_SLOTS := 3
@@ -430,6 +431,23 @@ func _read_save(path: String) -> Dictionary:
 
 # -------------------------------------------------------------- migrations --
 
+## v1 -> v2 (T17 personnel system): seed engine.staffing — deputies 0 (the
+## progressed player keeps EVERYTHING and gains no free deputies), no
+## suspended postings yet. A v1 record with more running skills than the one
+## posting this implies is NOT transformed here — over-subscription is live
+## engine state, not file shape: TickManager.adopt_state runs
+## ActivityEngine.enforce_staffing, which keeps the most-recently-started
+## posting active, parks the rest in staffing.suspended (full slot state,
+## never silently dropped), and queues the "POSTINGS SUSPENDED — PERSONNEL
+## SHORTAGE" MAIL CALL notice. Pure doc transform here; stamps version 2.
+func _migrate_1_to_2(doc: Dictionary) -> Dictionary:
+	var engine_ns: Dictionary = doc.get("engine", {})
+	engine_ns["staffing"] = {"deputies": 0, "suspended": {}}
+	doc["engine"] = engine_ns
+	doc["save_version"] = 2
+	return doc
+
+
 ## Ordered migration chain hook. To grow the format: bump SAVE_VERSION, write
 ## `func _migrate_<n>_to_<n+1>(doc) -> Dictionary` stamping the new version.
 ## A missing step is a hard refusal (never guess a transformation); the chain
@@ -523,6 +541,32 @@ func _validate_doc(d: Dictionary) -> String:
 	var combat: Variant = e.get("combat", {})
 	if combat is not Dictionary:
 		return "engine.combat is not an object (reserved T7 namespace)"
+	# T17 staffing namespace (v2 requires it — the migration seeds it).
+	# Over-subscription is deliberately NOT rejected here: an
+	# over-subscribed-but-shape-valid record is repaired by
+	# ActivityEngine.enforce_staffing at adopt (suspend + honest notice),
+	# never discarded as corrupt (Hulk lens: the player keeps everything).
+	var staffing: Variant = e.get("staffing")
+	if staffing is not Dictionary:
+		return "engine.staffing missing or not an object (required since save_version 2)"
+	var deputies_v: Variant = (staffing as Dictionary).get("deputies")
+	if not _is_number(deputies_v) or int(deputies_v) < 0 or int(deputies_v) > 4:
+		return "engine.staffing.deputies must be an integer 0-4 (1 resident + 4 deputies = 5 postings)"
+	var suspended: Variant = (staffing as Dictionary).get("suspended", {})
+	if suspended is not Dictionary:
+		return "engine.staffing.suspended is not an object"
+	for skill_id in (suspended as Dictionary):
+		var suspended_skill: SkillDef = lib.skills.get(skill_id)
+		if suspended_skill == null:
+			return "staffing.suspended references unknown skill '%s'" % skill_id
+		if suspended_skill.is_combat():
+			return "staffing.suspended parks a slot on combat skill '%s' (a suspended patrol withdraws to idle, it parks nothing)" % skill_id
+		var parked: Variant = (suspended as Dictionary)[skill_id]
+		if parked is not Dictionary:
+			return "staffing.suspended['%s'] is not an object" % skill_id
+		var parked_why := _validate_slot(parked, String(skill_id), lib)
+		if parked_why != "":
+			return "staffing." + parked_why
 	return ""
 
 

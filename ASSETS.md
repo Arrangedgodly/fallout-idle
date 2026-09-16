@@ -3,7 +3,8 @@
 <!-- Format per docs/ultron/research/r3-cc0-assets.md. Fonts (T8) are OFL-licensed
      downloads from the official google/fonts repository; theme textures are
      original geometry authored in-repo. T11 appends icon rows here; T19 appends
-     the 12 icon-grammar glyph rows (stat/clearance/badge/orientation/button). -->
+     the 12 icon-grammar glyph rows (stat/clearance/badge/orientation/button);
+     T17 appends the badge outline sibling (AVAILABLE state, posting board). -->
 
 | Path | Kind | Author | Source | License | Verified | Verifier |
 |------|------|--------|--------|---------|----------|----------|
@@ -73,6 +74,7 @@
 | assets/icons/btn_engage.svg | icon | Valued Resident pipeline (T19, ZCode session) | original | original | 2026-09-16 | T19 agent |
 | assets/icons/btn_withdraw.svg | icon | Valued Resident pipeline (T19, ZCode session) | original | original | 2026-09-16 | T19 agent |
 | assets/icons/btn_deputize.svg | icon | Valued Resident pipeline (T19, ZCode session) | original | original | 2026-09-16 | T19 agent |
+| assets/icons/deputy_badge_outline.svg | icon | Valued Resident pipeline (T17, ZCode session) | original | original | 2026-09-16 | T17 agent |
 | assets/icons/wasteland_combat.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
 
 ## Dev tooling (exempt from the shipped-asset gate)

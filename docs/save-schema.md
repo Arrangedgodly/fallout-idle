@@ -10,7 +10,8 @@ separation rule, Doctor Strange's versioning-from-day-1 claim).
 
 ## Versioning rules (binding, unchanged since T2)
 
-- Top-level `save_version: 1` today. Bump on any shape change.
+- Top-level `save_version: 2` today (v2 = the T17 staffing namespace; v1
+  records migrate up — see "Migration 1→2"). Bump on any shape change.
 - Every migration is a named, ordered function (e.g.
   `_migrate_1_to_2(dict) -> dict`); a save loads only after being migrated up
   to the current `save_version`. The chain hook lives in SaveStore
@@ -34,7 +35,7 @@ separation rule, Doctor Strange's versioning-from-day-1 claim).
   `content_schema_version` and compared on load: a mismatch is a diagnostic
   (warned, exposed in `SaveStore.content_drift`), never a load failure.
 
-## Shape (save_version 1 — AS SHIPPED by T3)
+## Shape (save_version 2 — v1 + the staffing namespace; T3's layout otherwise unchanged)
 
 T6's per-skill slot model replaced the T2 sketch's single `activity_state`
 line (T3 owned the final layout per the T2 hand-off note); `save_version`
@@ -67,11 +68,44 @@ stays 1 because no v1 record predates this layout. `engine` is
 				"stream_started": true
 			}
 		},
-		"combat": {}                  // reserved namespace, passed through for T7
+		"combat": {},                 // T7 namespace (CombatSession owns semantics)
+		"staffing": {                 // T17 namespace (save_version 2)
+			"deputies": 1,        // int 0-4; postings = 1 + deputies
+			"suspended": {}       // skill_id -> parked ActiveSlot dict (see below)
+		}
 	},
 	"settings": { "font_scale": 1.0, "fullscreen": false }  // steps 1.0/1.5/2.0
 }
 ```
+
+## Migration 1→2 (T17 — the personnel system)
+
+`_migrate_1_to_2` is a pure document transform: it seeds
+`engine.staffing = {"deputies": 0, "suspended": {}}` and stamps
+`save_version: 2`. A progressed v1 player keeps EVERYTHING and gains 0
+deputies (one posting).
+
+A v1 record may carry MORE running skills than one posting (run-1 allowed
+all five concurrent). That over-subscription is live engine state, not file
+shape, so the migration does NOT touch the slots — `TickManager.adopt_state`
+runs `ActivityEngine.enforce_staffing` on every load: the MOST-RECENTLY-
+STARTED posting stays active (an engaged patrol competes on its
+`engage_ms`), the losers are suspended with zero loss —
+
+- skill slots park in `staffing.suspended[skill_id]` as full ActiveSlot
+  dicts (anchor, completed count, RNG position — state is never silently
+  dropped); a later re-post on that skill supersedes the parked entry;
+- a losing patrol withdraws to idle (designation preserved — patrol
+  suspension parks nothing; the monster id already lives in `combat`),
+
+and the MAIL CALL carries the honest notice:
+`payload.staffing = {"notice": "POSTINGS SUSPENDED — PERSONNEL SHORTAGE",
+"suspended": [...]}` plus one `stopped` line per suspended posting (reason
+`posting_suspended`). The mail call posts even when the offline gap is
+zero — the notice is the point. Validation never rejects an
+over-subscribed record as corrupt (repair beats discard: the player keeps
+everything); `staffing.deputies` must be an integer 0-4 and parked slots
+validate against content exactly like active ones.
 
 ## File mechanics (T3-owned, as shipped)
 

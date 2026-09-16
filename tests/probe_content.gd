@@ -19,9 +19,9 @@ extends SceneTree
 const DOMAIN_FILES := [
 	"items.json", "skills.json", "activities.json", "recipes.json",
 	"drop_tables.json", "monsters.json", "equipment.json", "shop_stock.json",
-	"xp_curves.json",
+	"xp_curves.json", "staffing.json",
 ]
-const GOLDEN_RECORD_COUNT := 79  # 21 items + 5 skills + 8 activities + 11 recipes + 13 drop tables + 5 monsters + 4 equipment + 11 shop lines + 1 curve (T5 set)
+const GOLDEN_RECORD_COUNT := 83  # 21 items + 5 skills + 8 activities + 11 recipes + 13 drop tables + 5 monsters + 4 equipment + 11 shop lines + 1 curve + 4 deputy rungs (T5 set + T17 staffing)
 
 var checks := 0
 var failures: Array[String] = []
@@ -129,6 +129,14 @@ func _check_golden_set() -> void:
 	_check(curve != null and curve.total_xp_to_reach(1) == 0 and curve.total_xp_to_reach(2) == 20 and curve.level_for_total_xp(20) == 2 and curve.xp_to_next(99) == 0,
 		"xp curve closed-form helpers are int-exact")
 
+	# Staffing ladder (T17) — typed hydration + the read path the engine uses.
+	_check(lib.deputies.size() == 4, "staffing ladder posts exactly 4 rungs (1 + 4 = 5 postings)")
+	var rung0: DeputyDef = lib.deputies[0]
+	_check(rung0 != null and rung0.id == "second_deputy" and typeof(rung0.price) == TYPE_INT and rung0.price == 75,
+		"first deputy rung hydrates (id + int price 75)")
+	_check(lib.deputy_price_at(0) == 75 and lib.deputy_price_at(3) == 12000 and lib.deputy_price_at(4) == -1,
+		"deputy_price_at() reads the ladder and returns -1 past the cap")
+
 	# Whole-library shape.
 	_check(lib.record_count() == GOLDEN_RECORD_COUNT, "library record_count() == %d" % GOLDEN_RECORD_COUNT)
 
@@ -213,6 +221,23 @@ func _check_malformed_set() -> void:
 		for err in missing.errors:
 			print("    mutated-set error: " + err)
 		_check_contains(missing.errors, "data/monsters.json: required content file is missing", "missing domain file error names the file")
+
+	# Defect 4 — T17: a deputy ladder that gets cheaper is rejected (the
+	# cross-check pins rung count + non-decreasing prices).
+	var cheap_ladder := _load_mutated_fixture("cheap_ladder", func(action: String, file_name: String, text: String) -> Variant:
+		if action == "skip_file":
+			return false
+		if file_name != "staffing.json":
+			return text
+		var doc: Dictionary = JSON.parse_string(text)
+		doc["deputies"][1]["price"] = 10
+		return JSON.stringify(doc, "	"))
+	_check(cheap_ladder != null and not cheap_ladder.ok(), "cheaper deputy rung is rejected (ok() == false)")
+	if cheap_ladder != null:
+		for err in cheap_ladder.errors:
+			print("    mutated-set error: " + err)
+		_check_contains(cheap_ladder.errors, "deputies[1] (id=third_deputy) · price: 10 is lower than the previous rung's 75",
+			"descending-ladder error names the rung + both prices")
 
 	_check(wrong_type != null and dangling != null and missing != null
 		and wrong_type.errors.size() + dangling.errors.size() + missing.errors.size() >= 3,

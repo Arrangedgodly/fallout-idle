@@ -116,6 +116,9 @@ func _setup_worst_case() -> void:
 		_fail("worst-case gear equips")
 		_finish()
 		return
+	# T17: worst-case slice = 4 skill postings + the patrol (5 of 5).
+	_tm.engine.ensure_staffing(_tm.state)
+	_tm.state.staffing["deputies"] = 4
 	for content_id in ["sort_scrap_pile", "walk_the_glow_rows",
 			"smelt_scrap_ingot", "grind_mandatory_grits"]:
 		var r: Dictionary = _tm.start_activity(content_id)

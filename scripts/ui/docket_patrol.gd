@@ -161,6 +161,11 @@ func _build_content() -> void:
 	phase_plate.add_child(prow)
 	add_child(phase_plate)
 
+	# T17: the POSTING REFUSED directive plate — an ENGAGE with no free
+	# posting is refused, never preempted; the directive stands exactly while
+	# the establishment is full (refresh_refusal_plate gates on engine truth).
+	add_child(build_refusal_plate())
+
 	# The battle board: player + monster HP as enamel gauges with mono reads.
 	# T15: the long serial MicroLabels wrap — at 200% font scale they are the
 	# vent's widest lines and must never demand horizontal scrolling.
@@ -455,6 +460,9 @@ func _engage(monster_id: String) -> void:
 	if bool(result["ok"]):
 		_stamp("PATROL ENGAGED — %s" % mname,
 			icon_texture(mdef.icon) if mdef != null else null)
+	elif str(result.get("kind", "")) == "posting_refused":
+		_stamp("POSTING REFUSED — ALL DEPUTIES ARE ASSIGNED. THE DIRECTIVE IS POSTED BELOW.",
+			icon_texture(GLYPH_BADGE))
 	else:
 		_stamp("%s · ELEVATION IS EARNED, NOT REQUESTED" % str(result["reason"]).to_upper(),
 			icon_texture(GLYPH_CLEARANCE))
@@ -511,12 +519,13 @@ func _combat_skill_id() -> String:
 func _refresh(changes: Dictionary) -> void:
 	if tm == null or state() == null:
 		return
-	if changes.has("combat") or changes.has("inventory"):
+	if changes.has("combat") or changes.has("inventory") or changes.has("staffing"):
 		_refresh_battle()
 	if changes.has("xp"):
 		_refresh_gauge()
 	if changes.has("inventory"):
 		_refresh_food()
+	refresh_refusal_plate()
 
 
 ## The battle board: swing/eat attribution stamps, gauges, phase plate, cards,

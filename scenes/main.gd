@@ -4,7 +4,8 @@ extends Control
 ##
 ## FIRST VIEWPORT (docs/ultron/design-brief.md — law for this surface): the
 ## shelter concourse — a wall of department plates (Scavenging, Foraging,
-## Junksmithing, Cooking, Wasteland Patrol, Requisition Depot, Manifest) behind
+## Junksmithing, Cooking, Wasteland Patrol, Requisition Depot, Manifest, and
+## — since T17 — Personnel) behind
 ## a half-open bulkhead door with wasteland daylight spilling in at the left
 ## edge. The active department's plate is energized — amber, swells forward,
 ## and carries a ">> " label prefix so the state never rides on color alone
@@ -80,12 +81,17 @@ const DEPARTMENTS := [
 		"notice": "WELCOME, VALUED RESIDENT. TENDERS EXACT. RETURNS ARE A FUTURE DEPARTMENT.",
 		"stamp": "TENDERS EXACT",
 	},
-	{
-		"id": "manifest", "plate": "MANIFEST", "serial": "D-07",
-		"notice": "EVERYTHING IN ITS PLACE. THE MANIFEST REMEMBERS WHAT YOU FORGET.",
-		"stamp": "COUNTED WEEKLY",
-	},
-]
+		{
+			"id": "manifest", "plate": "MANIFEST", "serial": "D-07",
+			"notice": "EVERYTHING IN ITS PLACE. THE MANIFEST REMEMBERS WHAT YOU FORGET.",
+			"stamp": "COUNTED WEEKLY",
+		},
+		{
+			"id": "personnel", "plate": "PERSONNEL", "serial": "D-08",
+			"notice": "POSTINGS ARE EARNED, STAFFED, AND CHEERFULLY AUDITED. THE BOARD DOES NOT PLAY FAVORITES. IT MERELY POSTS.",
+			"stamp": "STAFFING CURRENT",
+		},
+	]
 
 const TITLE := "VALUED RESIDENT"
 const SUBTITLE := "AN IDLE WASTELAND · A D.O.C.S. FACILITY"
@@ -104,8 +110,9 @@ const FONT_STEPS := [1.0, 1.5, 2.0]
 
 ## Department hotkeys (R3): the digit row and the keypad both select; the
 ## index is the plate's position + 1 (the designation digit it posts).
-const HOTKEY_KEYS := [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7,
-	KEY_KP_1, KEY_KP_2, KEY_KP_3, KEY_KP_4, KEY_KP_5, KEY_KP_6, KEY_KP_7]
+## T17: the eighth plate — PERSONNEL, digit 8, D-08.
+const HOTKEY_KEYS := [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8,
+	KEY_KP_1, KEY_KP_2, KEY_KP_3, KEY_KP_4, KEY_KP_5, KEY_KP_6, KEY_KP_7, KEY_KP_8]
 
 var first_run := true
 var font_slider: HSlider
@@ -163,10 +170,14 @@ func _ready() -> void:
 
 ## The first container layout pass resets child transforms assigned during
 ## _ready, so the boot swell is re-asserted one frame later, after layout.
+## T17: the chalk re-positions on the same settle — the first pass leaves it
+## at a stale plate position whenever the plate wall's layout shifts late
+## (an eighth plate joined the wall).
 func _settle_boot_swell() -> void:
 	await get_tree().process_frame
 	if is_inside_tree() and not _transitioning and _plates.has(_active_id):
 		_set_plate_state(_plates[_active_id], true, false)
+		_position_chalk()
 
 # ------------------------------------------------------------------ public API
 ## Press-free programmatic entry (probe + future hotkeys). Emits the same
@@ -280,7 +291,9 @@ func bind_engines(p_tm: Node = null, p_save: Node = null) -> void:
 	save_board.bind(new_save)
 	if rebound:
 		var cached: Dictionary = _tm.state.last_mail_call
-		if int(cached.get("elapsed_ms", 0)) > 0:
+		# T17: a staffing-migration notice is presentable even at a zero
+		# offline gap (the notice IS the mail) — see TickManager's contract.
+		if int(cached.get("elapsed_ms", 0)) > 0 or cached.has("staffing"):
 			mail_call.present(cached, _tm.engine.lib)
 
 
@@ -421,7 +434,7 @@ func _build_plate_wall() -> Control:
 	scroll.custom_minimum_size = Vector2(360.0, 0.0)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var wall := _vbox(10)
+	var wall := _vbox(6)
 	wall.name = "PlateWall"
 	wall.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(wall)
@@ -429,7 +442,13 @@ func _build_plate_wall() -> Control:
 		var d: Dictionary = DEPARTMENTS[i]
 		var plate := Button.new()
 		plate.name = "Plate_" + d.id
-		plate.custom_minimum_size = Vector2(340.0, 56.0)
+		# T17: the eighth plate (PERSONNEL) made the wall overflow the 720p
+		# minimum shell — a scrollable wall breaks the arrow-column contract
+		# (Godot's focus-neighbor search skips out-of-view controls) and the
+		# START HERE chalk's settle pass. 50 px plates at 6 px separation keep
+		# all eight on the wall at 1280x720 (8*50 + 7*6 = 442 <= 452); larger
+		# windows simply breathe more.
+		plate.custom_minimum_size = Vector2(340.0, 50.0)
 		plate.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		plate.text = _plate_text(d, i)
 		plate.tooltip_text = "Open the %s docket (press %d)" % [d.plate.capitalize(), i + 1]
@@ -520,6 +539,8 @@ func _build_docket(d: Dictionary) -> Control:
 			controller = DocketManifest.new()
 		"requisition_depot":
 			controller = DocketDepot.new()
+		"personnel":
+			controller = DocketPersonnel.new()
 	controller.name = "Content_" + d.id
 	controller.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(controller)
@@ -540,6 +561,8 @@ func _build_docket(d: Dictionary) -> Control:
 		(controller as DocketSkill).primary_button = begin
 	elif controller is DocketPatrol:
 		(controller as DocketPatrol).primary_button = begin
+	elif controller is DocketPersonnel:
+		(controller as DocketPersonnel).primary_button = begin
 
 	# T15: the docket's footer serial wraps (its width would otherwise lead
 	# the docket at 200% font scale).

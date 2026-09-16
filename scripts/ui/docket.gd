@@ -30,6 +30,17 @@ const GLYPH_MAX_HIT := "stat_max_hit"
 const GLYPH_INTERVAL := "stat_interval"
 const GLYPH_CLEARANCE := "clearance_step"
 
+## T17 worker-badge glyphs (icon-grammar addendum: the state pair is the FILL —
+## filled badge = ASSIGNED, outline badge = AVAILABLE).
+const GLYPH_BADGE := "deputy_badge"
+const GLYPH_BADGE_OUTLINE := "deputy_badge_outline"
+
+## T17 POSTING REFUSED directive (naming-bible §10 — verbatim, binding):
+## the plate head + the fact-and-both-remedies serial. Refusal, never denial
+## of service (voice rule R3); a notice, not a modal gate.
+const REFUSAL_HEAD := "POSTING REFUSED"
+const REFUSAL_SERIAL := "ALL DEPUTIES ARE ASSIGNED. CEASE A POSTING, OR DEPUTIZE ANOTHER RESIDENT AT THE PERSONNEL PLATE. EITHER REMEDY IS CHEERFULLY SUPPORTED."
+
 ## T19 inline sizes (16-24 px legibility band, capture-reviewed).
 const GLYPH_INLINE := 18
 const GLYPH_READ := 20
@@ -273,6 +284,46 @@ func set_flow_variation(flow: Node, variation: String) -> void:
 	for child in flow.get_children():
 		if child is Label:
 			(child as Label).theme_type_variation = variation
+
+
+# ------------------------------------------------- T17 posting-refusal plate
+## The POSTING REFUSED directive plate (shared by every docket that can
+## request a posting — skill dockets and the patrol). Energized ground +
+## filled deputy badge + the verbatim naming-bible serial; the caller mounts
+## it and keeps `refusal_plate.visible = (engine.free_postings() == 0)` in
+## its refresh, so the directive is posted exactly while it is TRUE (the
+## board is full) and withdraws the moment a posting frees or a deputy is
+## deputized — refinement-2 discipline: copy never outlives its fact.
+var refusal_plate: PanelContainer
+var refusal_head: Label
+var refusal_serial: Label
+
+
+func build_refusal_plate() -> PanelContainer:
+	refusal_plate = panel_box("EnergizedPlate")
+	refusal_plate.name = "PostingRefusedPlate"
+	refusal_plate.visible = false
+	var col := vbox(4)
+	var head_row := hbox(10)
+	head_row.add_child(icon_rect(GLYPH_BADGE, GLYPH_READ))
+	refusal_head = label("MonoValueEnergized", REFUSAL_HEAD)
+	refusal_head.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	head_row.add_child(refusal_head)
+	col.add_child(head_row)
+	refusal_serial = label("PlateBodyEnergized", REFUSAL_SERIAL)
+	refusal_serial.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(refusal_serial)
+	refusal_plate.add_child(col)
+	refusal_plate.tooltip_text = "The posting board is full. Cease a posting, or deputize another resident at the Personnel plate (press 8)."
+	return refusal_plate
+
+
+## Truth-gated visibility (call from _refresh): the directive stands exactly
+## while the establishment has no free posting.
+func refresh_refusal_plate() -> void:
+	if refusal_plate == null or tm == null or state() == null:
+		return
+	refusal_plate.visible = tm.free_postings() == 0
 
 
 ## [glyph][wrapped serial] row: the one sanctioned HBox shape for a glyph

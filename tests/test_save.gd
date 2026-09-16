@@ -153,6 +153,11 @@ func _assert_states_equal(a: PlayerState, b: PlayerState, label: String) -> void
 		assert_eq(sa.rng_seed, sb.rng_seed, "%s: '%s' rng seed exact (int64 via string)" % [label, skill_id])
 		assert_eq(sa.rng_state, sb.rng_state, "%s: '%s' rng state exact (int64 via string)" % [label, skill_id])
 		assert_eq(sa.stream_started, sb.stream_started, "%s: '%s' stream positioned" % [label, skill_id])
+	assert_eq(int(a.staffing.get("deputies", -1)), int(b.staffing.get("deputies", -1)),
+		"%s: staffing deputies (T17 namespace)" % label)
+	assert_eq((a.staffing.get("suspended", {}) as Dictionary).keys(),
+		(b.staffing.get("suspended", {}) as Dictionary).keys(),
+		"%s: suspended postings keys (T17 namespace)" % label)
 
 
 # ---------------------------------------------------------------------------
@@ -162,6 +167,9 @@ func _assert_states_equal(a: PlayerState, b: PlayerState, label: String) -> void
 func test_round_trip_deep_equal() -> void:
 	var dir := _tmp_dir("roundtrip")
 	var tm1: Variant = _make_tm()
+	# T17: two concurrent slots need a deputy — staff through the seam.
+	tm1.engine.ensure_staffing(tm1.state)
+	tm1.state.staffing["deputies"] = 1
 	assert_true(tm1.start_activity("sort_scrap_pile")["ok"], "scavenging slot running")
 	assert_true(tm1.start_activity("walk_the_glow_rows")["ok"], "foraging slot running")
 	_pump(tm1, 30_000, 1_000)
@@ -177,7 +185,8 @@ func test_round_trip_deep_equal() -> void:
 
 	# Envelope sanity, straight off the disk.
 	var doc: Dictionary = JSON.parse_string(_read(dir.path_join("save.json")))
-	assert_eq(int(doc["save_version"]), 1, "save_version 1 on disk")
+	assert_eq(int(doc["save_version"]), 2, "save_version 2 on disk (T17 staffing format)")
+	assert_true(doc["engine"].has("staffing"), "the staffing namespace ships in the engine record")
 	assert_eq(int(doc["content_schema_version"]), ContentLoader.SCHEMA_VERSION,
 		"content schema recorded for drift diagnostics")
 	assert_eq(int(doc["anchor_unix_ms"]), NOW + 1_000, "offline anchor is the filing wall moment")
@@ -415,28 +424,50 @@ func test_atomic_write_rotates_without_temp_leftovers() -> void:
 class MigratingStore:
 	extends "res://scripts/autoload/save_store.gd"
 
-	func _migrate_1_to_2(doc: Dictionary) -> Dictionary:
-		doc["save_version"] = 2
-		doc["engine"]["stamped_by"] = "1_to_2"
+	# T17: production registers 1→2, so the hook drill walks the NEXT
+	# hypothetical step (2→3) — same proof, live edge moved forward.
+	func _migrate_2_to_3(doc: Dictionary) -> Dictionary:
+		doc["save_version"] = 3
+		doc["engine"]["stamped_by"] = "2_to_3"
 		return doc
 
 
 func test_migration_hook_walks_ordered_named_functions() -> void:
-	var doc := {"save_version": 1, "engine": {"crowns": 5}}
-	# Base class: no 1→2 step registered → hard refusal, never a guess.
+	var doc := {"save_version": 2, "engine": {"crowns": 5}}
+	# Base class: no 2→3 step registered → hard refusal, never a guess.
 	var base_store: Variant = SaveStoreScript.new()
 	autofree(base_store)
-	var missing: Dictionary = base_store._apply_migrations(doc.duplicate(true), 2)
+	var missing: Dictionary = base_store._apply_migrations(doc.duplicate(true), 3)
 	assert_false(missing["ok"], "unregistered migration step refuses")
-	assert_true(String(missing["reason"]).contains("_migrate_1_to_2"), "refusal names the missing step")
+	assert_true(String(missing["reason"]).contains("_migrate_2_to_3"), "refusal names the missing step")
 	# Subclass: the named, ordered chain runs and stamps.
 	var store: Variant = MigratingStore.new()
 	autofree(store)
-	var walked: Dictionary = store._apply_migrations(doc.duplicate(true), 2)
+	var walked: Dictionary = store._apply_migrations(doc.duplicate(true), 3)
 	assert_true(walked["ok"], "registered migration chain applies")
 	var out: Dictionary = walked["doc"]
-	assert_eq(int(out["save_version"]), 2, "chain stamps the new version")
-	assert_eq(String(out["engine"]["stamped_by"]), "1_to_2", "the named ordered function ran")
+	assert_eq(int(out["save_version"]), 3, "chain stamps the new version")
+	assert_eq(String(out["engine"]["stamped_by"]), "2_to_3", "the named ordered function ran")
+
+
+## T17: the PRODUCTION v1→v2 step — pure transform, seeds staffing, stamps 2.
+func test_production_migration_1_to_2_seeds_staffing() -> void:
+	var store: Variant = SaveStoreScript.new()
+	autofree(store)
+	var v1 := {
+		"save_version": 1,
+		"engine": {"crowns": 5, "active": {"scavenging": {"skill_id": "scavenging"}}},
+	}
+	var walked: Dictionary = store._apply_migrations(v1.duplicate(true), 2)
+	assert_true(walked["ok"], "production 1→2 chain applies")
+	var out: Dictionary = walked["doc"]
+	assert_eq(int(out["save_version"]), 2, "stamps save_version 2")
+	var staffing: Dictionary = out["engine"]["staffing"]
+	assert_eq(int(staffing["deputies"]), 0, "v1 players gain 0 deputies (one posting)")
+	assert_eq(staffing["suspended"], {}, "no suspended postings at migration time")
+	# Untouched pass-throughs: the migration changes shape, never progress.
+	assert_eq(int(out["engine"]["crowns"]), 5, "crowns untouched")
+	assert_true(out["engine"]["active"].has("scavenging"), "active slots untouched (enforcement is load-time engine state)")
 
 
 # ---------------------------------------------------------------------------

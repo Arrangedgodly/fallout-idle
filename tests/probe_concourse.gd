@@ -71,9 +71,9 @@ const REVIEW_DIR := "res://.impeccable/review/t9"
 const CAPTURE_UNSUPPORTED_EXIT := 42
 
 const EXPECTED_PLATES := ["SCAVENGING", "FORAGING", "JUNKSMITHING", "COOKING",
-	"WASTELAND PATROL", "REQUISITION DEPOT", "MANIFEST"]
+	"WASTELAND PATROL", "REQUISITION DEPOT", "MANIFEST", "PERSONNEL"]
 const EXPECTED_IDS := ["scavenging", "foraging", "junksmithing", "cooking",
-	"wasteland_patrol", "requisition_depot", "manifest"]
+	"wasteland_patrol", "requisition_depot", "manifest", "personnel"]
 const ALLOWED_PANEL_VARIATIONS := ["", "EnamelPlate", "EnergizedPlate",
 	"DangerPlate", "SteelPanel", "VentHousing", "PaperNotice"]
 
@@ -109,6 +109,7 @@ func _run() -> void:
 	await _check_console_signals()
 	await _check_t10a_dockets()
 	await _check_t10b_patrol()
+	await _check_t17_personnel()
 	await _check_font_scale()
 	await _check_r1_viewport_geometry()
 	if _capture_mode:
@@ -163,7 +164,7 @@ func _check_structure() -> void:
 	# Plate wall: 7 plates, names and order per naming bible / first viewport.
 	# R3: each plate posts its designation digit (the hotkey that selects it).
 	var plates := _concourse.plate_buttons_in_order()
-	_check(plates.size() == 7, "plate wall has 7 department plates (got %d)" % plates.size())
+	_check(plates.size() == 8, "plate wall has 8 department plates (T17: PERSONNEL D-08 joins the wall; got %d)" % plates.size())
 	for i in mini(plates.size(), EXPECTED_PLATES.size()):
 		var expect: String = "%s · %d" % [EXPECTED_PLATES[i], i + 1]
 		if i == 0 and _concourse.active_department() == EXPECTED_IDS[0]:
@@ -237,7 +238,7 @@ func _check_first_run() -> void:
 	_check(first.z_index > 0, "active plate raises toward the viewer")
 	_check(absf(first.scale.x - 1.05) < 0.001 and absf(first.scale.y - 1.05) < 0.001,
 		"active plate swells forward (scale %s)" % str(first.scale))
-	for i in range(1, 7):
+	for i in range(1, 8):
 		var p := _concourse.plate_buttons_in_order()[i]
 		_check(p.theme_type_variation == "" and not p.text.begins_with(">> ") and p.scale == Vector2.ONE,
 			"plate %d rests in default state" % i)
@@ -253,16 +254,16 @@ func _check_first_run() -> void:
 
 func _check_focus_traversal() -> void:
 	var focusables := _concourse.focusable_controls()
-	# Expected set: the 7 plates + the 4 console controls + every visible
+	# Expected set: the 8 plates + the 4 console controls + every visible
 	# focusable inside the ACTIVE docket (T10a content mounts cards, logs,
 	# buy/sell/equip buttons there; hidden dockets must contribute nothing).
 	var docket := _concourse.docket_for(_concourse.active_department())
 	var docket_focus: Array[Control] = []
 	if docket != null:
 		_collect_focusable_controls(docket, docket_focus)
-	var expected_count := 7 + 4 + docket_focus.size()
+	var expected_count := 8 + 4 + docket_focus.size()
 	_check(focusables.size() == expected_count,
-		"%d focusable controls (expected %d: 7 plates, 4 console, %d in the active docket)" % [
+		"%d focusable controls (expected %d: 8 plates, 4 console, %d in the active docket)" % [
 			focusables.size(), expected_count, docket_focus.size()])
 	var names: Array[String] = []
 	for c in focusables:
@@ -301,13 +302,13 @@ func _check_focus_traversal() -> void:
 	var plates := _concourse.plate_buttons_in_order()
 	plates[0].grab_focus()
 	await _frames(1)
-	for i in range(1, 7):
+	for i in range(1, 8):
 		_push_action("ui_down")
 		await _frames(1)
 		var down_owner := _vp.gui_get_focus_owner()
 		_check(down_owner == plates[i],
 			"arrow DOWN moves focus to plate %d (got %s)" % [i, down_owner.name if down_owner else "none"])
-	for i in range(6, 0, -1):
+	for i in range(7, 0, -1):
 		_push_action("ui_up")
 		await _frames(1)
 		var up_owner := _vp.gui_get_focus_owner()
@@ -415,6 +416,22 @@ func _check_hotkeys() -> void:
 	await _frames(10)
 	_check(_counts["hk_selected"] == selected_before and _concourse.active_department() == "manifest",
 		"hotkey on the active department emits nothing")
+	# T17: digit 8 — PERSONNEL joins the hotkey table (row and keypad).
+	_push_key(KEY_8)
+	var p8 := await _wait_until(func() -> bool:
+		return _concourse.active_department() == "personnel" and not _concourse.is_transitioning(), 150)
+	_check(p8, "hotkey 8 selects PERSONNEL (D-08) through the real input pipeline")
+	await _frames(2)
+	_push_key(KEY_KP_8)
+	await _frames(10)
+	_check(_concourse.active_department() == "personnel",
+		"keypad 8 on the active PERSONNEL department is a guarded no-op")
+	# Restore the section's standing state (manifest) for the mail-call
+	# suppression checks below.
+	_push_key(KEY_7)
+	await _wait_until(func() -> bool:
+		return _concourse.active_department() == "manifest" and not _concourse.is_transitioning(), 150)
+	await _frames(2)
 	# While MAIL CALL is posted the notice owns the input — digits wait.
 	var payload := {"elapsed_ms": 60_000, "skills_xp": {"scavenging": 10},
 		"items": {}, "levels": {}, "actions": {}, "stopped": []}
@@ -932,8 +949,8 @@ func _check_t10b_patrol() -> void:
 	var focusables := _concourse.focusable_controls()
 	var docket_focus: Array[Control] = []
 	_collect_focusable_controls(_concourse.docket_for("wasteland_patrol"), docket_focus)
-	_check(focusables.size() == 7 + 4 + docket_focus.size(),
-		"%d focusables (7 plates, 4 console, %d patrol)" % [focusables.size(), docket_focus.size()])
+	_check(focusables.size() == 8 + 4 + docket_focus.size(),
+		"%d focusables (8 plates, 4 console, %d patrol)" % [focusables.size(), docket_focus.size()])
 	var visited := {}
 	var cur: Control = _concourse.initial_focus()
 	var guard := 0
@@ -976,6 +993,166 @@ func _check_font_scale() -> void:
 # ------------------------------------------------------------------ R1 geometry pin
 ## Refinement 1 (critique P1#1 + P2#3): the first-viewport "collision" and the
 ## glyph-bottoms instruction headers shared one root cause — the docket
+# ------------------------------------------------------------- T17 personnel
+## The PERSONNEL docket (D-08, digit 8): posting board rows render engine
+## truth (ASSIGNED with skill + activity, AVAILABLE with the outline badge),
+## the POSTING REFUSED directive posts VERBATIM on a refused start and
+## withdraws when a posting frees, and the DEPUTIZE RESIDENT purchase walks
+## the whole ladder — refusal without funds, prices from data, cap line at
+## the full establishment.
+func _check_t17_personnel() -> void:
+	var tm: Node = _concourse.bound_tick_manager()
+	if tm == null:
+		_check(false, "concourse bound a TickManager (T17)")
+		return
+
+	# Reset to a one-posting establishment for the board-shape checks.
+	tm.stop_skill("scavenging")
+	tm.stop_skill("foraging")
+	tm.stop_skill("junksmithing")
+	tm.stop_skill("cooking")
+	tm.stop_combat()
+	tm.state.staffing["deputies"] = 0
+	(tm.suspended_postings() as Dictionary).clear()
+	tm.state.crowns = 0
+	tm.batcher.mark("staffing")
+	tm.batcher.force_flush(tm.sim_time_ms)
+
+	_concourse.select_department("personnel", true)
+	await _frames(2)
+	var personnel := _concourse.docket_controller("personnel") as DocketPersonnel
+	_check(personnel != null, "personnel docket is a live DocketPersonnel")
+	if personnel == null:
+		return
+	var rows: Array = personnel.board_box.get_children()
+	_check(rows.size() == 1, "one-posting establishment posts one board row (got %d)" % rows.size())
+	_check("POSTING 1 · AVAILABLE" in " | ".join(_label_texts(rows[0])),
+		"fresh posting 1 reads AVAILABLE (outline badge state)")
+	_check(_row_has_badge(rows[0], "deputy_badge_outline"),
+		"AVAILABLE row carries the OUTLINE badge (fill = state, never color alone)")
+	_check(personnel.deputize_button.text == "DEPUTIZE RESIDENT · 75 CROWNS",
+		"purchase button posts the naming-bible label with the DATA price (got '%s')" % personnel.deputize_button.text)
+	_check(Docket.flow_text(personnel.purchase_flow).contains("75 CROWNS")
+			and Docket.flow_text(personnel.purchase_flow).contains("POSTING 2 OPENS"),
+		"price line carries the crowns mark beside the number: %s" % Docket.flow_text(personnel.purchase_flow))
+
+	# Posting fills: start a shift, the row flips to ASSIGNED with the skill.
+	tm.start_activity("sort_scrap_pile")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	await _frames(2)
+	rows = personnel.board_box.get_children()
+	_check("POSTING 1 · ASSIGNED" in " | ".join(_label_texts(rows[0])),
+		"running shift renders the posting ASSIGNED")
+	_check("SCAVENGING — SORT THE SCRAP PILE" in " | ".join(_label_texts(rows[0])),
+		"ASSIGNED row names the skill and its activity")
+	_check(_row_has_badge(rows[0], "deputy_badge"),
+		"ASSIGNED row carries the FILLED badge")
+
+	# Refusal: a second department start is refused and the foraging docket
+	# posts the directive plate VERBATIM (naming-bible §10).
+	_concourse.select_department("foraging", true)
+	await _frames(2)
+	var forage := _concourse.docket_controller("foraging") as DocketGathering
+	forage.select_content("walk_the_glow_rows")
+	await _frames(2)
+	_check(forage.refusal_plate.visible, "refused start posts the POSTING REFUSED directive plate")
+	_check(forage.refusal_head.text == "POSTING REFUSED",
+		"directive head verbatim (got '%s')" % forage.refusal_head.text)
+	_check(forage.refusal_serial.text == Docket.REFUSAL_SERIAL,
+		"directive serial verbatim (fact + both remedies)")
+	_check(_plate_has_badge(forage.refusal_plate),
+		"directive plate carries the deputy badge glyph idiom")
+	_check(not tm.start_activity("walk_the_glow_rows")["ok"],
+		"engine refuses the second posting (kind posting_refused)")
+
+	# Ceasing frees the posting: the directive withdraws with the fact.
+	tm.stop_skill("scavenging")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	await _frames(2)
+	_check(not forage.refusal_plate.visible,
+		"directive withdraws the moment a posting frees (copy never outlives its fact)")
+
+	# Purchase: refuses without funds (in-voice), then buys the ladder.
+	_concourse.select_department("personnel", true)
+	await _frames(2)
+	personnel.deputize_button.pressed.emit()
+	await _frames(2)
+	_check(int(tm.state.staffing["deputies"]) == 0 and tm.state.crowns == 0,
+		"no-funds purchase changes nothing")
+	_check(_log_texts(personnel).any(func(t: String) -> bool:
+			return "INSUFFICIENT CROWNS (75 REQUIRED)" in t),
+		"no-funds purchase stamps the in-voice tender refusal")
+	tm.state.add_crowns(75)
+	tm.batcher.mark("inventory")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	await _frames(2)
+	personnel.deputize_button.pressed.emit()
+	await _frames(2)
+	_check(int(tm.state.staffing["deputies"]) == 1 and tm.state.crowns == 0,
+		"funded purchase spends exactly the data price")
+	_check(personnel.board_box.get_children().size() == 2,
+		"establishment posts two rows after the first deputy")
+	_check(_log_texts(personnel).any(func(t: String) -> bool:
+			return "RESIDENT DEPUTIZED" in t),
+		"purchase stamps the staffing log")
+	_check(personnel.deputize_button.text == "DEPUTIZE RESIDENT · 400 CROWNS",
+		"purchase line advances to the second ladder rung (got '%s')" % personnel.deputize_button.text)
+
+	# Climb to the full establishment: purchase line retires, cap line posts.
+	tm.state.add_crowns(400 + 2500 + 12000)
+	tm.batcher.mark("inventory")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	await _frames(2)
+	for i in 3:
+		personnel.deputize_button.pressed.emit()
+		await _frames(2)
+	_check(int(tm.state.staffing["deputies"]) == 4, "ladder tops out at four deputies")
+	_check(personnel.board_box.get_children().size() == 5,
+		"full establishment posts five rows (all five skills concurrent)")
+	_check(not personnel.deputize_button.get_parent().get_parent().visible,
+		"purchase line retires at the full establishment")
+	_check(personnel.cap_line.visible and "FULL ESTABLISHMENT" in personnel.cap_line.text,
+		"completion line posts at the cap")
+	_check(not personnel.shortage_plate.visible,
+		"no shortage notice on a healthy save")
+
+	# Five postings: everything runs at once, no refusals anywhere.
+	for content_id in ["sort_scrap_pile", "walk_the_glow_rows", "smelt_scrap_ingot", "grind_mandatory_grits"]:
+		_check(bool(tm.start_activity(content_id)["ok"]), "posting opens for %s" % content_id)
+	_check(bool(tm.engage_monster("junkyard_roach")["ok"]), "the fifth posting holds the patrol")
+	# Capture mode: the fully-staffed board (all five postings ASSIGNED).
+	if _capture_mode:
+		await _frames(2)
+		if not _snap_t10a("docket_personnel_full_board_1280x720.png"):
+			return
+	tm.stop_combat()
+	tm.stop_skill("scavenging")
+	tm.stop_skill("foraging")
+	tm.stop_skill("junksmithing")
+	tm.stop_skill("cooking")
+
+
+func _row_has_badge(row: Control, icon_name: String) -> bool:
+	for tr in row.find_children("*", "TextureRect", true, false):
+		var tex: Texture2D = (tr as TextureRect).texture
+		if tex != null and tex.resource_name == icon_name:
+			return true
+		if tex != null and str(tex.resource_path).ends_with("/" + icon_name + ".svg"):
+			return true
+	return false
+
+
+func _plate_has_badge(plate: Control) -> bool:
+	return _row_has_badge(plate, "deputy_badge")
+
+
+func _log_texts(docket: Docket) -> Array[String]:
+	var out: Array[String] = []
+	for i in docket.log.item_count:
+		out.append(docket.log.get_item_text(i))
+	return out
+
+
 ## ScrollContainer kept a stale scroll offset across department changes, so
 ## the first visible line rendered sliced at the viewport's top edge and the
 ## docket header plate sat scrolled out of view. The fix resets the docket to
@@ -1383,6 +1560,7 @@ func _validate_t10a_pngs() -> void:
 		"docket_cooking_1280x720.png": Vector2i(1280, 720),
 		"docket_manifest_1280x720.png": Vector2i(1280, 720),
 		"docket_depot_1280x720.png": Vector2i(1280, 720),
+		"docket_personnel_full_board_1280x720.png": Vector2i(1280, 720),
 		"mail_call_1280x720.png": Vector2i(1280, 720),
 		"docket_scavenging_running_1920x1080.png": Vector2i(1920, 1080),
 		"docket_depot_1920x1080.png": Vector2i(1920, 1080),
@@ -1482,7 +1660,7 @@ func _check(ok: bool, label: String) -> void:
 func _report_and_quit() -> void:
 	_done = true
 	if failures.is_empty():
-		print("PROBE_OK checks=%d (concourse themed; 7 plates with posted designation digits; two-thirds docket; first-run chalk + energized cues; full tab/arrow coverage with amber focus rings incl. T10a/T10b docket content; bounded bulkhead slide; R3 hotkeys 1-7 row+keypad via real input pipeline, focus-follow, mail-call suppression; console signals wired; T10a live-engine dockets: gates + earning-path copy, honest rates, keyboard start/stop, gauge==state, stamps, equip/unequip, depot tenders + both-prices-per-line pin, MAIL CALL, save notices; T10b patrol: honest fauna stats + claim rates + gates + earning path, keyboard engage/withdraw, gauges==state, battle stamps with NO DAMAGE vs MISS wording pinned, DECEASED/RETURN TO SHELTER zero-loss + recovery directive, PATROL RECALLED + mail call, persistent ZONE SECURED, gear-derived stats, traversal)" % checks)
+		print("PROBE_OK checks=%d (concourse themed; 8 plates with posted designation digits (T17: PERSONNEL D-08); two-thirds docket; first-run chalk + energized cues; full tab/arrow coverage with amber focus rings incl. T10a/T10b docket content; bounded bulkhead slide; R3 hotkeys 1-8 row+keypad via real input pipeline, focus-follow, mail-call suppression; console signals wired; T10a live-engine dockets: gates + earning-path copy, honest rates, keyboard start/stop, gauge==state, stamps, equip/unequip, depot tenders + both-prices-per-line pin, MAIL CALL, save notices; T10b patrol: honest fauna stats + claim rates + gates + earning path, keyboard engage/withdraw, gauges==state, battle stamps with NO DAMAGE vs MISS wording pinned, DECEASED/RETURN TO SHELTER zero-loss + recovery directive, PATROL RECALLED + mail call, persistent ZONE SECURED, gear-derived stats, traversal)" % checks)
 		quit(0)
 	else:
 		printerr("PROBE_FAILED checks=%d failures=%d" % [checks, failures.size()])

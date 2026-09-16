@@ -109,6 +109,9 @@ func _setup_idle() -> void:
 	_state = _tm.state
 
 	# The idle loadout: one tier-1 gathering shift + the patrol auto-battle.
+	# T17: the idle loadout holds two postings (shift + patrol).
+	_tm.engine.ensure_staffing(_tm.state)
+	_tm.state.staffing["deputies"] = 4
 	var start: Dictionary = _tm.start_activity("sort_scrap_pile")
 	if not bool(start["ok"]):
 		_fail("gathering shift starts: %s" % str(start))

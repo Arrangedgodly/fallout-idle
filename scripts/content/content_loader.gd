@@ -39,6 +39,7 @@ const HIT_MAX := 10000
 const BONUS_MAX := 10000
 const XP_PER_LEVEL_MAX := 100000000
 const ID_LEN_MAX := 64
+const DEPUTY_RUNGS := 4  ## run-2 staffing ladder: 1 + 4 deputies = 5 postings
 
 
 class Result:
@@ -111,6 +112,7 @@ static func _domain_specs() -> Array[Dictionary]:
 		{"file": "equipment.json", "key": "equipment", "validate": _validate_equipment, "install": _install_equipment},
 		{"file": "shop_stock.json", "key": "shop_stock", "validate": _validate_shop_entry, "install": _install_shop},
 		{"file": "xp_curves.json", "key": "xp_curves", "validate": _validate_xp_curve, "install": _install_xp_curves},
+		{"file": "staffing.json", "key": "deputies", "validate": _validate_deputy, "install": _install_deputies},
 	]
 
 
@@ -263,6 +265,21 @@ static func _install_xp_curves(lib: ContentLibrary, defs: Array, ctx: Ctx, key: 
 			ctx.err("id", "duplicate xp curve id '%s' — already defined in this file" % def.id)
 			continue
 		lib.xp_curves[def.id] = def
+
+
+## The staffing ladder installs in FILE ORDER (ladder order = purchase
+## order); duplicate ids are rejected like every other domain.
+static func _install_deputies(lib: ContentLibrary, defs: Array, ctx: Ctx, key: String) -> void:
+	for def in defs:
+		ctx.at(key, def.id)
+		var duplicate := false
+		for existing in lib.deputies:
+			if existing.id == def.id:
+				ctx.err("id", "duplicate deputy record id '%s' — already defined in this file" % def.id)
+				duplicate = true
+				break
+		if not duplicate:
+			lib.deputies.append(def)
 
 
 # ------------------------------------------------------------ record schemas
@@ -544,6 +561,20 @@ static func _validate_xp_curve(rec: Dictionary, ctx: Ctx) -> XpCurveDef:
 	return def
 
 
+## One staffing rung: id + price (T17). Ladder integrity is cross-checked in
+## _cross_check (exactly DEPUTY_RUNGS rungs, non-decreasing prices).
+static func _validate_deputy(rec: Dictionary, ctx: Ctx) -> DeputyDef:
+	_check_keys(rec, ctx, ["id", "price"])
+	var id := _get_id(rec, ctx, "id")
+	var price: Variant = _get_int(rec, ctx, "price", 1, VALUE_MAX)
+	if id == "" or price == null:
+		return null
+	var def := DeputyDef.new()
+	def.id = id
+	def.price = price
+	return def
+
+
 # ------------------------------------------------------------- cross-checks
 
 ## Reference integrity across domains; runs only when per-record validation
@@ -584,6 +615,17 @@ static func _cross_check(lib: ContentLibrary, res: Result) -> void:
 		_require_ref(lib, res, "data/shop_stock.json", "shop_stock[%s]" % entry.item, "item", "items", entry.item)
 		if entry.gate_skill != "":
 			_require_ref(lib, res, "data/shop_stock.json", "shop_stock[%s]" % entry.item, "gate.skill", "skills", entry.gate_skill)
+
+	# T17 staffing ladder: exactly DEPUTY_RUNGS rungs (1 + 4 = 5 postings, the
+	# amendment's all-5-skills target), prices non-decreasing in ladder order.
+	if lib.deputies.size() != DEPUTY_RUNGS:
+		res.errors.append("[content] data/staffing.json · deputies: must contain exactly %d rungs (1 resident + %d deputies = 5 postings), got %d" %
+			[DEPUTY_RUNGS, DEPUTY_RUNGS, lib.deputies.size()])
+	else:
+		for i in range(1, lib.deputies.size()):
+			if lib.deputies[i].price < lib.deputies[i - 1].price:
+				res.errors.append("[content] data/staffing.json · deputies[%d] (id=%s) · price: %d is lower than the previous rung's %d — a deputy ladder never gets cheaper" %
+					[i, lib.deputies[i].id, lib.deputies[i].price, lib.deputies[i - 1].price])
 
 	# T11 strict icon gate: every icon id must resolve to a shipped SVG asset
 	# under res://assets/icons/ — an unresolvable icon is a boot error, not a

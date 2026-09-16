@@ -109,6 +109,10 @@ func _build_content() -> void:
 
 	log = build_log(_log_serial(), 7)
 
+	# T17: the POSTING REFUSED directive plate — posted exactly while the
+	# establishment is full (refresh_refusal_plate gates it on engine truth).
+	add_child(build_refusal_plate())
+
 
 func _list_header() -> String:
 	return "POSTED SHIFTS · SELECT A FORM LINE"
@@ -233,12 +237,16 @@ func _on_card_pressed(content_id: String) -> void:
 
 ## Post a shift: select + start through the engine façade (the engine owns
 ## every rule; the docket only renders results). A gate denial stamps the
-## clearance line instead of starting.
+## clearance line; a POSTING REFUSED result stamps the fact and leaves the
+## directive plate standing (it withdraws when a posting frees).
 func select_content(content_id: String) -> void:
 	selected_id = content_id
 	var result: Dictionary = tm.start_activity(content_id)
 	if bool(result["ok"]):
 		stamp(log, _start_stamp_text(content_id), _start_stamp_icon(content_id))
+	elif str(result.get("kind", "")) == "posting_refused":
+		stamp(log, "POSTING REFUSED — ALL DEPUTIES ARE ASSIGNED. THE DIRECTIVE IS POSTED BELOW.",
+			icon_texture(GLYPH_BADGE))
 	else:
 		stamp(log, _denied_stamp_text(str(result["reason"])), icon_texture(GLYPH_CLEARANCE))
 	_refresh({"activity": true, "inventory": true, "xp": true})
@@ -317,11 +325,12 @@ func _refresh(changes: Dictionary) -> void:
 	_completed_advance = 0
 	if changes.has("xp"):
 		_refresh_gauge()
-	if changes.has("activity") or changes.has("xp"):
+	if changes.has("activity") or changes.has("xp") or changes.has("staffing"):
 		_refresh_activity()
 	if changes.has("inventory"):
 		_stamp_inventory_deltas()
 		_refresh_inventory_dependent()
+	refresh_refusal_plate()
 
 
 func _refresh_gauge() -> void:

@@ -69,6 +69,15 @@ func _make_tm(seed: int) -> Variant:
 	return tm
 
 
+## T17: pre-rule multi-posting journeys (offline composite, round trips, the
+## worst-case perf window) staff the full establishment through the state
+## seam — the new game's one-posting economics are tests/test_staffing.gd's
+## subject, not these run-1 criteria.
+func _full_staff(tm: Variant) -> void:
+	tm.engine.ensure_staffing(tm.state)
+	tm.state.staffing["deputies"] = 4
+
+
 ## Feed exactly `total_ms` through the public wall funnel in sub-budget chunks.
 func _pump(tm: Variant, total_ms: int, chunk_ms := 1_000) -> void:
 	var fed := 0
@@ -532,6 +541,7 @@ func test_c3_boss_beatable_with_slice_crafted_gear_and_food() -> void:
 func test_c4_quit_relaunch_round_trip_through_the_real_save_file() -> void:
 	var dir := _tmp_dir("roundtrip")
 	var tm1: Variant = _make_tm(SEED)
+	_full_staff(tm1)
 	var st1: PlayerState = tm1.state
 	assert_true(tm1.start_activity("sort_scrap_pile")["ok"])
 	assert_true(tm1.start_activity("walk_the_glow_rows")["ok"])
@@ -578,6 +588,7 @@ func test_c4_offline_gains_full_rate_zero_drift_all_slots_plus_combat() -> void:
 	# Config: gathering + processing (stockpile-fed) + a survivable boss fight.
 	var boot_slots := func(tm: Variant) -> void:
 		var st: PlayerState = tm.state
+		_full_staff(tm)
 		_set_level(tm, "wasteland_combat", 14)
 		st.add_item("scrap_metal", 500)  # smelting stockpile (inventory-independent)
 		for pair in [["majority_whip", 1], ["carpool_carapace", 1], ["radstag_stew", 6]]:
@@ -633,6 +644,7 @@ func test_c4_offline_gains_full_rate_zero_drift_all_slots_plus_combat() -> void:
 func test_c4_clock_regression_zero_gains_no_nan() -> void:
 	var dir := _tmp_dir("backwards")
 	var tm1: Variant = _make_tm(SEED)
+	_full_staff(tm1)
 	var st1: PlayerState = tm1.state
 	assert_true(tm1.start_activity("sort_scrap_pile")["ok"])
 	_set_level(tm1, "wasteland_combat", 10)
@@ -877,6 +889,7 @@ func test_c6_headless_composite_signal_budget_worst_case() -> void:
 	var tm: Variant = _make_tm(SEED)
 	var st: PlayerState = tm.state
 	_set_level(tm, "wasteland_combat", 14)
+	_full_staff(tm)
 	st.add_item("scrap_metal", 10_000_000)
 	st.add_item("duskcorn", 10_000_000)
 	for pair in [["majority_whip", 1], ["carpool_carapace", 1], ["radstag_stew", 50]]:

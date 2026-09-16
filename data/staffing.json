@@ -1,0 +1,21 @@
+{
+	"schema_version": 1,
+	"deputies": [
+		{
+			"id": "second_deputy",
+			"price": 75
+		},
+		{
+			"id": "third_deputy",
+			"price": 400
+		},
+		{
+			"id": "fourth_deputy",
+			"price": 2500
+		},
+		{
+			"id": "fifth_deputy",
+			"price": 12000
+		}
+	]
+}

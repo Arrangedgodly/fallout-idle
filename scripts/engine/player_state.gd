@@ -32,6 +32,15 @@ var last_mail_call: Dictionary = {}  ## last offline payload (presentation cache
 ## int64-as-strings keep the JSON round-trip exact).
 var combat: Dictionary = {}
 
+## T17 staffing namespace (save_version 2, naming-bible §14 machine ids):
+##   {"deputies": int 0-4, "suspended": {skill_id -> ActiveSlot dict}}
+## Total postings = 1 + deputies (the resident's own hands staff posting 1).
+## `suspended` parks paused skill slots — the only writer is
+## ActivityEngine.enforce_staffing (v1-migration over-subscription: keep the
+## most-recently-started posting, pause the rest, notice via MAIL CALL);
+## a successful re-post on that skill erases its entry. Pass-through here.
+var staffing: Dictionary = {}
+
 
 ## One running activity/recipe on one skill. Action k (0-based) completes at
 ## `anchor_ms + (k + 1) * interval_ms` on the sim clock — the closed-form
@@ -126,6 +135,7 @@ func to_dict() -> Dictionary:
 		"inventory": inventory.duplicate(),
 		"active": active_d,
 		"combat": combat.duplicate(true),
+		"staffing": staffing.duplicate(true),
 	}
 
 
@@ -149,4 +159,12 @@ static func from_dict(d: Dictionary, lib: ContentLibrary) -> PlayerState:
 		st.active[String(skill_id)] = ActiveSlot.from_dict(active_d[skill_id])
 	var combat_d: Dictionary = d.get("combat", {})
 	st.combat = combat_d.duplicate(true)
+	# T17 staffing (v2 saves carry it; the v1->v2 migration seeds it — values
+	# are hydrated raw, ActivityEngine.ensure_staffing clamps/repairs).
+	var staffing_d: Dictionary = d.get("staffing", {})
+	var suspended_d: Dictionary = staffing_d.get("suspended", {})
+	st.staffing = {
+		"deputies": int(staffing_d.get("deputies", 0)),
+		"suspended": suspended_d.duplicate(true),
+	}
 	return st

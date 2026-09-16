@@ -44,6 +44,14 @@ func _make_tm(seed: int) -> Variant:
 	return tm
 
 
+## T17: pre-rule concurrency scenarios (multi-slot sim twins) staff the full
+## establishment through the state seam — the run-2 new game opens ONE
+## posting (the purchase flow itself is tests/test_staffing.gd's subject).
+func _full_staff(tm: Variant) -> void:
+	tm.engine.ensure_staffing(tm.state)
+	tm.state.staffing["deputies"] = 4
+
+
 ## Feed exactly `total_ms` through the public wall funnel in equal chunks.
 func _pump(tm: Variant, total_ms: int, chunk_ms: int) -> void:
 	var fed := 0
@@ -138,6 +146,7 @@ func test_level_up_counts_match_curve() -> void:
 func test_one_hour_sim_equals_closed_form() -> void:
 	# SIM TWIN: both gathering skills concurrently (Melvor-style per-skill slots).
 	var sim: Variant = _make_tm(SEED_A)
+	_full_staff(sim)
 	assert_true((tm_start(sim, "sort_scrap_pile"))["ok"])
 	assert_true((tm_start(sim, "walk_the_glow_rows"))["ok"])
 	_pump(sim, HOUR_MS, 1_000)
@@ -146,6 +155,7 @@ func test_one_hour_sim_equals_closed_form() -> void:
 
 	# CLOSED-FORM TWIN: same seed, same slots, pure arithmetic + N rolls.
 	var off: Variant = _make_tm(SEED_A)
+	_full_staff(off)
 	assert_true((tm_start(off, "sort_scrap_pile"))["ok"])
 	assert_true((tm_start(off, "walk_the_glow_rows"))["ok"])
 	var payload: Dictionary = off.apply_offline_elapsed(HOUR_MS)
@@ -178,6 +188,7 @@ func tm_start(tm: Variant, content_id: String) -> Dictionary:
 
 func test_jittered_frames_match_closed_form() -> void:
 	var sim: Variant = _make_tm(SEED_A)
+	_full_staff(sim)
 	tm_start(sim, "sort_scrap_pile")
 	tm_start(sim, "walk_the_glow_rows")
 
@@ -193,6 +204,7 @@ func test_jittered_frames_match_closed_form() -> void:
 	assert_eq(int(sim.stats["clamped_stalls"]), 0, "sub-budget jitter never clamps")
 
 	var off: Variant = _make_tm(SEED_A)
+	_full_staff(off)
 	tm_start(off, "sort_scrap_pile")
 	tm_start(off, "walk_the_glow_rows")
 	off.apply_offline_elapsed(TEN_MIN_MS)
@@ -216,6 +228,7 @@ func test_stall_clamps_records_and_resyncs() -> void:
 	assert_eq(int(tm.state.active["scavenging"].completed), 1, "exactly one action by sim 3,000 ms")
 	assert_eq(int(tm.state.skills_xp["scavenging"]), 10, "no phantom xp from clamped time")
 	var off: Variant = _make_tm(SEED_A)
+	_full_staff(off)
 	tm_start(off, "sort_scrap_pile")
 	off.apply_offline_elapsed(3_000)
 	_assert_inventory_match(tm.state.inventory, off.state.inventory, "(b) clamp")
@@ -230,6 +243,7 @@ func test_six_hour_offline_matches_seeded_sim() -> void:
 	# smelting from a 500-scrap stockpile (scavenging would cross-feed scrap
 	# live — that coupling semantic is covered by its own test below).
 	var sim: Variant = _make_tm(SEED_6H)
+	_full_staff(sim)
 	sim.state.add_item("scrap_metal", 500)
 	tm_start(sim, "walk_the_glow_rows")
 	tm_start(sim, "smelt_scrap_ingot")
@@ -237,6 +251,7 @@ func test_six_hour_offline_matches_seeded_sim() -> void:
 	assert_eq(int(sim.stats["ticks_executed"]), 216_000, "6 h at 10 Hz = 216,000 ticks")
 
 	var off: Variant = _make_tm(SEED_6H)
+	_full_staff(off)
 	off.state.add_item("scrap_metal", 500)
 	tm_start(off, "walk_the_glow_rows")
 	tm_start(off, "smelt_scrap_ingot")
@@ -297,6 +312,7 @@ func test_offline_coupled_semantic_is_documented_divergence() -> void:
 	# zero stock it would stop at its very first action (t = 4,000 ms) before
 	# any drop lands, so the cross-feed demo needs starter stock.
 	var sim: Variant = _make_tm(SEED_6H)  # scavenging feeds live smelting
+	_full_staff(sim)
 	sim.state.add_item("scrap_metal", 12)
 	tm_start(sim, "sort_scrap_pile")
 	tm_start(sim, "smelt_scrap_ingot")
@@ -305,6 +321,7 @@ func test_offline_coupled_semantic_is_documented_divergence() -> void:
 	assert_gt(sim_ingots, 4, "live sim out-crafts its stockpile (drops extend the run)")
 
 	var off: Variant = _make_tm(SEED_6H)  # same start, same stockpile
+	_full_staff(off)
 	off.state.add_item("scrap_metal", 12)
 	tm_start(off, "sort_scrap_pile")
 	tm_start(off, "smelt_scrap_ingot")
@@ -323,6 +340,7 @@ func test_offline_coupled_semantic_is_documented_divergence() -> void:
 func test_signal_budget_and_tick_cost_over_60s_window() -> void:
 	var tm: Variant = _make_tm(SEED_A)
 	# All four non-combat slots busy (worst slice case), recipes never dry.
+	_full_staff(tm)
 	tm.state.add_item("scrap_metal", 10_000_000)
 	tm.state.add_item("duskcorn", 10_000_000)
 	for content_id in ["sort_scrap_pile", "walk_the_glow_rows", "smelt_scrap_ingot", "grind_mandatory_grits"]:

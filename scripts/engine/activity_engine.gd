@@ -14,11 +14,12 @@ extends RefCounted
 ## k (0-based) at sim time A + (k+1)*I. Due actions at sim time T:
 ## floor((T - A) / I) - completed. All int math.
 ##
-## Concurrency semantics (Melvor-style, following data's category structure):
-## ONE active activity per skill. Gathering skills run concurrently with each
-## other; each processing skill occupies its own per-skill slot the same way
-## (so Scavenging + Foraging + Junksmithing + Cooking can all run at once,
-## one activity each). Combat is not startable here — T7 owns the combat slot.
+## Concurrency semantics (Melvor-style per-skill selection, posting-limited
+## since T17): ONE active activity per skill, and every active skill slot —
+## plus an engaged patrol — occupies one POSTING out of the establishment's
+## 1 + staffing.deputies (run-2 personnel system; starting with no free
+## posting is refused with kind `posting_refused`, no preemption). Combat is
+## not startable here — CombatSession.engage applies the same posting rule.
 ##
 ## OFFLINE SEMANTICS (documented T6 decision, see production-log): catch-up is
 ## closed-form per slot — gathering: elapsed // interval actions; recipes: the
@@ -41,6 +42,16 @@ const STOP_INPUTS := "inputs_exhausted"
 const STOP_REPLACED := "replaced"
 const STOP_MANUAL := "stopped"
 
+## T17 staffing (naming-bible §14 machine ids — binding).
+const REFUSAL_KIND := "posting_refused"  ## refusal payload kind string
+const STOP_POSTING_SUSPENDED := "posting_suspended"  ## mail-call stopped reason
+const SUSPENDED_NOTICE := "POSTINGS SUSPENDED — PERSONNEL SHORTAGE"
+const MAX_DEPUTIES := 4  ## 1 resident + 4 deputies = 5 postings (all skills)
+## CombatSession.PHASE_FIGHTING's value, spelled here because ActivityEngine
+## and CombatSession statically type each other (a literal avoids the parse
+## cycle); pinned equal by tests/test_staffing.gd.
+const COMBAT_FIGHTING_PHASE := "fighting"
+
 var lib: ContentLibrary
 var batcher: UpdateBatcher
 
@@ -60,7 +71,107 @@ func new_state(world_seed: int) -> PlayerState:
 	for skill_id: String in lib.skills:
 		st.skills_xp[skill_id] = 0
 		st.skills_level[skill_id] = 1
+	ensure_staffing(st)
 	return st
+
+
+# ------------------------------------------------------------ T17 staffing --
+
+## Repair/seed the staffing namespace in place (idempotent, allocation-free
+## on a healthy state). deputies clamps into [0, MAX_DEPUTIES]; suspended is
+## re-typed to a Dictionary when hydration went wrong (Hulk lens: never let a
+## mangled field crash a save that holds real progress).
+func ensure_staffing(state: PlayerState) -> void:
+	if not (state.staffing is Dictionary):
+		state.staffing = {}
+	state.staffing["deputies"] = clampi(int(state.staffing.get("deputies", 0)), 0, MAX_DEPUTIES)
+	if not (state.staffing.get("suspended") is Dictionary):
+		state.staffing["suspended"] = {}
+
+
+## The establishment's posting count: the resident's own hands + deputies.
+func posting_slots(state: PlayerState) -> int:
+	return 1 + clampi(int(state.staffing.get("deputies", 0)), 0, MAX_DEPUTIES)
+
+
+## Postings currently held: one per active skill slot, plus one while the
+## patrol is engaged (combat occupies a posting — coordinator decision, see
+## the design-brief addendum).
+func occupied_postings(state: PlayerState) -> int:
+	var n := state.active.size()
+	if str(state.combat.get("phase", "idle")) == COMBAT_FIGHTING_PHASE:
+		n += 1
+	return n
+
+
+func free_postings(state: PlayerState) -> int:
+	return maxi(posting_slots(state) - occupied_postings(state), 0)
+
+
+## Refusal payload for a start/engage with no free posting (naming-bible §14:
+## kind `posting_refused`, payload carries the requested content id). NO state
+## change accompanies a refusal — refusal, never preemption.
+func posting_refused(content_id: String) -> Dictionary:
+	return {
+		"ok": false,
+		"reason": "POSTING REFUSED",
+		"kind": REFUSAL_KIND,
+		"content_id": content_id,
+	}
+
+
+## Crowns the NEXT deputy costs at the current establishment size (-1 at the
+## full establishment / missing ladder).
+func deputy_price(state: PlayerState) -> int:
+	return lib.deputy_price_at(int(state.staffing.get("deputies", 0)))
+
+
+## Migration-time over-subscription resolution (T17 decision, documented):
+## a v1 save may carry more running skills than the v2 establishment's 1
+## posting. Keep the MOST-RECENTLY-STARTED posting active (combat competes
+## on its engage_ms); park the losers in staffing.suspended with their full
+## slot state (anchors, completed counts, RNG positions — never silently
+## dropped), withdraw a losing patrol to idle (designation preserved, zero
+## loss by construction), and return one description per suspended posting
+## for the MAIL CALL notice (SUSPENDED_NOTICE + STOP_POSTING_SUSPENDED lines).
+## Normal v2 saves never over-subscribe — start()/engage() refuse first — so
+## this is empty unless a save arrived pre-rule (or was hand-edited).
+func enforce_staffing(state: PlayerState) -> Array:
+	ensure_staffing(state)
+	var cap := posting_slots(state)
+	var entries: Array = []
+	for skill_id in state.active:
+		var slot: PlayerState.ActiveSlot = state.active[skill_id]
+		entries.append({"ms": slot.anchor_ms, "skill_id": String(skill_id), "slot": slot})
+	if str(state.combat.get("phase", "idle")) == COMBAT_FIGHTING_PHASE:
+		entries.append({"ms": int(state.combat.get("engage_ms", 0)), "combat": true})
+	if entries.size() <= cap:
+		return []
+	entries.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return int(a["ms"]) < int(b["ms"]))
+	var notices: Array = []
+	for e in entries.slice(0, entries.size() - cap):
+		if bool(e.get("combat", false)):
+			state.combat["phase"] = "idle"
+			state.combat["p_next_ms"] = 0
+			state.combat["m_next_ms"] = 0
+			notices.append({"skill_id": _combat_skill_id(), "content_id": str(state.combat.get("monster_id", "")), "kind": "combat"})
+			batcher.mark("combat")
+		else:
+			var skill_id := String(e["skill_id"])
+			var slot: PlayerState.ActiveSlot = e["slot"]
+			state.staffing["suspended"][skill_id] = slot.to_dict()
+			_stop_slot(state, slot, STOP_POSTING_SUSPENDED)
+			notices.append({"skill_id": skill_id, "content_id": slot.content_id, "kind": "skill"})
+			batcher.mark("activity")
+	return notices
+
+
+func _combat_skill_id() -> String:
+	for skill_id: String in lib.skills:
+		if (lib.skills[skill_id] as SkillDef).is_combat():
+			return skill_id
+	return ""
 
 
 # ------------------------------------------------- selection + gates --
@@ -94,7 +205,9 @@ func is_unlocked(state: PlayerState, content_id: String) -> bool:
 
 ## Start (or switch) the skill's active slot. Replaces any current slot on
 ## that skill (emits activity_stopped STOP_REPLACED). Returns
-## {"ok": bool, "reason": ""} — gate failures carry CLEARANCE wording for T10.
+## {"ok": bool, "reason": ""} — gate failures carry CLEARANCE wording for T10;
+## a full posting board returns kind "posting_refused" (naming-bible §14)
+## with NO state change.
 func start(state: PlayerState, content_id: String, now_ms: int) -> Dictionary:
 	var def := def_of(content_id)
 	if def == null:
@@ -117,6 +230,11 @@ func start(state: PlayerState, content_id: String, now_ms: int) -> Dictionary:
 	var gate_level := _gate_level_of(def)
 	if int(state.skills_level.get(skill_id, 1)) < gate_level:
 		return {"ok": false, "reason": "CLEARANCE %d REQUIRED (%s)" % [gate_level, skill.name]}
+	# T17 posting board: switching THIS skill's own slot keeps its posting
+	# (occupied count unchanged); opening a posting on a new skill with none
+	# free is REFUSED — no state change, never silent preemption.
+	if not state.active.has(skill_id) and free_postings(state) <= 0:
+		return posting_refused(content_id)
 	if state.active.has(skill_id):
 		_stop_slot(state, state.active[skill_id], STOP_REPLACED)
 	var slot := PlayerState.ActiveSlot.new()
@@ -127,6 +245,10 @@ func start(state: PlayerState, content_id: String, now_ms: int) -> Dictionary:
 	slot.anchor_ms = now_ms
 	slot.rng_seed = _stream_seed(state.world_seed, skill_id)
 	state.active[skill_id] = slot
+	# A fresh posting on this skill supersedes any paused (suspended) one —
+	# the parked entry is remembered state, not a reservation.
+	if state.staffing.get("suspended", {}).has(skill_id):
+		state.staffing["suspended"].erase(skill_id)
 	batcher.mark("activity")
 	return {"ok": true, "reason": ""}
 
