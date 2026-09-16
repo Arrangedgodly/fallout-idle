@@ -49,6 +49,7 @@ const SOURCE_SCAN := [
 	"res://scripts/ui/docket_patrol.gd",
 	"res://scripts/ui/mail_call_modal.gd",
 	"res://scripts/ui/save_notice_board.gd",
+	"res://scripts/ui/orientation_form.gd",
 ]
 
 var _vp: SubViewport
@@ -155,7 +156,7 @@ func test_cold_boot_keyboard_only_full_journey() -> void:
 
 	# Cold boot: initial focus is the first plate, no input needed.
 	assert_eq(_focus_owner(), _concourse.initial_focus(),
-		"cold boot focuses the START HERE plate")
+		"cold boot focuses the O-1 step-1 cue plate")
 	assert_eq(_focus_owner().name, "Plate_scavenging", "boot focus is the scavenging plate")
 
 	# --- Scavenging: start a shift from a focused tier card, then stop. ---
@@ -668,7 +669,7 @@ func test_motion_brief_bounded_never_looping() -> void:
 	assert_lte(Time.get_ticks_msec() - t0, 2_000, "transition resolves within 2 s wall")
 	assert_false(_concourse.is_transitioning(), "transition flag clears")
 	# Nothing anywhere loops a tween (the only authored motions are the bounded
-	# bulkhead slide, swell and chalk fade).
+	# bulkhead slide, swell and the O-1 one-shot swells).
 	for path in SOURCE_SCAN:
 		var fa := FileAccess.open(path, FileAccess.READ)
 		assert_not_null(fa, "source readable: %s" % path)

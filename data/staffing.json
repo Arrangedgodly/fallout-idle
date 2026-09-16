@@ -1,5 +1,6 @@
 {
 	"schema_version": 1,
+	"orientation_stipend": 60,
 	"deputies": [
 		{
 			"id": "second_deputy",

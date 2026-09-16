@@ -52,6 +52,14 @@ extends Node
 ##   bulk_state_changed regions: "xp", "inventory", "activity", "combat" —
 ##       and since T17 "staffing" (deputize purchases, posting enforcement).
 ##       Crowns ride "inventory" (Depot precedent: wallet-class changes).
+##       Since T18 "orientation" (every O-1 form stamp; the stipend grant
+##       also marks "inventory").
+##   orientation_step_done(step_id: String) — IMMEDIATE, discrete, once per
+##       step (T18). The ORIENTATION FORM O-1's row stamps bind here.
+##   orientation_completed(payload: Dictionary) — IMMEDIATE, once ever (T18):
+##       the seventh stamp. payload {"stipend": int} (Crowns posted by the
+##       DULY ORIENTED reward line; 0 when the stipend was already claimed —
+##       a reload never re-rewards).
 ##
 ## Interaction rules:
 ##   • User-initiated actions (start/stop activity) force an immediate bulk
@@ -72,6 +80,8 @@ signal activity_stopped(skill_id: String, content_id: String, reason: String)
 signal combat_ended(result: Dictionary)
 signal zone_cleared(monster_id: String)
 signal mail_call_ready(payload: Dictionary)
+signal orientation_step_done(step_id: String)
+signal orientation_completed(payload: Dictionary)
 
 const TICK_MS := 100  ## 10 Hz sim (decoupled from render frames).
 const MAX_CATCHUP_TICKS_PER_FRAME := 25  ## 2.5 s of sim max per frame, then clamp.
@@ -81,6 +91,7 @@ var verbose: bool = false
 var state: PlayerState
 var engine: ActivityEngine
 var combat: CombatSession
+var orientation: OrientationTracker
 var batcher: UpdateBatcher
 var sim_time_ms: int = 0  ## absolute sim clock (int ms; the engine's anchors live on it)
 var stats := {
@@ -112,8 +123,20 @@ func _boot(p_lib: ContentLibrary, world_seed: int) -> void:
 	engine = ActivityEngine.new(p_lib, batcher)
 	engine.level_up.connect(_on_level_up)
 	engine.activity_stopped.connect(_on_activity_stopped)
+	# T18: the ORIENTATION FORM O-1 tracker — engine-side event seams only
+	# (the UI re-renders from signals/state, never infers step completion).
+	orientation = OrientationTracker.new(p_lib, batcher)
+	engine.orientation = orientation
+	orientation.step_done.connect(func(step_id: String) -> void:
+		orientation_step_done.emit(step_id))
+	orientation.orientation_completed.connect(func(payload: Dictionary) -> void:
+		orientation_completed.emit(payload))
+	engine.level_up.connect(func(skill_id: String, _old: int, _new: int) -> void:
+		orientation.note_level_up(state, skill_id))
 	combat = CombatSession.new(p_lib, batcher, engine)
 	combat.combat_ended.connect(func(result: Dictionary) -> void:
+		if str(result.get("outcome", "")) == "victory":
+			orientation.note_victory(state)
 		combat_ended.emit(result))
 	combat.zone_cleared.connect(func(monster_id: String) -> void:
 		zone_cleared.emit(monster_id))
@@ -125,6 +148,9 @@ func _boot(p_lib: ContentLibrary, world_seed: int) -> void:
 func new_game(world_seed: int = -1) -> void:
 	state = engine.new_state(world_seed if world_seed >= 0 else _default_seed())
 	combat.ensure_defaults(state)
+	orientation.ensure_orientation(state)
+	orientation.evaluate(state)  # no-op on a fresh record; the seam stays one
+	batcher.mark("orientation")  # a reset re-posts the form from engine truth
 	sim_time_ms = 0
 	_accum_ms = 0
 	_last_wall_ms = -1
@@ -153,6 +179,11 @@ func adopt_state(st: PlayerState, resume_sim_ms: int = 0) -> void:
 	combat.sanitize(state)
 	engine.ensure_staffing(state)
 	_staffing_notice = engine.enforce_staffing(state)
+	# T18: hydrate/repair the orientation namespace. NO evaluation here — a
+	# genuine v2 record is its own truth (the veteran lifetime back-fill runs
+	# only for records that arrived without a namespace, SaveStore-side; the
+	# acceptance suite pins live/reloaded twin dicts byte-equal).
+	orientation.ensure_orientation(state)
 	sim_time_ms = maxi(resume_sim_ms, 0)
 	_accum_ms = 0
 	_last_wall_ms = -1
@@ -264,11 +295,38 @@ func deputize_resident() -> Dictionary:
 		return {"ok": false, "reason": "INSUFFICIENT CROWNS (%d REQUIRED)" % price,
 			"deputies": current, "price": price}
 	state.staffing["deputies"] = current + 1
+	orientation.note_deputize(state)  # T18: DEPUTIZE A RESIDENT stamps
 	batcher.mark("staffing")
 	batcher.mark("inventory")  # wallet-class change (Depot precedent)
 	batcher.force_flush(sim_time_ms)
 	return {"ok": true, "reason": "", "deputies": current + 1,
 		"price": price, "posting_opened": current + 2}
+
+# -- T18 orientation façade (the O-1 form + concourse cue read these) --
+
+## One read for the form's whole render: {"done": {step_id: bool}, "count":
+## int, "total": int, "complete": bool, "current": String ("" at completion),
+## "target": String (department plate id the cue points at), "steps": the
+## ordered step ids, "stipend": int (the data/staffing.json amount)}.
+func orientation_progress() -> Dictionary:
+	var done := {}
+	for step_id in OrientationTracker.STEPS:
+		done[step_id] = orientation.is_step_done(state, step_id)
+	return {
+		"done": done,
+		"count": orientation.steps_done_count(state),
+		"total": OrientationTracker.STEPS.size(),
+		"complete": orientation.is_complete(state),
+		"current": orientation.current_step(state),
+		"target": orientation.current_target(state),
+		"steps": OrientationTracker.STEPS.duplicate(),
+		"stipend": maxi(int(engine.lib.orientation_stipend), 0),
+	}
+
+
+func orientation_step_done_bool(step_id: String) -> bool:
+	return orientation.is_step_done(state, step_id)
+
 
 # -- Combat façade (T7; Wasteland Patrol calls these, never ActivityEngine) --
 
@@ -291,6 +349,8 @@ func stop_combat() -> void:
 ## decides the slot; the previous item returns to the Manifest).
 func equip_item(item_id: String) -> Dictionary:
 	var result: Dictionary = combat.equip(state, item_id)
+	if bool(result.get("ok", false)):
+		orientation.note_equip(state)  # T18: PROVISION THE PATROL (equip leg)
 	batcher.force_flush(sim_time_ms)
 	return result
 
@@ -340,6 +400,7 @@ func depot_sell(item_id: String, qty: int = 0) -> Dictionary:
 		return {"ok": false, "reason": "NOTHING TO SELL", "qty": 0, "crowns": 0}
 	state.take_item(item_id, n)
 	state.add_crowns(def.value * n)
+	orientation.note_sale(state)  # T18: FILE A CROWNS CLAIM (first tender)
 	batcher.mark("inventory")
 	batcher.force_flush(sim_time_ms)
 	return {"ok": true, "reason": "", "qty": n, "crowns": def.value * n}
@@ -414,6 +475,10 @@ func apply_offline_elapsed(elapsed_ms: int) -> Dictionary:
 		mail_call_ready.emit(payload)
 		batcher.force_flush(sim_time_ms)
 	state.last_mail_call = payload
+	# T18: settle the form from the away window's DELTA evidence (levels,
+	# processing actions, kills) — the same stamps a live twin of the window
+	# earns through its event hooks.
+	orientation.settle_offline(state, payload)
 	return payload
 
 

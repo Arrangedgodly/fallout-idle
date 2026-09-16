@@ -63,8 +63,11 @@ const T19_UI_CONSUMED := ["stat_condition", "stat_accuracy", "stat_evade", "stat
 	"stat_interval", "clearance_step", "btn_engage", "btn_withdraw",
 	# T17 shipped the posting board: the badge pair + the deputize verb glyph
 	# are live consumers now (moved off the reserved list).
-	"deputy_badge", "btn_deputize"]
-const T19_RESERVED := ["orient_arrow", "stamp_check"]
+	"deputy_badge", "btn_deputize",
+	# T18 shipped the orientation form: the cue arrow + the rubber-stamp
+	# check are live consumers now too (OrientationForm + plate cue).
+	"orient_arrow", "stamp_check"]
+const T19_RESERVED: Array = []
 # T17: the badge's outline sibling (AVAILABLE state — the posting board's
 # empty rows). Authored this task per the grammar's state-pair rule.
 const T17_IDS := ["deputy_badge_outline"]

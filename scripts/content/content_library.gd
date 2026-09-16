@@ -17,6 +17,7 @@ var equipment: Dictionary = {}  ## String (item id) -> EquipmentDef
 var shop_stock: Array[ShopEntryDef] = []  ## File order = Depot display order.
 var xp_curves: Dictionary = {}  ## String -> XpCurveDef
 var deputies: Array[DeputyDef] = []  ## T17 staffing ladder; file order = purchase order.
+var orientation_stipend: int = 0  ## T18 Crowns posted by the DULY ORIENTED reward line (data/staffing.json).
 
 
 func item(id: String) -> ItemDef:

@@ -11,7 +11,15 @@ extends Control
 ## and carries a ">> " label prefix so the state never rides on color alone
 ## (Daredevil floor). Its docket panel occupies the right two-thirds of the
 ## body; the big stencled BEGIN SHIFT button on the docket is the primary
-## action. First run: the energized plate gets a START HERE chalk arrow.
+## action.
+##
+## T18 — ORIENTATION FORM O-1 is posted at the docket frame's top-right
+## corner (always on the wall, never a modal): seven stencil lines, stamps
+## filling as steps complete, and the current step carrying the orient_arrow
+## cue. While orientation is incomplete the arrow glyph ALSO posts beside the
+## current step's destination plate (the run-1 START HERE chalk, retired —
+## its first-run directional role is subsumed by the O-1 cue, which walks
+## with the resident step by step instead of pointing once).
 ##
 ## Everything is built from the T8 signage theme (installed via the UiTheme
 ## autoload) — plates, panels, notices, vents and gauges are theme variations,
@@ -101,7 +109,6 @@ const HEADER_NOTICE := ("NOTICE: THE CONCOURSE IS OPEN. ALL DEPARTMENTS REMAIN I
 const CONSOLE_SERIAL := "CONSOLE 09 · FORM 9-A"
 const BEGIN_LABEL := "BEGIN SHIFT"
 const ENERGIZED_PREFIX := ">> "
-const CHALK_LABEL := "START HERE"
 
 const TRANSITION_CLOSE_S := 0.24
 const TRANSITION_OPEN_S := 0.34
@@ -121,7 +128,9 @@ var fullscreen_check: CheckButton
 var save_button: Button
 var quit_button: Button
 var console_serial: Label
-var chalk_mark: ChalkMark
+var header_notice: PanelContainer
+var orientation_form: OrientationForm
+var orientation_cue: OrientationCue
 var shutter: PanelContainer
 var docket_housing: PanelContainer
 var docket_scroll: ScrollContainer
@@ -143,6 +152,7 @@ var _slider_focus_lit := false
 var _serial_token := 0
 var _tm: Node = null              # TickManager (autoload in prod, twin in tests)
 var _mail_hooked := false
+var _orientation_hooked := false
 
 func _ready() -> void:
 	_ui_theme = get_node_or_null("/root/UiTheme")
@@ -164,20 +174,21 @@ func _ready() -> void:
 	_build_ui()
 	_apply_active(DEPARTMENTS[0].id, false)
 	set_first_run(true)
-	_plates[DEPARTMENTS[0].id].grab_focus()  # START HERE points here first run
+	_plates[DEPARTMENTS[0].id].grab_focus()  # the O-1 cue points here first run
 	_settle_boot_swell()
 	bind_engines()  # T10a: live engine data (autoloads in production)
 
 ## The first container layout pass resets child transforms assigned during
 ## _ready, so the boot swell is re-asserted one frame later, after layout.
-## T17: the chalk re-positions on the same settle — the first pass leaves it
-## at a stale plate position whenever the plate wall's layout shifts late
-## (an eighth plate joined the wall).
+## T18: the O-1 form + step cue re-position on the same settle — the first
+## pass leaves them at stale rects whenever the plate wall's layout shifts
+## late (an eighth plate joined the wall in T17).
 func _settle_boot_swell() -> void:
 	await get_tree().process_frame
 	if is_inside_tree() and not _transitioning and _plates.has(_active_id):
 		_set_plate_state(_plates[_active_id], true, false)
-		_position_chalk()
+		_position_orientation_form()
+		_position_orientation_cue()
 
 # ------------------------------------------------------------------ public API
 ## Press-free programmatic entry (probe + future hotkeys). Emits the same
@@ -188,7 +199,6 @@ func select_department(id: String, instant := false) -> void:
 	department_selected.emit(id)
 	if instant:
 		_apply_active(id, false)
-		_dismiss_chalk(false)
 		department_changed.emit(id)
 		return
 	_transitioning = true
@@ -200,16 +210,17 @@ func select_department(id: String, instant := false) -> void:
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.parallel().tween_method(_set_mouth_energy, _mouth.energy, 1.0, TRANSITION_CLOSE_S + 0.08)
 	tw.tween_callback(_apply_active.bind(id, true))
-	tw.tween_callback(_dismiss_chalk.bind(true))
 	tw.tween_property(shutter, "position:x", width, TRANSITION_OPEN_S) \
 		.set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 	tw.parallel().tween_method(_set_mouth_energy, 1.0, 0.0, TRANSITION_OPEN_S)
 	tw.tween_callback(_on_transition_done.bind(id))
 
+## T18: SaveStore owns first-run detection; the concourse applies it to the
+## O-1 form (a brand-new resident meets the checklist EXPANDED, step 1 cued).
 func set_first_run(on: bool) -> void:
 	first_run = on
-	chalk_mark.visible = on
-	chalk_mark.modulate = Color(1, 1, 1, 1.0 if on else 0.0)
+	if orientation_form != null:
+		orientation_form.apply_first_run(on)
 
 func active_department() -> String:
 	return _active_id
@@ -239,8 +250,13 @@ func begin_button_for(id: String) -> Button:
 func initial_focus() -> Control:
 	return _plates[DEPARTMENTS[0].id]
 
-func chalk() -> ChalkMark:
-	return chalk_mark
+## T18: the posted O-1 form (convenience accessor for probes/tests).
+func orientation() -> OrientationForm:
+	return orientation_form
+
+## T18: the current-step plate cue (convenience accessor for probes/tests).
+func cue() -> OrientationCue:
+	return orientation_cue
 
 ## Every visible, enabled, focusable control in the concourse (probe walks
 ## the tab cycle against this list — the keyboard contract).
@@ -281,15 +297,25 @@ func bind_engines(p_tm: Node = null, p_save: Node = null) -> void:
 	if rebound and _tm != null and _mail_hooked:
 		(_tm.mail_call_ready as Signal).disconnect(_on_mail_call_ready)
 		_mail_hooked = false
+	if rebound and _tm != null and _orientation_hooked:
+		(_tm.orientation_step_done as Signal).disconnect(_on_orientation_step)
+		(_tm.orientation_completed as Signal).disconnect(_on_orientation_complete)
+		_orientation_hooked = false
 	_tm = new_tm
 	for id in _controllers:
 		(_controllers[id] as Docket).bind(_tm)
+	orientation_form.bind(_tm)
+	if not _orientation_hooked:
+		(_tm.orientation_step_done as Signal).connect(_on_orientation_step)
+		(_tm.orientation_completed as Signal).connect(_on_orientation_complete)
+		_orientation_hooked = true
 	mail_call.lib = _tm.engine.lib
 	if not _mail_hooked:
 		(_tm.mail_call_ready as Signal).connect(_on_mail_call_ready)
 		_mail_hooked = true
 	save_board.bind(new_save)
 	if rebound:
+		_refresh_orientation_cue()
 		var cached: Dictionary = _tm.state.last_mail_call
 		# T17: a staffing-migration notice is presentable even at a zero
 		# offline gap (the notice IS the mail) — see TickManager's contract.
@@ -303,6 +329,36 @@ func bound_tick_manager() -> Node:
 
 func _on_mail_call_ready(payload: Dictionary) -> void:
 	mail_call.present(payload, _tm.engine.lib)
+
+
+# ------------------------------------------------------------------ T18 orientation
+## Every stamp re-aims the plate cue (a step change is the one authored
+## moment: a bounded arrival swell — never a looping pulse).
+func _on_orientation_step(_step_id: String) -> void:
+	_refresh_orientation_cue(true)
+
+
+## The seventh stamp: the cue retires with the tutorial (the arrow class
+## exists only while orientation is incomplete), and the console posts the
+## restrained completion line.
+func _on_orientation_complete(payload: Dictionary) -> void:
+	orientation_cue.visible = false
+	var stipend := int(payload.get("stipend", 0))
+	if stipend > 0:
+		_flash_serial("FORM O-1 FILED · %s CROWNS POSTED" % SignageFmt.num(stipend))
+	else:
+		_flash_serial("FORM O-1 FILED · DULY ORIENTED")
+
+
+func _refresh_orientation_cue(animate := false) -> void:
+	if _tm == null or orientation_cue == null:
+		return
+	var target := ""
+	if _tm.has_method("orientation_progress"):
+		target = String(_tm.orientation_progress()["target"])
+	orientation_cue.visible = target != ""
+	if target != "" and _plates.has(target):
+		orientation_cue.aim(_plates[target], animate)
 
 
 # ------------------------------------------------------------------ hotkeys
@@ -370,17 +426,32 @@ func _build_ui() -> void:
 	body.add_child(_build_docket_region())
 	col.add_child(_build_console())
 
-	# First-run chalk arrow — drawn last, over the boundary between the wall
-	# and the docket, pointing at the energized plate.
-	chalk_mark = ChalkMark.new()
-	chalk_mark.name = "ChalkStartHere"
-	chalk_mark.size = Vector2(180.0, 104.0)
-	chalk_mark.z_index = 20
-	chalk_mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(chalk_mark)
-	_position_chalk()
-	_plates[DEPARTMENTS[0].id].resized.connect(_position_chalk)
-	resized.connect(_position_chalk)
+	# T18: ORIENTATION FORM O-1 — a posted paper notice at the docket frame's
+	# top-right corner (the tutorial is always on the wall), plus the current
+	# step's orient_arrow cue beside the destination plate. Both are drawn
+	# over the wall/docket boundary, under the bulkhead shutter's z (the door
+	# physically closes over posted paper) and under MAIL CALL.
+	orientation_form = OrientationForm.new()
+	orientation_form.name = "OrientationForm"
+	orientation_form.z_index = 4
+	orientation_form.dept_label = _dept_hint_for
+	orientation_form.step_activated.connect(_on_orientation_step_activated)
+	add_child(orientation_form)
+
+	orientation_cue = OrientationCue.new()
+	orientation_cue.name = "OrientationCue"
+	orientation_cue.z_index = 20  # the run-1 chalk's plane — over the door's slide
+	add_child(orientation_cue)
+
+	_position_orientation_form()
+	orientation_form.resized.connect(_position_orientation_form)
+	header_notice.resized.connect(_position_orientation_form)
+	docket_housing.resized.connect(_position_orientation_form)
+	docket_housing.resized.connect(_position_orientation_cue)
+	resized.connect(_position_orientation_form)
+	resized.connect(_position_orientation_cue)
+	for plate in _plate_order:
+		plate.resized.connect(_position_orientation_cue)
 
 	# T10a overlays: save notices post above the console; the MAIL CALL card
 	# dims the concourse while posted (both bound to the engines later —
@@ -415,7 +486,9 @@ func _build_header() -> Control:
 	facility.add_child(fcol)
 	row.add_child(facility)
 
-	# Standing posted notice.
+	# Standing posted notice. T18: while the O-1 form is EXPANDED, the form
+	# posts over this slot (intake paperwork outranks standing flavor) and the
+	# notice stands down; it returns when the form folds to its slip.
 	var notice := _panel_box("PaperNotice")
 	notice.name = "HeaderNotice"
 	notice.custom_minimum_size = Vector2(380.0, 0.0)
@@ -426,6 +499,7 @@ func _build_header() -> Control:
 	ncol.add_child(_label("PaperStamp", "POSTED — SECTOR B"))
 	notice.add_child(ncol)
 	row.add_child(notice)
+	header_notice = notice
 	return row
 
 func _build_plate_wall() -> Control:
@@ -445,7 +519,7 @@ func _build_plate_wall() -> Control:
 		# T17: the eighth plate (PERSONNEL) made the wall overflow the 720p
 		# minimum shell — a scrollable wall breaks the arrow-column contract
 		# (Godot's focus-neighbor search skips out-of-view controls) and the
-		# START HERE chalk's settle pass. 50 px plates at 6 px separation keep
+		# orientation cue's settle pass. 50 px plates at 6 px separation keep
 		# all eight on the wall at 1280x720 (8*50 + 7*6 = 442 <= 452); larger
 		# windows simply breathe more.
 		plate.custom_minimum_size = Vector2(340.0, 50.0)
@@ -709,26 +783,61 @@ func _on_transition_done(id: String) -> void:
 	_transitioning = false
 	department_changed.emit(id)
 
-func _dismiss_chalk(animate: bool) -> void:
-	if not first_run:
-		return
-	first_run = false
-	if animate:
-		create_tween().tween_property(chalk_mark, "modulate:a", 0.0, 0.45) \
-			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT) \
-			.finished.connect(func() -> void: chalk_mark.visible = false)
-	else:
-		chalk_mark.visible = false
+# ------------------------------------------------------------- T18 O-1 form
+## A pressed step row is a wayfinding control: open that step's department
+## (the same transition a plate press drives).
+func _on_orientation_step_activated(step_id: String) -> void:
+	var target := OrientationTracker.step_target(step_id)
+	if target != "":
+		select_department(target, false)
 
-func _position_chalk() -> void:
-	var first: Control = _plates[DEPARTMENTS[0].id]
-	if first.size.y <= 0.0:
+
+## Department hint for the form's tooltips ("SCAVENGING · 1" — plate + key).
+func _dept_hint_for(dept_id: String) -> String:
+	if not _dept_by_id.has(dept_id):
+		return ""
+	var d: Dictionary = _dept_by_id[dept_id]
+	var idx := DEPARTMENTS.find(d)
+	return "%s · PRESS %d" % [String(d["plate"]), idx + 1]
+
+
+## The O-1 form posts in TWO positions, both at the shell's right margin:
+## EXPANDED — over the intake notice slot at the top of the shell (intake
+## paperwork outranks the standing flavor notice, which stands down while the
+## form leads; at 200% font scale the 380 px notice slot is the only anchor
+## with vertical room for the full checklist above the console), hanging over
+## the docket's top-right corner below it; SLIP — pinned to the docket
+## frame's top-right corner. Re-positioned on every resize (window, font
+## scale, and the form's own expanded/slip height change).
+func _position_orientation_form() -> void:
+	if orientation_form == null or docket_housing == null or header_notice == null:
 		return
-	var gr := first.get_global_rect()
-	# Clamp below the header row: the chalk (taller than a plate) must not
-	# climb onto the bone facility plate above the wall (bone on bone).
-	var top := maxf(gr.get_center().y - chalk_mark.size.y * 0.5, gr.position.y - 4.0)
-	chalk_mark.global_position = Vector2(gr.end.x - 24.0, top)
+	if docket_housing.size == Vector2.ZERO or header_notice.size == Vector2.ZERO:
+		return
+	var size := orientation_form.size
+	if orientation_form.is_expanded():
+		var nr := header_notice.get_global_rect()
+		orientation_form.global_position = Vector2(nr.end.x - size.x, nr.position.y)
+	else:
+		var hr := docket_housing.get_global_rect()
+		orientation_form.global_position = Vector2(
+			hr.end.x - size.x - 18.0, hr.position.y + 14.0)
+	# The standing notice stands down while intake paperwork leads — modulate,
+	# never visible=false, so the header row's layout never reflows (the
+	# facility plate must not stretch mid-tutorial).
+	header_notice.modulate = Color(1.0, 1.0, 1.0, 0.0 if orientation_form.is_expanded() else 1.0)
+
+
+func _position_orientation_cue() -> void:
+	if orientation_cue == null:
+		return
+	if not orientation_cue.visible:
+		return
+	var target := ""
+	if _tm != null and _tm.has_method("orientation_progress"):
+		target = String(_tm.orientation_progress()["target"])
+	if target != "" and _plates.has(target):
+		orientation_cue.aim(_plates[target], false)
 
 # ------------------------------------------------------------------ console
 func _on_font_scale_value(value: float) -> void:
@@ -737,6 +846,15 @@ func _on_font_scale_value(value: float) -> void:
 		_ui_theme.apply_font_scale(scale)
 	font_readout.text = "%d%%" % roundi(scale * 100.0)
 	font_scale_changed.emit(scale)
+	# T18: the O-1 form + cue re-position after the scaled layout settles.
+	_reposition_orientation_after_layout()
+
+
+func _reposition_orientation_after_layout() -> void:
+	await get_tree().process_frame
+	if is_inside_tree():
+		_position_orientation_form()
+		_position_orientation_cue()
 
 func _set_slider_focus(lit: bool) -> void:
 	_slider_focus_lit = lit
@@ -885,33 +1003,49 @@ class BulkheadMouth:
 			draw_circle(Vector2(26, y), 2.3, t.STEEL_HI)
 			y += 96.0
 
-## Chalk scrawl from a wasteland resident: START HERE and an arrow pointing
-## at the first-run energized plate. Bone chalk on steel; drawn, not themed —
-## it is a mark on the wall, not signage issued by the Department.
-class ChalkMark:
+## T18 — the current orientation step's cue: the orient_arrow glyph (amber,
+## heavy chevron) posted beside the destination plate, pointing at it. The
+## arrow class exists only while orientation is incomplete (it retires with
+## the tutorial, per the icon-grammar addendum); a step change is the one
+## authored moment — a bounded arrival swell, never a looping pulse. Mouse
+## transparent: it is a mark on the wall, not a control (the O-1 form's row
+## is the interactive twin of this cue).
+class OrientationCue:
 	extends Control
-	var arrow_label: Label
+
+	var glyph: TextureRect
 
 	func _init() -> void:
-		custom_minimum_size = Vector2(180, 104)
+		custom_minimum_size = Vector2(36.0, 36.0)
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
-		arrow_label = Label.new()
-		arrow_label.theme_type_variation = "MonoValue"
-		arrow_label.text = "START HERE"
-		arrow_label.rotation = -0.09
-		arrow_label.position = Vector2(38, 4)
-		arrow_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(arrow_label)
+		visible = false
+		glyph = TextureRect.new()
+		var tex: Texture2D = load("res://assets/icons/orient_arrow.svg")
+		if tex != null:
+			glyph.texture = tex
+		glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		glyph.set_anchors_preset(PRESET_FULL_RECT)
+		glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# The glyph ships pointing right (toward rising x); posted at the
+		# plate's right shoulder it must point LEFT — into the plate it names.
+		glyph.rotation = PI
+		add_child(glyph)
 
-	func _draw() -> void:
-		var chalk := SignageTokens.BONE_ENAMEL
-		var pts := PackedVector2Array([
-			Vector2(150, 24), Vector2(118, 38), Vector2(84, 50),
-			Vector2(52, 61), Vector2(26, 74),
-		])
-		draw_polyline(pts, Color(chalk, 0.20), 5.0)   # chalk fuzz
-		draw_polyline(pts, Color(chalk, 0.88), 2.5)   # the stroke
-		var tip: Vector2 = pts[pts.size() - 1]
-		var dir := (tip - pts[pts.size() - 2]).normalized()
-		for ang in [2.62, -2.62]:
-			draw_line(tip, tip + dir.rotated(ang) * 16.0, Color(chalk, 0.88), 2.5)
+	## Post beside `plate` (right shoulder, vertically centered, clamped
+	## inside the shell). `animate` plays the arrival swell on a step change.
+	func aim(plate: Control, animate: bool) -> void:
+		if plate == null or plate.size.y <= 0.0:
+			return
+		var gr := plate.get_global_rect()
+		size = Vector2(36.0, 36.0)
+		global_position = Vector2(gr.end.x + 4.0,
+			maxf(gr.get_center().y - size.y * 0.5, 8.0))
+		pivot_offset = size * 0.5
+		if animate:
+			scale = Vector2(0.72, 0.72)
+			var tw := create_tween()
+			tw.tween_property(self, "scale", Vector2.ONE, 0.26) \
+				.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		elif scale != Vector2.ONE:
+			scale = Vector2.ONE

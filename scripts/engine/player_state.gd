@@ -41,6 +41,13 @@ var combat: Dictionary = {}
 ## a successful re-post on that skill erases its entry. Pass-through here.
 var staffing: Dictionary = {}
 
+## T18 orientation namespace (save_version 2, naming-bible §14 machine ids):
+##   {"steps_done": Array[String] (the 7 step ids, stamped order-agnostic),
+##    "completed": bool, "stipend_claimed": bool}
+## The UI-facing tracker is OrientationTracker (scripts/engine/
+## orientation_tracker.gd) — the single writer; pass-through here.
+var orientation: Dictionary = {}
+
 
 ## One running activity/recipe on one skill. Action k (0-based) completes at
 ## `anchor_ms + (k + 1) * interval_ms` on the sim clock — the closed-form
@@ -136,6 +143,7 @@ func to_dict() -> Dictionary:
 		"active": active_d,
 		"combat": combat.duplicate(true),
 		"staffing": staffing.duplicate(true),
+		"orientation": orientation.duplicate(true),
 	}
 
 
@@ -166,5 +174,17 @@ static func from_dict(d: Dictionary, lib: ContentLibrary) -> PlayerState:
 	st.staffing = {
 		"deputies": int(staffing_d.get("deputies", 0)),
 		"suspended": suspended_d.duplicate(true),
+	}
+	# T18 orientation (v2 saves carry it; the migration seeds it and any
+	# T17-window record without the namespace hydrates a fresh one — values
+	# hydrate raw, OrientationTracker.ensure_orientation repairs types).
+	var orientation_d: Dictionary = d.get("orientation", {})
+	var steps_d: Array = []
+	for s in orientation_d.get("steps_done", []):
+		steps_d.append(String(s))
+	st.orientation = {
+		"steps_done": steps_d,
+		"completed": bool(orientation_d.get("completed", false)),
+		"stipend_claimed": bool(orientation_d.get("stipend_claimed", false)),
 	}
 	return st

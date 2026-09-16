@@ -488,7 +488,9 @@ func test_concourse_save_and_quit_controls_wired() -> void:
 	store.connect_concourse(concourse)
 	await get_tree().process_frame  # first-run application is deferred past _ready
 
-	assert_true(concourse.chalk_mark.visible, "fresh dir: START HERE chalk shown (SaveStore owns first-run)")
+	assert_true(concourse.orientation_form != null and concourse.orientation_form.visible
+			and concourse.orientation_form.is_expanded(),
+		"fresh dir: ORIENTATION FORM O-1 posted expanded (SaveStore owns first-run)")
 	var saves: Array = []
 	store.save_completed.connect(func(_result: Dictionary) -> void: saves.append(1))
 

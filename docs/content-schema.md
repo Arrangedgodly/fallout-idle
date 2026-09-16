@@ -31,7 +31,7 @@ records array (any other top-level key is an error):
 | `data/equipment.json` | `equipment` | `EquipmentDef` | T7 stat application, T10b slots |
 | `data/shop_stock.json` | `shop_stock` | `ShopEntryDef` | T10a Depot |
 | `data/xp_curves.json` | `xp_curves` | `XpCurveDef` | T6 XP math, T10 gauges |
-| `data/staffing.json` | `deputies` | `DeputyDef` | T17 personnel engine, posting board |
+| `data/staffing.json` | `deputies` + scalar `orientation_stipend` | `DeputyDef` + int | T17 personnel engine, posting board; T18 orientation stipend |
 
 `schema_version` is currently **1** and is namespaced to *content only* — it
 never collides with the save format's `save_version` (see
@@ -213,7 +213,7 @@ honest sell price lives on the item); entries only set buy terms.
 `XpCurveDef` provides `total_xp_to_reach(level)`, `level_for_total_xp(xp)`,
 `xp_to_next(level)` — int-exact helpers T6/T13 reuse.
 
-### staffing.json (T17)
+### staffing.json (T17 + T18 scalar)
 
 The deputy price ladder. Buying rung `n` (0-based, file order) raises
 `staffing.deputies` from n to n+1 — the resident's own hands staff posting 1,
@@ -228,6 +228,12 @@ hardcode them (`ContentLibrary.deputy_price_at(rung)` is the read path).
 
 Cross-checks: exactly **4** records; prices non-decreasing in file order (a
 deputy ladder never gets cheaper).
+
+Top-level scalar (T18, the one file in the set that carries one):
+
+| Field | Type | Range | Req | Notes |
+|---|---|---|---|---|
+| `orientation_stipend` | int | 1–1,000,000 | y | Crowns posted by the ORIENTATION FORM O-1 completion reward (the DULY ORIENTED stipend line; read via `ContentLibrary.orientation_stipend`). Placeholder 60 for T20 to retune. >= 1 because the Department always pays something. |
 
 ## Versioning
 

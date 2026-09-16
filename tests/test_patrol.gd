@@ -603,9 +603,12 @@ func test_patrol_keyboard_traversal_covers_focusables() -> void:
 	var focusables := c.focusable_controls()
 	var docket_focus: Array[Control] = []
 	_collect_focusable(c.docket_for("wasteland_patrol"), docket_focus)
-	assert_eq(focusables.size(), 8 + 4 + docket_focus.size(),
-		"focusables = 8 plates (T17: PERSONNEL joins the wall) + 4 console + %d patrol controls (got %d)" % [
-			docket_focus.size(), focusables.size()])
+	# T18: the O-1 form posts its own focusables (seven rows while expanded).
+	var form_focus: Array[Control] = []
+	_collect_focusable(c.orientation(), form_focus)
+	assert_eq(focusables.size(), 8 + 4 + docket_focus.size() + form_focus.size(),
+		"focusables = 8 plates (T17: PERSONNEL joins the wall) + 4 console + %d patrol controls + %d Form O-1 (got %d)" % [
+			docket_focus.size(), form_focus.size(), focusables.size()])
 	for control in docket_focus:
 		assert_ne(control.name, "", "patrol control named")
 	assert_true(docket_focus.any(func(f: Control) -> bool: return f.name == "Fauna_junkyard_roach"),

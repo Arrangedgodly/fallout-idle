@@ -50,6 +50,7 @@ const SOURCE_SCAN := [
 	"res://scripts/ui/docket_patrol.gd",
 	"res://scripts/ui/mail_call_modal.gd",
 	"res://scripts/ui/save_notice_board.gd",
+	"res://scripts/ui/orientation_form.gd",
 ]
 
 var checks := 0
@@ -480,7 +481,8 @@ func _motion_audit() -> void:
 	_check(elapsed <= 1_000, "keyboard-driven slide bounded (%d ms)" % elapsed)
 	# Nothing loops: no looping/infinite tweens anywhere in the UI sources
 	# (the only authored motions are the 0.24/0.34 s slide, the 0.22 s swell,
-	# the 0.30 s settle and the 0.45 s chalk fade — all one-shot).
+	# the 0.30 s settle, the O-1 stamp swell + arrival swell (T18) — all
+	# one-shot).
 	for path in SOURCE_SCAN:
 		var fa := FileAccess.open(path, FileAccess.READ)
 		if fa == null:

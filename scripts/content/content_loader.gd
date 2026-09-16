@@ -112,7 +112,11 @@ static func _domain_specs() -> Array[Dictionary]:
 		{"file": "equipment.json", "key": "equipment", "validate": _validate_equipment, "install": _install_equipment},
 		{"file": "shop_stock.json", "key": "shop_stock", "validate": _validate_shop_entry, "install": _install_shop},
 		{"file": "xp_curves.json", "key": "xp_curves", "validate": _validate_xp_curve, "install": _install_xp_curves},
-		{"file": "staffing.json", "key": "deputies", "validate": _validate_deputy, "install": _install_deputies},
+		# T18: the staffing file additionally carries the orientation stipend
+		# (a scalar, not a record list — the O-1 completion reward amount T20
+		# retunes; the ladder cross-check stays on "deputies").
+		{"file": "staffing.json", "key": "deputies", "validate": _validate_deputy, "install": _install_deputies,
+			"scalar": {"key": "orientation_stipend", "min": 1, "max": VALUE_MAX}},
 	]
 
 
@@ -141,14 +145,18 @@ static func _load_domain(dir: String, spec: Dictionary, lib: ContentLibrary, res
 		return
 	var doc: Dictionary = root
 
-	# Exact top-level key set: {schema_version, <records key>} — nothing else.
-	for key in ["schema_version", spec["key"]]:
+	# Exact top-level key set: {schema_version, <records key>} — nothing else
+	# beyond a domain's declared scalar (T18: staffing.json's stipend).
+	var allowed_keys := ["schema_version", spec["key"]]
+	if spec.has("scalar"):
+		allowed_keys.append(spec["scalar"]["key"])
+	for key in allowed_keys:
 		if not doc.has(key):
 			res.errors.append("[content] %s · top level: missing required key '%s'" % [rel, key])
 	for key in doc:
-		if key != "schema_version" and key != spec["key"]:
-			res.errors.append("[content] %s · top level: unknown key '%s' (expected only 'schema_version' and '%s')" %
-				[rel, key, spec["key"]])
+		if not allowed_keys.has(key):
+			res.errors.append("[content] %s · top level: unknown key '%s' (expected only %s)" %
+				[rel, key, " and ".join(PackedStringArray(allowed_keys))])
 	if res.errors.any(func(e: String) -> bool: return e.begins_with("[content] %s · top level" % rel)):
 		return
 
@@ -180,6 +188,22 @@ static func _load_domain(dir: String, spec: Dictionary, lib: ContentLibrary, res
 		if def != null:
 			defs.append(def)
 	spec["install"].call(lib, defs, ctx, spec["key"])
+	# T18 scalar fields (staffing.json's orientation_stipend): one required,
+	# range-checked top-level integer installed onto the library under the
+	# same key. Same actionable grammar as every record error.
+	if spec.has("scalar"):
+		var skey := String(spec["scalar"]["key"])
+		var sv: Variant = doc[skey]
+		if sv is not float and sv is not int:
+			res.errors.append("[content] %s · top level · '%s': must be an integer, got %s" %
+				[rel, skey, _type_name(sv)])
+		else:
+			var n := int(sv)
+			if n < int(spec["scalar"]["min"]) or n > int(spec["scalar"]["max"]):
+				res.errors.append("[content] %s · top level · '%s': %d is outside %d-%d" %
+					[rel, skey, n, int(spec["scalar"]["min"]), int(spec["scalar"]["max"])])
+			else:
+				lib.set(skey, n)
 
 
 static func _install_items(lib: ContentLibrary, defs: Array, ctx: Ctx, key: String) -> void:

@@ -15,16 +15,18 @@ extends SceneTree
 ##      bible and the design-brief first viewport; the facility plate carries
 ##      the game title; the docket region occupies >= 2/3 of the body at
 ##      1280x720 AND 1920x1080;
-##   3. first-run: START HERE chalk visible, first plate energized with the
-##      full cue set (amber variation + ">> " prefix + swell + z-order);
+##   3. first-run (T18): ORIENTATION FORM O-1 posted expanded, step 1 cued
+##      (arrow row + plate cue), first plate energized with the full cue set
+##      (amber variation + ">> " prefix + swell + z-order);
 ##   4. full keyboard navigation: initial focus set; every focusable control
 ##      reachable in one tab cycle; arrow neighbors link the plate column;
 ##      ui_accept on a focused plate drives a real department transition;
 ##   5. every focusable shows a visible amber focus ring when focused
 ##      (theme focus stylebox for buttons/checks; lit track for the slider);
 ##   6. bulkhead-slide transition: bounded duration, shutter covers and
-##      clears, energized state moves with all cues, chalk dismissed,
-##      duplicate/unknown selections are ignored;
+##      clears, energized state moves with all cues, the O-1 cue persists
+##      (the tutorial walks with the resident), duplicate/unknown selections
+##      are ignored;
 ##   7. console wiring: font scale slider drives UiTheme (100/150/200%),
 ##      FILE RECORD/CLOCK OUT emit their stub signals, BEGIN SHIFT emits the
 ##      activity signal;
@@ -217,20 +219,37 @@ func _check_docket_share(width: int) -> void:
 
 func _check_first_run() -> void:
 	_check(_concourse.first_run, "first run active at boot")
-	var chalk := _concourse.chalk()
-	_check(chalk != null and chalk.visible, "START HERE chalk visible on first run")
-	if chalk != null:
-		var texts := _label_texts(chalk)
-		_check(texts.has("START HERE"), "chalk reads START HERE (got %s)" % str(texts))
+	# T18: the posted ORIENTATION FORM O-1 replaces the retired START HERE
+	# chalk — the form IS the first-run directive, step 1 cued.
+	var form := _concourse.orientation()
+	_check(form != null and form.visible, "ORIENTATION FORM O-1 posted on first run")
+	if form != null:
+		_check(form.is_expanded(), "first run meets the resident with the form EXPANDED")
+		_check(form.word_count() <= 40,
+			"low-text pin: the form carries <= 40 words (got %d)" % form.word_count())
+		var rows := form.step_rows()
+		_check(rows.size() == 7, "seven stencil lines (got %d)" % rows.size())
+		if rows.size() == 7:
+			var first: Button = form.row_for("work_shift")
+			_check((first.get_node("Row/ArrowGlyph") as Control).is_visible_in_tree(),
+				"step 1 (WORK A POSTED SHIFT) is the cued current row")
+			_check(not (form.row_for("deputize_resident").get_node("Row/ArrowGlyph") as Control).is_visible_in_tree(),
+				"step 7 waits its turn (no arrow)")
+		_check(not form.get_node("FormColumn/FoldForm").is_visible_in_tree(),
+			"no fold control at zero stamps (the tutorial leads)")
+	# The step cue beside the destination plate (step 1 -> SCAVENGING).
+	var cue := _concourse.cue()
+	_check(cue != null and cue.visible, "orient_arrow cue posted beside the target plate")
+	if cue != null and cue.visible:
 		var p0_rect := _concourse.plate_buttons_in_order()[0].get_global_rect()
-		var c_rect := chalk.get_global_rect()
+		var c_rect := cue.get_global_rect()
 		_check(c_rect.get_center().y >= p0_rect.position.y and c_rect.get_center().y <= p0_rect.end.y
-				and c_rect.end.x > p0_rect.position.x,
-			"chalk sits beside the first plate, pointing at it")
+				and c_rect.position.x >= p0_rect.end.x - 2.0,
+			"cue sits beside the first plate, pointing into it")
 		var facility_plate := _concourse.find_child("FacilityPlate", true, false) as Control
 		if facility_plate != null:
-			_check(c_rect.position.y + 28.0 >= facility_plate.get_global_rect().end.y - 2.0,
-				"chalk label stays below the facility plate (no bone-on-bone)")
+			_check(c_rect.position.y >= facility_plate.get_global_rect().end.y - 2.0,
+				"cue stays below the facility plate")
 
 	var first := _concourse.plate_buttons_in_order()[0]
 	_check(first.theme_type_variation == "Energized", "active plate uses the Energized variation")
@@ -256,15 +275,20 @@ func _check_focus_traversal() -> void:
 	var focusables := _concourse.focusable_controls()
 	# Expected set: the 8 plates + the 4 console controls + every visible
 	# focusable inside the ACTIVE docket (T10a content mounts cards, logs,
-	# buy/sell/equip buttons there; hidden dockets must contribute nothing).
+	# buy/sell/equip buttons there; hidden dockets must contribute nothing)
+	# + the O-1 form's visible focusables (T18: seven rows while expanded,
+	# the fold/open control per state).
 	var docket := _concourse.docket_for(_concourse.active_department())
 	var docket_focus: Array[Control] = []
 	if docket != null:
 		_collect_focusable_controls(docket, docket_focus)
-	var expected_count := 8 + 4 + docket_focus.size()
+	var form_focus: Array[Control] = []
+	if _concourse.orientation() != null:
+		_collect_focusable_controls(_concourse.orientation(), form_focus)
+	var expected_count := 8 + 4 + docket_focus.size() + form_focus.size()
 	_check(focusables.size() == expected_count,
-		"%d focusable controls (expected %d: 8 plates, 4 console, %d in the active docket)" % [
-			focusables.size(), expected_count, docket_focus.size()])
+		"%d focusable controls (expected %d: 8 plates, 4 console, %d in the active docket, %d on Form O-1)" % [
+			focusables.size(), expected_count, docket_focus.size(), form_focus.size()])
 	var names: Array[String] = []
 	for c in focusables:
 		names.append(c.name)
@@ -278,7 +302,7 @@ func _check_focus_traversal() -> void:
 			if hidden_docket != null and hidden_docket.is_ancestor_of(c):
 				_check(false, "focusable %s lives in hidden docket %s" % [c.name, id])
 
-	# Initial focus: the first plate (what START HERE points at).
+	# Initial focus: the first plate (what the O-1 step-1 cue points at).
 	var owner_now := _vp.gui_get_focus_owner()
 	_check(owner_now == _concourse.initial_focus(),
 		"initial focus is the first plate (got %s)" % (owner_now.name if owner_now else "none"))
@@ -364,8 +388,11 @@ func _check_transition() -> void:
 		"scavenging plate reset to default state (digit posted, R3)")
 	_check(_concourse.docket_for("wasteland_patrol").visible, "patrol docket visible after transition")
 	_check(not _concourse.docket_for("scavenging").visible, "scavenging docket hidden after transition")
-	_check(not _concourse.chalk().visible and not _concourse.first_run,
-		"START HERE chalk dismissed after the first department change")
+	# T18: the run-1 chalk dismissed on the first department change; the O-1
+	# cue PERSISTS — the tutorial walks with the resident step by step (it
+	# retires only at completion, proven in tests/test_orientation.gd).
+	_check(_concourse.cue() != null and _concourse.cue().visible,
+		"orientation cue persists across a department change")
 	_check(not _concourse.shutter.visible and not _concourse.is_transitioning(),
 		"bulkhead shutter cleared after transition")
 
@@ -949,8 +976,11 @@ func _check_t10b_patrol() -> void:
 	var focusables := _concourse.focusable_controls()
 	var docket_focus: Array[Control] = []
 	_collect_focusable_controls(_concourse.docket_for("wasteland_patrol"), docket_focus)
-	_check(focusables.size() == 8 + 4 + docket_focus.size(),
-		"%d focusables (8 plates, 4 console, %d patrol)" % [focusables.size(), docket_focus.size()])
+	var form_focus2: Array[Control] = []
+	_collect_focusable_controls(_concourse.orientation(), form_focus2)
+	_check(focusables.size() == 8 + 4 + docket_focus.size() + form_focus2.size(),
+		"%d focusables (8 plates, 4 console, %d patrol, %d Form O-1)" % [
+			focusables.size(), docket_focus.size(), form_focus2.size()])
 	var visited := {}
 	var cur: Control = _concourse.initial_focus()
 	var guard := 0
@@ -1227,9 +1257,9 @@ func _capture_sets() -> void:
 	if DirAccess.make_dir_recursive_absolute(REVIEW_DIR) != OK:
 		_check(false, "review dir created")
 
-	# 1280x720 — first-run, then active-department. select_department()
-	# legitimately dismisses the chalk on a change (the resident started), so
-	# the boot state is composed by selecting first, then re-posting the chalk.
+	# 1280x720 — first-run, then active-department. The T18 first-run state
+	# is the O-1 form + step-1 cue, composed by selecting first, then
+	# re-applying first-run (the form re-expands, the cue re-aims).
 	_concourse.select_department("scavenging", true)
 	await _frames(2)
 	_concourse.set_first_run(true)
@@ -1660,7 +1690,7 @@ func _check(ok: bool, label: String) -> void:
 func _report_and_quit() -> void:
 	_done = true
 	if failures.is_empty():
-		print("PROBE_OK checks=%d (concourse themed; 8 plates with posted designation digits (T17: PERSONNEL D-08); two-thirds docket; first-run chalk + energized cues; full tab/arrow coverage with amber focus rings incl. T10a/T10b docket content; bounded bulkhead slide; R3 hotkeys 1-8 row+keypad via real input pipeline, focus-follow, mail-call suppression; console signals wired; T10a live-engine dockets: gates + earning-path copy, honest rates, keyboard start/stop, gauge==state, stamps, equip/unequip, depot tenders + both-prices-per-line pin, MAIL CALL, save notices; T10b patrol: honest fauna stats + claim rates + gates + earning path, keyboard engage/withdraw, gauges==state, battle stamps with NO DAMAGE vs MISS wording pinned, DECEASED/RETURN TO SHELTER zero-loss + recovery directive, PATROL RECALLED + mail call, persistent ZONE SECURED, gear-derived stats, traversal)" % checks)
+		print("PROBE_OK checks=%d (concourse themed; 8 plates with posted designation digits (T17: PERSONNEL D-08); two-thirds docket; first-run O-1 form + cue + energized plate cues (T18); full tab/arrow coverage with amber focus rings incl. T10a/T10b docket content; bounded bulkhead slide; R3 hotkeys 1-8 row+keypad via real input pipeline, focus-follow, mail-call suppression; console signals wired; T10a live-engine dockets: gates + earning-path copy, honest rates, keyboard start/stop, gauge==state, stamps, equip/unequip, depot tenders + both-prices-per-line pin, MAIL CALL, save notices; T10b patrol: honest fauna stats + claim rates + gates + earning path, keyboard engage/withdraw, gauges==state, battle stamps with NO DAMAGE vs MISS wording pinned, DECEASED/RETURN TO SHELTER zero-loss + recovery directive, PATROL RECALLED + mail call, persistent ZONE SECURED, gear-derived stats, traversal)" % checks)
 		quit(0)
 	else:
 		printerr("PROBE_FAILED checks=%d failures=%d" % [checks, failures.size()])

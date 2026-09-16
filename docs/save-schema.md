@@ -10,8 +10,11 @@ separation rule, Doctor Strange's versioning-from-day-1 claim).
 
 ## Versioning rules (binding, unchanged since T2)
 
-- Top-level `save_version: 2` today (v2 = the T17 staffing namespace; v1
-  records migrate up — see "Migration 1→2"). Bump on any shape change.
+- Top-level `save_version: 2` today (v2 = the T17 staffing namespace AND the
+  T18 orientation namespace — one amended v2, see "Migration 1→2"; v1
+  records migrate up). Bump on any shape change that has SHIPPED; run-2's v2
+  was amended pre-delivery (T17 and T18 land in the same build), so a single
+  v2 definition covers both namespaces and no v3 exists.
 - Every migration is a named, ordered function (e.g.
   `_migrate_1_to_2(dict) -> dict`); a save loads only after being migrated up
   to the current `save_version`. The chain hook lives in SaveStore
@@ -35,7 +38,7 @@ separation rule, Doctor Strange's versioning-from-day-1 claim).
   `content_schema_version` and compared on load: a mismatch is a diagnostic
   (warned, exposed in `SaveStore.content_drift`), never a load failure.
 
-## Shape (save_version 2 — v1 + the staffing namespace; T3's layout otherwise unchanged)
+## Shape (save_version 2 — v1 + the staffing and orientation namespaces; T3's layout otherwise unchanged)
 
 T6's per-skill slot model replaced the T2 sketch's single `activity_state`
 line (T3 owned the final layout per the T2 hand-off note); `save_version`
@@ -72,18 +75,42 @@ stays 1 because no v1 record predates this layout. `engine` is
 		"staffing": {                 // T17 namespace (save_version 2)
 			"deputies": 1,        // int 0-4; postings = 1 + deputies
 			"suspended": {}       // skill_id -> parked ActiveSlot dict (see below)
+		},
+		"orientation": {              // T18 namespace (same amended v2)
+			"steps_done": ["work_shift", "earn_clearance"],  // the 7 §14 step
+			                                    // ids in stamp order (order-agnostic
+			                                    // mechanically; the form's display
+			                                    // order is fixed)
+			"completed": false,    // true only with all 7 stamped
+			"stipend_claimed": false  // the DULY ORIENTED stipend posted once
 		}
 	},
 	"settings": { "font_scale": 1.0, "fullscreen": false }  // steps 1.0/1.5/2.0
 }
 ```
 
-## Migration 1→2 (T17 — the personnel system)
+Orientation validation (validated WHEN present — see the migration note): a
+T17-development-window v2 record without the namespace hydrates a fresh
+orientation and the adopt-time evaluation stamps whatever its lifetime
+evidence satisfies. A present-but-mangled namespace is a broken save:
+`steps_done` entries must be known step ids with no duplicates;
+`completed`/`stipend_claimed` must be booleans; `completed` requires all
+seven steps; `stipend_claimed` requires `completed`. The stipend itself
+(amount from content, `data/staffing.json` `orientation_stipend`) is granted
+exactly once by the engine at the seventh stamp — a reload of a completed
+record re-rewards nothing.
+
+## Migration 1→2 (T17 personnel + T18 orientation — one amended v2)
 
 `_migrate_1_to_2` is a pure document transform: it seeds
-`engine.staffing = {"deputies": 0, "suspended": {}}` and stamps
-`save_version: 2`. A progressed v1 player keeps EVERYTHING and gains 0
-deputies (one posting).
+`engine.staffing = {"deputies": 0, "suspended": {}}` and
+`engine.orientation = {"steps_done": [], "completed": false,
+"stipend_claimed": false}`, and stamps `save_version: 2`. A progressed v1
+player keeps EVERYTHING and gains 0 deputies (one posting) and an unstamped
+form — then `TickManager.adopt_state` runs the orientation evaluation, so
+steps their lifetime evidence already satisfies (gathering xp, any grade
+above 1, crowns ever earned, processing xp, gear worn or food cooked, combat
+xp, deputies) stamp instantly on the first session.
 
 A v1 record may carry MORE running skills than one posting (run-1 allowed
 all five concurrent). That over-subscription is live engine state, not file

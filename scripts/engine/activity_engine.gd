@@ -54,6 +54,11 @@ const COMBAT_FIGHTING_PHASE := "fighting"
 
 var lib: ContentLibrary
 var batcher: UpdateBatcher
+## T18 orientation hook (TickManager wires its tracker here; null under bare
+## ActivityEngine use). Engine-side event seam so the UI never infers step
+## completion: gathering starts stamp WORK A POSTED SHIFT, completed recipe
+## actions stamp PROCESS A PRODUCT (+ PROVISION THE PATROL on food output).
+var orientation: OrientationTracker = null
 
 
 func _init(p_lib: ContentLibrary, p_batcher: UpdateBatcher = null) -> void:
@@ -249,6 +254,10 @@ func start(state: PlayerState, content_id: String, now_ms: int) -> Dictionary:
 	# the parked entry is remembered state, not a reservation.
 	if state.staffing.get("suspended", {}).has(skill_id):
 		state.staffing["suspended"].erase(skill_id)
+	# T18: a started gathering shift stamps WORK A POSTED SHIFT (the recipe
+	# path stamps through _execute_action instead).
+	if orientation != null:
+		orientation.note_activity_started(state, slot)
 	batcher.mark("activity")
 	return {"ok": true, "reason": ""}
 
@@ -319,6 +328,10 @@ func _execute_action(state: PlayerState, slot: PlayerState.ActiveSlot, emit_leve
 		state.add_item(rdef.output.item, rdef.output.qty)
 		slot.completed += 1
 		_grant_xp(state, rdef.skill, rdef.xp_per_action, emit_levels)
+		# T18: one completed craft stamps the orientation form's product step
+		# (and the patrol's provisions when the output is food).
+		if orientation != null:
+			orientation.note_recipe_completed(state, rdef)
 	else:
 		var adef: ActivityDef = lib.activity(slot.content_id)
 		if adef == null:

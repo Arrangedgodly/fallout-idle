@@ -16,8 +16,8 @@ extends Node
 ##     observe a torn primary (the rename is atomic), and a machine power loss
 ##     degrades to the previous last-good file — never garbage.
 ##   • save_version migrations: ordered, named `_migrate_<n>_to_<n+1>` chain
-##     (v2 is current — v1→v2 seeds the T17 staffing namespace; a save loads
-##     only after reaching SAVE_VERSION).
+##     (v2 is current — v1→v2 seeds the T17 staffing + T18 orientation
+##     namespaces; a save loads only after reaching SAVE_VERSION).
 ##   • load path: primary -> quarantine on hard failure -> backup ring
 ##     newest-first by mtime -> fresh state + corruption NOTICE (a signal + a
 ##     flag — never a crash). Corrupt files are NEVER deleted: the primary is
@@ -330,7 +330,7 @@ func _load_inner(now: int) -> Dictionary:
 		})
 		return load_report
 	if pr["ok"]:
-		return _finish_load(pr["doc"], SAVE_NAME, "", now, load_report)
+		return _finish_load(pr["doc"], SAVE_NAME, "", now, load_report, bool(pr.get("orientation_backfill", false)))
 	load_report["attempts"].append({"slot": SAVE_NAME, "why": str(pr["reason"])})
 	var quarantined := ""
 	if has_primary:
@@ -344,7 +344,7 @@ func _load_inner(now: int) -> Dictionary:
 			load_report["attempts"].append({"slot": bak, "why": "newer save_version %d — skipped" % int(cand["save_version"])})
 			continue
 		if cand["ok"]:
-			return _finish_load(cand["doc"], bak, str(pr["reason"]), now, load_report)
+			return _finish_load(cand["doc"], bak, str(pr["reason"]), now, load_report, bool(cand.get("orientation_backfill", false)))
 		load_report["attempts"].append({"slot": bak, "why": str(cand["reason"])})
 	# -- nothing loadable: fresh state + corruption notice (a state, not a crash) --
 	load_report["loaded_from"] = "fresh-corrupt"
@@ -356,7 +356,11 @@ func _load_inner(now: int) -> Dictionary:
 
 
 ## Adopt a validated document into the engine + run the offline hand-off.
-func _finish_load(doc: Dictionary, slot: String, primary_why: String, now: int, report: Dictionary) -> Dictionary:
+## T18 `orientation_backfill`: the record arrived without a namespace of its
+## own (v1 migration / T17-window v2) — run the veteran lifetime evaluation
+## right after adopt, so already-satisfied steps stamp on the first session.
+func _finish_load(doc: Dictionary, slot: String, primary_why: String, now: int,
+		report: Dictionary, orientation_backfill := false) -> Dictionary:
 	_record_drift(doc)
 	var meta: Dictionary = doc["meta"]
 	_created_unix = int(meta.get("created_unix", 0))
@@ -365,6 +369,8 @@ func _finish_load(doc: Dictionary, slot: String, primary_why: String, now: int, 
 	last_save_unix_ms = anchor
 	var st := PlayerState.from_dict(doc["engine"], _lib())
 	_tm.adopt_state(st, int(doc.get("engine_sim_time_ms", 0)))
+	if orientation_backfill and _tm.orientation != null:
+		_tm.orientation.evaluate(st)
 	var mail: Dictionary = _tm.apply_offline_from_save(anchor, now)
 	report["loaded_from"] = slot
 	report["anchor_unix_ms"] = anchor
@@ -414,6 +420,11 @@ func _read_save(path: String) -> Dictionary:
 		out["ok"] = true
 		out["doc"] = doc
 		return out
+	# T18: a record that predates the orientation namespace (a v1 record
+	# about to migrate, or a T17-window v2) takes the veteran lifetime
+	# back-fill once adopted — its already-satisfied steps stamp instantly.
+	out["orientation_backfill"] = v < SAVE_VERSION \
+		or not (doc.get("engine", {}) as Dictionary).has("orientation")
 	if v < SAVE_VERSION:
 		var mig := _apply_migrations(doc, SAVE_VERSION)
 		if not mig["ok"]:
@@ -431,11 +442,14 @@ func _read_save(path: String) -> Dictionary:
 
 # -------------------------------------------------------------- migrations --
 
-## v1 -> v2 (T17 personnel system): seed engine.staffing — deputies 0 (the
-## progressed player keeps EVERYTHING and gains no free deputies), no
-## suspended postings yet. A v1 record with more running skills than the one
-## posting this implies is NOT transformed here — over-subscription is live
-## engine state, not file shape: TickManager.adopt_state runs
+## v1 -> v2 (T17 personnel system + T18 orientation, one amended v2): seed
+## engine.staffing — deputies 0 (the progressed player keeps EVERYTHING and
+## gains no free deputies), no suspended postings yet — and engine.orientation
+## (steps_done empty, not completed, stipend unclaimed; TickManager.adopt_state
+## then evaluates lifetime evidence so already-satisfied steps stamp
+## instantly on the first session). A v1 record with more running skills than
+## the one posting this implies is NOT transformed here — over-subscription
+## is live engine state, not file shape: TickManager.adopt_state runs
 ## ActivityEngine.enforce_staffing, which keeps the most-recently-started
 ## posting active, parks the rest in staffing.suspended (full slot state,
 ## never silently dropped), and queues the "POSTINGS SUSPENDED — PERSONNEL
@@ -443,6 +457,7 @@ func _read_save(path: String) -> Dictionary:
 func _migrate_1_to_2(doc: Dictionary) -> Dictionary:
 	var engine_ns: Dictionary = doc.get("engine", {})
 	engine_ns["staffing"] = {"deputies": 0, "suspended": {}}
+	engine_ns["orientation"] = {"steps_done": [], "completed": false, "stipend_claimed": false}
 	doc["engine"] = engine_ns
 	doc["save_version"] = 2
 	return doc
@@ -567,6 +582,39 @@ func _validate_doc(d: Dictionary) -> String:
 		var parked_why := _validate_slot(parked, String(skill_id), lib)
 		if parked_why != "":
 			return "staffing." + parked_why
+	# T18 orientation namespace. Validated WHEN PRESENT: the v1->v2 migration
+	# seeds it, but a T17-development-window v2 record may predate it — that
+	# record hydrates a fresh orientation (PlayerState.from_dict defaults) and
+	# the adopt evaluation stamps what its lifetime evidence satisfies. A
+	# present-but-mangled namespace is a corrupt save like any other.
+	if e.has("orientation"):
+		var orientation: Variant = e.get("orientation")
+		if orientation is not Dictionary:
+			return "engine.orientation is not an object"
+		var o: Dictionary = orientation
+		var steps_v: Variant = o.get("steps_done")
+		if steps_v is not Array:
+			return "engine.orientation.steps_done is not an array"
+		var seen := {}
+		for step in (steps_v as Array):
+			var sid := str(step)
+			if not OrientationTracker.STEPS.has(sid):
+				return "engine.orientation.steps_done references unknown orientation step '%s'" % sid
+			if seen.has(sid):
+				return "engine.orientation.steps_done stamps '%s' twice" % sid
+			seen[sid] = true
+		if not (o.get("completed", false) is bool):
+			return "engine.orientation.completed is not a boolean"
+		if not (o.get("stipend_claimed", false) is bool):
+			return "engine.orientation.stipend_claimed is not a boolean"
+		var n_steps := (steps_v as Array).size()
+		if bool(o.get("completed", false)) and n_steps < OrientationTracker.STEPS.size():
+			return "engine.orientation.completed is true with only %d of %d steps stamped" % [
+				n_steps, OrientationTracker.STEPS.size()]
+		if not bool(o.get("completed", false)) and n_steps >= OrientationTracker.STEPS.size():
+			return "engine.orientation carries every step but completed is false"
+		if bool(o.get("stipend_claimed", false)) and not bool(o.get("completed", false)):
+			return "engine.orientation.stipend_claimed is true while the form is incomplete"
 	return ""
 
 
