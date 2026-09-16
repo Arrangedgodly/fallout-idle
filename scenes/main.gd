@@ -102,6 +102,7 @@ var console_serial: Label
 var chalk_mark: ChalkMark
 var shutter: PanelContainer
 var docket_housing: PanelContainer
+var docket_scroll: ScrollContainer
 var mail_call: MailCallModal
 var save_board: SaveNoticeBoard
 
@@ -398,6 +399,7 @@ func _build_docket_region() -> Control:
 	scroll.name = "DocketScroll"
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	docket_scroll = scroll
 	docket_housing = _panel_box("SteelPanel")
 	docket_housing.name = "DocketHousing"
 	docket_housing.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -577,6 +579,14 @@ func _apply_active(id: String, animate: bool) -> void:
 	_active_id = id
 	for did in _dockets:
 		_dockets[did].visible = (did == id)
+	# R1 (refinement critique P1#1/P2#3): a department change opens a FRESH
+	# posting, so the docket viewport returns to its content top — the enamel
+	# header plate leads, per the docket topology. Without the reset the
+	# ScrollContainer keeps whatever offset focus-follow scrolling left behind,
+	# which sliced the first visible line to glyph bottoms (instruction
+	# headers, wrapped yield serials) and hid the docket header entirely on
+	# the first-run screen.
+	docket_scroll.scroll_vertical = 0
 	_set_plate_state(_plates[id], true, animate)
 	if animate:
 		var docket: Control = _dockets[id]

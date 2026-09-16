@@ -40,7 +40,15 @@ extends SceneTree
 ##      recall renders PATROL RECALLED (alive) + MAIL CALL, first boss clear
 ##      posts the persistent ZONE SECURED plate, stats panel derives from
 ##      equipment, focus traversal covers the new focusables;
-##   9. (capture mode) PNGs at 1280x720 + 1920x1080 for first-run and
+##   9. R1 geometry pin (refinement 1, critique P1#1 + P2#3): the header row
+##      and the docket content region never intersect, a department change
+##      resets the docket scroll to its content top (the enamel header plate
+##      leads, fully inside the viewport), no visible docket label is sliced
+##      at the viewport's top edge and every label renders all its wrapped
+##      lines — at 1280x720 AND 1920x1080, 100% AND 200% font scale, across
+##      all seven departments; plus the manifest EQUIP-control clearance at
+##      200% (the critique's unverified claim, pinned as refuted);
+##   10. (capture mode) PNGs at 1280x720 + 1920x1080 for first-run and
 ##      active-department states under .impeccable/review/t9/, plus the T10a
 ##      set (one per department, running state, MAIL CALL, locked gates)
 ##      under .impeccable/review/t10a/ and the T10b set (engaged battle,
@@ -90,6 +98,7 @@ func _run() -> void:
 	await _check_t10a_dockets()
 	await _check_t10b_patrol()
 	await _check_font_scale()
+	await _check_r1_viewport_geometry()
 	if _capture_mode:
 		await _capture_sets()
 		await _capture_t10a_sets()
@@ -813,6 +822,78 @@ func _check_font_scale() -> void:
 			_check(float(ui_theme.get("font_scale")) == step[1],
 				"UiTheme.font_scale tracks the slider at %s" % step[2])
 		_counts["scale"] = 0
+
+# ------------------------------------------------------------------ R1 geometry pin
+## Refinement 1 (critique P1#1 + P2#3): the first-viewport "collision" and the
+## glyph-bottoms instruction headers shared one root cause — the docket
+## ScrollContainer kept a stale scroll offset across department changes, so
+## the first visible line rendered sliced at the viewport's top edge and the
+## docket header plate sat scrolled out of view. The fix resets the docket to
+## its content top on every department change; these assertions pin that
+## contract at both supported resolutions, both font-scale extremes, across
+## every department.
+func _check_r1_viewport_geometry() -> void:
+	for vp_size in [Vector2i(1280, 720), Vector2i(1920, 1080)]:
+		_vp.size = vp_size
+		await _frames(4)
+		for scale_value in [0.0, 2.0]:
+			_concourse.font_slider.value = scale_value
+			await _frames(2)
+			var scale_name := "100%" if scale_value < 1.0 else "200%"
+			var header := _concourse.find_child("HeaderRow", true, false) as Control
+			var scroll := _concourse.find_child("DocketScroll", true, false) as ScrollContainer
+			_check(header != null and scroll != null,
+				"R1 %dx%d %s: header row + docket scroll present" % [vp_size.x, vp_size.y, scale_name])
+			if header == null or scroll == null:
+				return
+			# The first-viewport pin: the header row and the docket's content
+			# region never intersect (touching counts as failing — the shell
+			# column guarantees a 16 px seam).
+			_check(not header.get_global_rect().intersects(scroll.get_global_rect()),
+				"R1 %dx%d %s: header row and docket content region never intersect" % [
+					vp_size.x, vp_size.y, scale_name])
+			for id in EXPECTED_IDS:
+				_concourse.select_department(id, true)
+				await _frames(1)
+				_check(scroll.scroll_vertical == 0,
+					"R1 %dx%d %s %s: department change resets the docket scroll to top" % [
+						vp_size.x, vp_size.y, scale_name, id])
+				var docket := _concourse.docket_for(id)
+				var vp_rect := scroll.get_global_rect()
+				# A fresh posting leads with its enamel header plate, whole.
+				var plate := docket.find_child("DocketHeader", true, false) as Control
+				_check(plate != null and vp_rect.encloses(plate.get_global_rect()),
+					"R1 %dx%d %s %s: docket header plate fully inside the viewport" % [
+						vp_size.x, vp_size.y, scale_name, id])
+				# No instruction label is clipped: nothing visible crosses the
+				# viewport's top edge, and every wrapped label renders every
+				# line inside its own rect (the POSTED SHIFTS family).
+				for l in docket.find_children("*", "Label", true, false):
+					var label := l as Label
+					if not label.is_visible_in_tree() or label.text.strip_edges() == "":
+						continue
+					var r := label.get_global_rect()
+					if r.end.y > vp_rect.position.y + 0.5:
+						_check(r.position.y >= vp_rect.position.y - 0.5,
+							"R1 %dx%d %s %s: label '%s' not sliced at the docket top edge" % [
+								vp_size.x, vp_size.y, scale_name, id,
+								label.text.substr(0, 28)])
+					_check(label.get_visible_line_count() >= label.get_line_count(),
+						"R1 %dx%d %s %s: label '%s' renders every wrapped line (%d/%d)" % [
+							vp_size.x, vp_size.y, scale_name, id, label.text.substr(0, 28),
+							label.get_visible_line_count(), label.get_line_count()])
+			# The critique's unverified 200% claim, pinned: the manifest EQUIP
+			# control never rides behind the slot plates or the list.
+			if scale_value > 1.0:
+				var manifest := _concourse.docket_controller("manifest") as DocketManifest
+				var equip_rect := manifest.equip_button.get_global_rect()
+				_check(not equip_rect.intersects(manifest.slots_row.get_global_rect())
+						and not equip_rect.intersects(manifest.list.get_global_rect()),
+					"R1 200%%: manifest EQUIP control clear of the slot plates and list")
+	# Restore the probe's standing state (1280x720, 100%) for the capture sets.
+	_vp.size = Vector2i(1280, 720)
+	_concourse.font_slider.value = 0.0
+	await _frames(2)
 
 # ------------------------------------------------------------------ capture
 func _capture_sets() -> void:
