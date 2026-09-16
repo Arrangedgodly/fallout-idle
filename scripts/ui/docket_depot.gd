@@ -27,6 +27,7 @@ func _build_content() -> void:
 	wrow.add_child(icon_rect("crowns", 34))
 	var wcol := vbox(2)
 	crowns_serial = label("PlateBodyEnergized", "CROWNS ON HAND · TENDERS EXACT · NO CREDIT")
+	crowns_serial.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	wcol.add_child(crowns_serial)
 	crowns_read = label("MonoBig", "0")
 	wcol.add_child(crowns_read)
@@ -34,13 +35,13 @@ func _build_content() -> void:
 	wallet.add_child(wrow)
 	add_child(wallet)
 
-	add_child(label("MicroLabel", "REQUISITIONS · STOCK POSTED AT THE COUNTER"))
+	add_child(micro("REQUISITIONS · STOCK POSTED AT THE COUNTER"))
 	var vent := panel_box("VentHousing")
 	stock_box = vbox(6)
 	vent.add_child(stock_box)
 	add_child(vent)
 
-	add_child(label("MicroLabel", "DISPOSALS · THE COUNTER BUYS AT ONE HONEST RATE"))
+	add_child(micro("DISPOSALS · THE COUNTER BUYS AT ONE HONEST RATE"))
 	sell_vent = panel_box("VentHousing")
 	sell_box = vbox(6)
 	sell_vent.add_child(sell_box)
@@ -223,6 +224,8 @@ func _make_sell_row(item_id: String) -> Control:
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(label("SectionLabel", item.name.to_upper()))
 	var count_label := label("MonoValue", "")
+	# T15: the on-hand serial wraps (mono — the row's widest line at 200%).
+	count_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(count_label)
 	row.add_child(col)
 

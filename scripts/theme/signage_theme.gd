@@ -155,7 +155,11 @@ static func build() -> Theme:
 		normal_bg = t.INSTITUTIONAL_NAVY, border = t.SIGNAL_AMBER, border_w = 3,
 		font_color = t.SIGNAL_AMBER,
 		shadow = Color(t.SIGNAL_AMBER, 0.25),
-		hover_bg = t.NAVY_HI,
+		# T15 contrast audit: hover deliberately keeps the navy ground. The
+		# earlier NAVY_HI hover step put amber 18px text on #33507A = 4.46:1,
+		# under the 4.5 body floor; navy keeps the registered amber-on-navy
+		# pair (6.96:1) and hover remains perceivable through the enlarged
+		# amber shadow + the always-amber border + the cursor.
 	})
 	_button_states(th, "Danger", {
 		normal_bg = t.SAFETY_RED, border = t.BONE_ENAMEL, border_w = 2,

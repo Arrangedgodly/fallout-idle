@@ -63,16 +63,20 @@ func _build_content() -> void:
 	status_plate.visible = false
 	var srow := hbox(12)
 	status_line = label("MonoValueEnergized", "")
+	# T15: the long running-status serials wrap (mono, the plate's widest
+	# lines at 200% font scale).
 	status_line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	status_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	srow.add_child(status_line)
 	status_serial = label("PlateBodyEnergized", "")
+	status_serial.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	srow.add_child(status_serial)
 	status_plate.add_child(srow)
 	add_child(status_plate)
 
 	var vent := panel_box("VentHousing")
 	var vcol := vbox(8)
-	vcol.add_child(label("MicroLabel", "CLEARANCE GAUGE · POSTED RATES ARE THE HONEST RATES"))
+	vcol.add_child(micro("CLEARANCE GAUGE · POSTED RATES ARE THE HONEST RATES"))
 	gauge = ProgressBar.new()
 	gauge.show_percentage = false
 	gauge.min_value = 0.0
@@ -82,11 +86,12 @@ func _build_content() -> void:
 	gauge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vcol.add_child(gauge)
 	gauge_read = label("MonoValue", "CLEARANCE 01 · 0/0 XP TO NEXT")
+	gauge_read.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vcol.add_child(gauge_read)
 	vent.add_child(vcol)
 	add_child(vent)
 
-	add_child(label("MicroLabel", _list_header()))
+	add_child(micro(_list_header()))
 	cards_box = vbox(8)
 	add_child(cards_box)
 
@@ -128,7 +133,8 @@ func _build_cards() -> void:
 func _make_card(def: RefCounted) -> Card:
 	var card := Card.new()
 	card.id = str(def.get("id"))
-	var b := Button.new()
+	# T15: CardButton — the button's minimum size includes its label stack.
+	var b := Docket.CardButton.new()
 	b.name = "Card_" + card.id
 	b.pressed.connect(_on_card_pressed.bind(card.id))
 	b.tooltip_text = "Post this shift — %s" % str(def.get("name"))
@@ -146,7 +152,10 @@ func _make_card(def: RefCounted) -> Card:
 	card.title = label("FormTitle", str(def.get("name")))
 	card.title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_row.add_child(card.title)
+	# T15: the serial rate line wraps — unwrapped it is the docket's widest
+	# line at 200% font scale and pushed the docket past its column.
 	card.rate_line = label("PlateSerialNavy", _rate_line(def))
+	card.rate_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title_row.add_child(card.rate_line)
 	col.add_child(title_row)
 

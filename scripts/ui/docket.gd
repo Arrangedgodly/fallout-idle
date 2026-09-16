@@ -25,6 +25,59 @@ const TM_SIGNALS := ["bulk_state_changed", "level_up", "activity_stopped"]
 var _handlers := {}
 
 
+## T15 audit fix: a Button's built-in minimum size covers only its own text +
+## stylebox — child content is ignored (Button is not a container), so the
+## tier/recipe/fauna cards (text-less buttons carrying label stacks) collapsed
+## to ~22 px with their yields/gate lines spilling onto the next card, the
+## focus ring wrapping a sliver, and the hit target under the 24 px WCAG
+## 2.5.8 floor. CardButton sizes to its child stack and lays the stack out
+## inset by the button stylebox's content margins (Button never positions
+## children of its own).
+class CardButton:
+	extends Button
+
+	func _init() -> void:
+		child_entered_tree.connect(_on_child_entered)
+
+	func _on_child_entered(child: Node) -> void:
+		if child is Control:
+			(child as Control).minimum_size_changed.connect(_sync_min)
+			_sync_min()
+
+	func _notification(what: int) -> void:
+		if what == NOTIFICATION_READY or what == NOTIFICATION_RESIZED \
+				or what == NOTIFICATION_THEME_CHANGED:
+			_layout_children()
+			_sync_min()
+
+	## custom_minimum_size replaces the control's own minimum (it does not
+	## max with it), so the sync seeds from the stylebox base — cards carry no
+	## text of their own, making the stylebox the entire native contribution.
+	func _sync_min() -> void:
+		if not is_inside_tree():
+			return
+		var sb := get_theme_stylebox("normal")
+		var ms: Vector2 = sb.get_minimum_size()
+		for child in get_children():
+			if child is Control:
+				var cmin: Vector2 = (child as Control).get_combined_minimum_size()
+				ms.x = maxf(ms.x, cmin.x + sb.get_margin(SIDE_LEFT) + sb.get_margin(SIDE_RIGHT))
+				ms.y = maxf(ms.y, cmin.y + sb.get_margin(SIDE_TOP) + sb.get_margin(SIDE_BOTTOM))
+		custom_minimum_size = ms
+
+	func _layout_children() -> void:
+		if not is_inside_tree():
+			return
+		var sb := get_theme_stylebox("normal")
+		var ofs := Vector2(sb.get_margin(SIDE_LEFT), sb.get_margin(SIDE_TOP))
+		var avail := size - ofs - Vector2(sb.get_margin(SIDE_RIGHT), sb.get_margin(SIDE_BOTTOM))
+		for child in get_children():
+			if child is Control:
+				var c := child as Control
+				c.position = ofs
+				c.size = avail
+
+
 ## Wire to a TickManager (production autoload or test twin). Idempotent per
 ## instance; switching instances disconnects every prior signal first.
 func bind(p_tm: Node) -> void:
@@ -100,6 +153,14 @@ func label(variation: String, text: String) -> Label:
 	return l
 
 
+## Micro section serial. T15: section headers wrap — the long institutional
+## serials were each docket's widest line at 200% font scale.
+func micro(text: String) -> Label:
+	var l := label("MicroLabel", text)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	return l
+
+
 func icon_rect(icon_id: String, size := 26) -> TextureRect:
 	var t := TextureRect.new()
 	var tex: Texture2D = load(ICON_DIR + icon_id + ".svg")
@@ -139,11 +200,14 @@ func margins_box(l: int, t: int, r: int, b: int) -> MarginContainer:
 func build_log(serial: String, min_lines := 6) -> ItemList:
 	var vent := panel_box("VentHousing")
 	var col := vbox(6)
-	col.add_child(label("MicroLabel", serial))
+	col.add_child(micro(serial))
 	var log := ItemList.new()
 	log.name = "LogLines"
 	log.custom_minimum_size = Vector2(0.0, 24.0 * float(min_lines))
 	log.focus_mode = Control.FOCUS_ALL
+	# T15: the log is keyboard-focusable, so it carries an accessible name
+	# (ItemList renders no self-describing text of its own).
+	log.tooltip_text = "%s — arrow keys review the stamps, newest line selected" % serial.to_lower()
 	log.fixed_icon_size = Vector2i(18, 18)
 	col.add_child(log)
 	vent.add_child(col)

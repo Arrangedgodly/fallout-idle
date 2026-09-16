@@ -126,19 +126,26 @@ func _build_content() -> void:
 	add_child(phase_plate)
 
 	# The battle board: player + monster HP as enamel gauges with mono reads.
+	# T15: the long serial MicroLabels wrap — at 200% font scale they are the
+	# vent's widest lines and must never demand horizontal scrolling.
 	var vent := panel_box("VentHousing")
 	vent.name = "BattleBoard"
 	var vcol := vbox(8)
-	vcol.add_child(label("MicroLabel", "ENGAGEMENT GAUGES · CONDITION AND HP POSTED BY THE ENGINE ROOM"))
+	var board_label := label("MicroLabel", "ENGAGEMENT GAUGES · CONDITION AND HP POSTED BY THE ENGINE ROOM")
+	board_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vcol.add_child(board_label)
 	p_gauge = _make_gauge()
 	vcol.add_child(p_gauge)
 	p_read = label("MonoValue", "RESIDENT · —")
+	p_read.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vcol.add_child(p_read)
 	m_gauge = _make_gauge()
 	vcol.add_child(m_gauge)
 	m_read = label("MonoValue", "NO FAUNA ENGAGED")
+	m_read.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vcol.add_child(m_read)
 	ration_read = label("PlateSerial", "RATIONS CONSUMED THIS ENGAGEMENT · 0")
+	ration_read.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vcol.add_child(ration_read)
 	vent.add_child(vcol)
 	add_child(vent)
@@ -147,10 +154,13 @@ func _build_content() -> void:
 	var xvent := panel_box("VentHousing")
 	xvent.name = "ClearanceGauge"
 	var xcol := vbox(8)
-	xcol.add_child(label("MicroLabel", "WASTELAND COMBAT CLEARANCE · ELEVATION OPENS FAUNA POSTINGS"))
+	var gauge_label := label("MicroLabel", "WASTELAND COMBAT CLEARANCE · ELEVATION OPENS FAUNA POSTINGS")
+	gauge_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	xcol.add_child(gauge_label)
 	gauge = _make_gauge()
 	xcol.add_child(gauge)
 	gauge_read = label("MonoValue", "CLEARANCE 01 · 0/0 XP TO NEXT")
+	gauge_read.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	xcol.add_child(gauge_read)
 	xvent.add_child(xcol)
 	add_child(xvent)
@@ -159,12 +169,12 @@ func _build_content() -> void:
 	log = build_log("PATROL LOG · STAMPS POSTED BY THE ENGINE ROOM", 7)
 
 	# Fauna posting list (the monster picker).
-	add_child(label("MicroLabel", "FAUNA POSTINGS · SELECT A DESIGNATION"))
+	add_child(micro("FAUNA POSTINGS · SELECT A DESIGNATION"))
 	cards_box = vbox(8)
 	add_child(cards_box)
 
 	# Equipment on person + derived patrol stats.
-	add_child(label("MicroLabel", "EQUIPMENT ON PERSON · DERIVED PATROL STATS"))
+	add_child(micro("EQUIPMENT ON PERSON · DERIVED PATROL STATS"))
 	var slots_row := hbox(10)
 	slots_row.name = "LoadoutRow"
 	add_child(slots_row)
@@ -185,8 +195,13 @@ func _build_content() -> void:
 	add_child(stats_vent)
 
 	# Rations: the auto-eat rule + the best-first queue with live counts.
-	add_child(label("MicroLabel", "RATIONS · AUTO-EAT · BEST MEND FIRST"))
-	food_rule = label("PlateSerialNavy", "ONE RATION IS CONSUMED AT OR BELOW HALF CONDITION.")
+	# T15: the rule line wraps (mono serial, longest unwrapped line at 200%)
+	# and prints as a bone-dim serial — it sits directly on the steel docket
+	# ground, where navy ink reads 1.69:1 (bone-dim on steel: 4.78:1, the
+	# on-steel serial class).
+	add_child(micro("RATIONS · AUTO-EAT · BEST MEND FIRST"))
+	food_rule = label("PlateSerial", "ONE RATION IS CONSUMED AT OR BELOW HALF CONDITION.")
+	food_rule.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(food_rule)
 	food_box = vbox(4)
 	add_child(food_box)
@@ -204,14 +219,18 @@ func _make_gauge() -> ProgressBar:
 
 
 ## One equipment slot plate; returns the name label (serial kept in members).
+## T15: the gear serial wraps — the stat string is the slot plate's widest
+## line at 200% font scale.
 func _slot_plate(row: BoxContainer, slot_label: String, vacant_serial: String) -> Label:
 	var plate := panel_box("EnamelPlate")
 	plate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var col := vbox(4)
 	col.add_child(label("PlateSerialNavy", slot_label))
 	var name_l := label("FormTitle", "— VACANT —")
+	name_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(name_l)
 	var serial_l := label("PlateSerialNavy", vacant_serial)
+	serial_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(serial_l)
 	plate.add_child(col)
 	row.add_child(plate)
@@ -247,7 +266,8 @@ func _build_cards() -> void:
 func _make_card(mdef: MonsterDef) -> FaunaCard:
 	var card := FaunaCard.new()
 	card.id = mdef.id
-	var b := Button.new()
+	# T15: CardButton — the button's minimum size includes its label stack.
+	var b := Docket.CardButton.new()
 	b.name = "Fauna_" + card.id
 	b.pressed.connect(_on_card_pressed.bind(card.id))
 	b.tooltip_text = "Designate this fauna for patrol — %s" % mdef.name
@@ -272,7 +292,11 @@ func _make_card(mdef: MonsterDef) -> FaunaCard:
 	card.tag_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(card.tag_line)
 
+	# T15: stats wrap — the exact-math serial is the card's widest line at
+	# 200% font scale (longest: the boss posting) and must not push the docket
+	# into horizontal scrolling.
 	card.stats_line = label("PlateSerialNavy", _stats_text(mdef))
+	card.stats_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(card.stats_line)
 
 	card.drops_line = label("PlateSerialNavy", _drops_text(mdef))

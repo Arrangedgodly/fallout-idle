@@ -129,6 +129,13 @@ func _ready() -> void:
 		_ui_theme.install(self)
 	if get_window() != null:
 		get_window().min_size = Vector2i(1280, 720)  # desktop floor, resizable up
+	# T15 keyboard reachability: ScrollContainer does not follow focus into
+	# nested content (the docket housing wraps the scroll's child), so a
+	# keyboard resident tabbing below the fold never saw the focused control.
+	# The shell now scrolls every ancestor scroll region to the focused
+	# control — the concourse's scroll regions stay keyboard-reachable at
+	# every font scale.
+	get_viewport().gui_focus_changed.connect(_on_shell_focus_changed)
 	for d in DEPARTMENTS:
 		_dept_by_id[d.id] = d
 	_build_ui()
@@ -479,7 +486,11 @@ func _build_docket(d: Dictionary) -> Control:
 	elif controller is DocketPatrol:
 		(controller as DocketPatrol).primary_button = begin
 
-	col.add_child(_label("PlateSerial", "DOCKET %s · PROVISIONAL POSTING · FORM 9-A" % d.serial))
+	# T15: the docket's footer serial wraps (its width would otherwise lead
+	# the docket at 200% font scale).
+	var footer := _label("PlateSerial", "DOCKET %s · PROVISIONAL POSTING · FORM 9-A" % d.serial)
+	footer.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(footer)
 	_dockets[d.id] = col
 	return col
 
@@ -496,8 +507,14 @@ func _on_begin_pressed(id: String) -> void:
 func _build_console() -> Control:
 	var console := _panel_box("SteelPanel")
 	console.name = "ConsoleBar"
-	var row := _hbox(18)
+	# T15: the console row FLOWS — a fixed HBox overflowed the 1280 shell at
+	# 200% font scale (CLOCK OUT pushed off-window); the flow keeps one row at
+	# 100% and wraps to two at 200%, sacrificing only the old spacer's
+	# right-alignment.
+	var row := HFlowContainer.new()
 	row.name = "ConsoleRow"
+	row.add_theme_constant_override("h_separation", 18)
+	row.add_theme_constant_override("v_separation", 10)
 	console.add_child(row)
 
 	row.add_child(_label("MicroLabel", "FONT SCALE"))
@@ -533,11 +550,8 @@ func _build_console() -> Control:
 	fullscreen_check.toggled.connect(_on_fullscreen_toggled)
 	row.add_child(fullscreen_check)
 
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(spacer)
-
 	console_serial = _label("PlateSerial", CONSOLE_SERIAL)
+	console_serial.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	row.add_child(console_serial)
 
 	save_button = Button.new()
@@ -688,6 +702,19 @@ func _set_mouth_energy(value: float) -> void:
 	_mouth.set_energy(value)
 
 # ------------------------------------------------------------------ helpers
+## Scroll every ScrollContainer ancestry of the newly focused control so the
+## focus is actually on screen (keyboard focus-follow, T15).
+func _on_shell_focus_changed(node: Node) -> void:
+	if not (node is Control):
+		return
+	var c := node as Control
+	var cur: Node = c.get_parent()
+	while cur != null:
+		if cur is ScrollContainer:
+			(cur as ScrollContainer).ensure_control_visible(c)
+		cur = cur.get_parent()
+
+
 func _collect_focusable(node: Node, out: Array[Control]) -> void:
 	if node is Control:
 		var c := node as Control

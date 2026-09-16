@@ -29,7 +29,7 @@ const CATEGORY_ORDER := ["equipment", "material", "food", "resource"]
 func _build_content() -> void:
 	add_theme_constant_override("separation", 14)
 
-	add_child(label("MicroLabel", "EQUIPMENT ON PERSON · BOTH SLOTS POSTED"))
+	add_child(micro("EQUIPMENT ON PERSON · BOTH SLOTS POSTED"))
 	slots_row = hbox(10)
 	add_child(slots_row)
 	weapon_plate = _slot_plate("WEAPON")
@@ -37,7 +37,7 @@ func _build_content() -> void:
 	slots_row.add_child(weapon_plate)
 	slots_row.add_child(armor_plate)
 
-	add_child(label("MicroLabel", "MANIFEST · COUNTED WEEKLY, REMEMBERED ALWAYS"))
+	add_child(micro("MANIFEST · COUNTED WEEKLY, REMEMBERED ALWAYS"))
 	var vent := panel_box("VentHousing")
 	var vcol := vbox(8)
 	list = ItemList.new()
@@ -60,7 +60,11 @@ func _build_content() -> void:
 	vent.add_child(vcol)
 	add_child(vent)
 
-	add_child(label("BodyCopyDim", "Disposals are tendered at the REQUISITION DEPOT (D-06). The Manifest only counts."))
+	# T15: the long mixed-case note wraps — at 200% font scale it is the
+	# docket's widest line and must never demand horizontal scrolling.
+	var note := label("BodyCopyDim", "Disposals are tendered at the REQUISITION DEPOT (D-06). The Manifest only counts.")
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	add_child(note)
 
 
 func _slot_plate(slot_label: String) -> PanelContainer:
@@ -68,10 +72,14 @@ func _slot_plate(slot_label: String) -> PanelContainer:
 	plate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var col := vbox(4)
 	col.add_child(label("PlateSerialNavy", slot_label))
+	# T15: the gear serial wraps — the stat string is the slot plate's widest
+	# line at 200% font scale (the two slot plates sit side by side).
 	if slot_label == "WEAPON":
 		weapon_name = label("FormTitle", "— VACANT —")
+		weapon_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		col.add_child(weapon_name)
 		weapon_serial = label("PlateSerialNavy", "NO SIDEARM FILED")
+		weapon_serial.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		col.add_child(weapon_serial)
 		weapon_unequip = Button.new()
 		weapon_unequip.name = "UnequipWeapon"
@@ -81,8 +89,10 @@ func _slot_plate(slot_label: String) -> PanelContainer:
 		col.add_child(weapon_unequip)
 	else:
 		armor_name = label("FormTitle", "— VACANT —")
+		armor_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		col.add_child(armor_name)
 		armor_serial = label("PlateSerialNavy", "NO PLATING FILED")
+		armor_serial.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		col.add_child(armor_serial)
 		armor_unequip = Button.new()
 		armor_unequip.name = "UnequipArmor"
