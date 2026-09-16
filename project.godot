@@ -20,6 +20,7 @@ config/features=PackedStringArray("4.7", "GL Compatibility")
 Game="*res://scripts/autoload/game.gd"
 ContentDB="*res://scripts/autoload/content_db.gd"
 UiTheme="*res://scripts/autoload/ui_theme.gd"
+TickManager="*res://scripts/autoload/tick_manager.gd"
 
 [editor_plugins]
 
