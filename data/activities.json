@@ -7,7 +7,7 @@
 			"skill": "scavenging",
 			"level_gate": 1,
 			"interval_ms": 3000,
-			"xp_per_action": 8,
+			"xp_per_action": 10,
 			"drop_table": "scrap_pile",
 			"icon": "sort_scrap_pile"
 		},
@@ -17,9 +17,69 @@
 			"skill": "scavenging",
 			"level_gate": 5,
 			"interval_ms": 5000,
-			"xp_per_action": 14,
+			"xp_per_action": 24,
 			"drop_table": "wreck_locker",
 			"icon": "strip_wreck"
+		},
+		{
+			"id": "drain_the_sump",
+			"name": "Drain the Sump",
+			"skill": "scavenging",
+			"level_gate": 10,
+			"interval_ms": 6000,
+			"xp_per_action": 48,
+			"drop_table": "sump_slurry",
+			"icon": "drain_the_sump"
+		},
+		{
+			"id": "unbuild_the_overpass",
+			"name": "Unbuild the Overpass",
+			"skill": "scavenging",
+			"level_gate": 16,
+			"interval_ms": 7500,
+			"xp_per_action": 70,
+			"drop_table": "overpass_span",
+			"icon": "unbuild_the_overpass"
+		},
+		{
+			"id": "walk_the_glow_rows",
+			"name": "Walk the Glow Rows",
+			"skill": "foraging",
+			"level_gate": 1,
+			"interval_ms": 3000,
+			"xp_per_action": 10,
+			"drop_table": "glow_rows",
+			"icon": "walk_the_glow_rows"
+		},
+		{
+			"id": "harvest_the_614_plot",
+			"name": "Harvest the 6:14 Plot",
+			"skill": "foraging",
+			"level_gate": 5,
+			"interval_ms": 5000,
+			"xp_per_action": 24,
+			"drop_table": "dusk_plot",
+			"icon": "harvest_the_614_plot"
+		},
+		{
+			"id": "dig_the_iodine_beds",
+			"name": "Dig the Iodine Beds",
+			"skill": "foraging",
+			"level_gate": 10,
+			"interval_ms": 6000,
+			"xp_per_action": 48,
+			"drop_table": "iodine_beds",
+			"icon": "dig_the_iodine_beds"
+		},
+		{
+			"id": "forage_the_far_fence",
+			"name": "Forage the Far Fence",
+			"skill": "foraging",
+			"level_gate": 16,
+			"interval_ms": 7500,
+			"xp_per_action": 70,
+			"drop_table": "far_fence",
+			"icon": "forage_the_far_fence"
 		}
 	]
 }

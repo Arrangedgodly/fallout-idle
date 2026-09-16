@@ -2,17 +2,58 @@
 	"schema_version": 1,
 	"shop_stock": [
 		{
-			"item": "copper_wiring",
-			"buy_price": 9,
-			"gate": { "skill": "scavenging", "level": 2 }
-		},
-		{
 			"item": "glowshroom",
 			"buy_price": 6
 		},
 		{
+			"item": "scrap_metal",
+			"buy_price": 8,
+			"gate": { "skill": "scavenging", "level": 3 }
+		},
+		{
+			"item": "copper_wiring",
+			"buy_price": 12,
+			"gate": { "skill": "scavenging", "level": 5 }
+		},
+		{
+			"item": "duskcorn",
+			"buy_price": 9,
+			"gate": { "skill": "foraging", "level": 5 }
+		},
+		{
+			"item": "iodine_root",
+			"buy_price": 18,
+			"gate": { "skill": "foraging", "level": 10 }
+		},
+		{
+			"item": "roach_meat",
+			"buy_price": 8,
+			"gate": { "skill": "wasteland_combat", "level": 4 }
+		},
+		{
+			"item": "mandatory_grits",
+			"buy_price": 30,
+			"gate": { "skill": "cooking", "level": 3 }
+		},
+		{
+			"item": "compliant_casserole",
+			"buy_price": 75,
+			"gate": { "skill": "cooking", "level": 8 }
+		},
+		{
 			"item": "radstag_stew",
-			"buy_price": 30
+			"buy_price": 200,
+			"gate": { "skill": "cooking", "level": 12 }
+		},
+		{
+			"item": "majority_whip",
+			"buy_price": 1200,
+			"gate": { "skill": "wasteland_combat", "level": 16 }
+		},
+		{
+			"item": "carpool_carapace",
+			"buy_price": 1500,
+			"gate": { "skill": "wasteland_combat", "level": 16 }
 		}
 	]
 }

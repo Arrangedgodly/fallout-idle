@@ -7,22 +7,46 @@
 			"skill": "junksmithing",
 			"level_gate": 1,
 			"interval_ms": 4000,
-			"xp_per_action": 12,
+			"xp_per_action": 14,
 			"inputs": [
 				{ "item": "scrap_metal", "qty": 3 }
 			],
 			"output": { "item": "scrap_ingot", "qty": 1 }
 		},
 		{
+			"id": "draw_compliant_wire",
+			"name": "Draw Compliant Wire",
+			"skill": "junksmithing",
+			"level_gate": 4,
+			"interval_ms": 5000,
+			"xp_per_action": 30,
+			"inputs": [
+				{ "item": "copper_wiring", "qty": 2 }
+			],
+			"output": { "item": "compliant_wire", "qty": 1 }
+		},
+		{
+			"id": "braid_patchwork_bolt",
+			"name": "Braid Patchwork Bolt",
+			"skill": "junksmithing",
+			"level_gate": 4,
+			"interval_ms": 5000,
+			"xp_per_action": 30,
+			"inputs": [
+				{ "item": "cloth_scraps", "qty": 2 }
+			],
+			"output": { "item": "patchwork_bolt", "qty": 1 }
+		},
+		{
 			"id": "forge_scrap_shiv",
 			"name": "Forge Point of Order",
 			"skill": "junksmithing",
-			"level_gate": 3,
+			"level_gate": 8,
 			"interval_ms": 6000,
-			"xp_per_action": 25,
+			"xp_per_action": 55,
 			"inputs": [
 				{ "item": "scrap_ingot", "qty": 2 },
-				{ "item": "copper_wiring", "qty": 1 }
+				{ "item": "compliant_wire", "qty": 1 }
 			],
 			"output": { "item": "scrap_shiv", "qty": 1 }
 		},
@@ -30,14 +54,95 @@
 			"id": "forge_hubcap_vest",
 			"name": "Press Pedestrian Plating",
 			"skill": "junksmithing",
-			"level_gate": 6,
-			"interval_ms": 8000,
-			"xp_per_action": 40,
+			"level_gate": 8,
+			"interval_ms": 7000,
+			"xp_per_action": 75,
 			"inputs": [
 				{ "item": "scrap_ingot", "qty": 3 },
 				{ "item": "cloth_scraps", "qty": 2 }
 			],
 			"output": { "item": "hubcap_vest", "qty": 1 }
+		},
+		{
+			"id": "forge_majority_whip",
+			"name": "Forge Majority Whip",
+			"skill": "junksmithing",
+			"level_gate": 15,
+			"interval_ms": 8000,
+			"xp_per_action": 160,
+			"inputs": [
+				{ "item": "scrap_ingot", "qty": 3 },
+				{ "item": "compliant_wire", "qty": 2 },
+				{ "item": "girderling", "qty": 1 }
+			],
+			"output": { "item": "majority_whip", "qty": 1 }
+		},
+		{
+			"id": "press_carpool_carapace",
+			"name": "Press Carpool Carapace",
+			"skill": "junksmithing",
+			"level_gate": 15,
+			"interval_ms": 9000,
+			"xp_per_action": 180,
+			"inputs": [
+				{ "item": "girderling", "qty": 2 },
+				{ "item": "patchwork_bolt", "qty": 2 },
+				{ "item": "lint_pelt", "qty": 2 }
+			],
+			"output": { "item": "carpool_carapace", "qty": 1 }
+		},
+		{
+			"id": "grind_mandatory_grits",
+			"name": "Grind Mandatory Grits",
+			"skill": "cooking",
+			"level_gate": 1,
+			"interval_ms": 3000,
+			"xp_per_action": 12,
+			"inputs": [
+				{ "item": "duskcorn", "qty": 2 }
+			],
+			"output": { "item": "mandatory_grits", "qty": 1 }
+		},
+		{
+			"id": "bake_compliant_casserole",
+			"name": "Bake Compliant Casserole",
+			"skill": "cooking",
+			"level_gate": 5,
+			"interval_ms": 5000,
+			"xp_per_action": 32,
+			"inputs": [
+				{ "item": "glowshroom", "qty": 1 },
+				{ "item": "roach_meat", "qty": 1 }
+			],
+			"output": { "item": "compliant_casserole", "qty": 1 }
+		},
+		{
+			"id": "simmer_chefs_regret",
+			"name": "Simmer Chef's Regret",
+			"skill": "cooking",
+			"level_gate": 10,
+			"interval_ms": 7000,
+			"xp_per_action": 60,
+			"inputs": [
+				{ "item": "roach_meat", "qty": 2 },
+				{ "item": "iodine_root", "qty": 1 },
+				{ "item": "duskcorn", "qty": 1 }
+			],
+			"output": { "item": "radstag_stew", "qty": 1 }
+		},
+		{
+			"id": "reheat_chefs_regret",
+			"name": "Reheat Chef's Regret",
+			"skill": "cooking",
+			"level_gate": 15,
+			"interval_ms": 8000,
+			"xp_per_action": 85,
+			"inputs": [
+				{ "item": "compliant_casserole", "qty": 1 },
+				{ "item": "fizz_gland", "qty": 1 },
+				{ "item": "iodine_root", "qty": 1 }
+			],
+			"output": { "item": "radstag_stew", "qty": 1 }
 		}
 	]
 }

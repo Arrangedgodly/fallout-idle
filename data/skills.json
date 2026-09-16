@@ -10,12 +10,28 @@
 			"icon": "scavenging"
 		},
 		{
+			"id": "foraging",
+			"name": "Foraging",
+			"kind": "gathering",
+			"max_level": 99,
+			"xp_curve": "standard_99",
+			"icon": "foraging"
+		},
+		{
 			"id": "junksmithing",
 			"name": "Junksmithing",
 			"kind": "processing",
 			"max_level": 99,
 			"xp_curve": "standard_99",
 			"icon": "junksmithing"
+		},
+		{
+			"id": "cooking",
+			"name": "Cooking",
+			"kind": "processing",
+			"max_level": 99,
+			"xp_curve": "standard_99",
+			"icon": "cooking"
 		},
 		{
 			"id": "wasteland_combat",

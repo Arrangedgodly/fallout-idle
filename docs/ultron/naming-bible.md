@@ -277,6 +277,43 @@ term and why this name is distinct). Verdicts: PASS = clears every item.
 | **Carpool Carapace** | Alliterative generic triple (carpool + carapace) | Generic words; no protected term; no pattern hit | **PASS** |
 | **The Requisition Depot** | Military-bureaucratic generic phrase | No protected term; "Depot" was already the design-brief's generic plate word; no Vault-/brand prefix | **PASS** |
 
+### T5-authored record names (applied 2026-09-15 under the §13 protocol)
+
+The 4-tier content structure required records the bible had not named (tier-3/4
+activities, the new drop-table headers, the tier-2+ recipes). Per §13 these are
+coined here, run through the same checklist, and recorded — **zero new
+item/monster/equipment/skill/zone names** (all 21 items, 5 monsters, 4 gear
+pieces, 5 skills use §4–§6 names verbatim). Constructions are either
+generic-word institutional phrases or `<institutional verb> + <bible item
+name>` (the pattern T4 itself used: "Smelt Almost Bullion").
+
+| Name | Kind | Construction / proximity | Verdict |
+|---|---|---|---|
+| Drain the Sump | activity | Generic plumbing noun + definite article; no protected root; signage-task voice | **PASS** |
+| Unbuild the Overpass | activity | Bureaucratic inversion of generic words (unbuild + overpass); no protected pattern | **PASS** |
+| Walk the Glow Rows | activity | Generic domestic phrase; "glow" follows the Nightlight Cap rename away from radiation-glow clusters | **PASS** |
+| Harvest the 6:14 Plot | activity | Generic verb + time-stamped plot number (institutional specificity, not a model designation — no letter-dash-number pattern) | **PASS** |
+| Dig the Iodine Beds | activity | Generic civil-defense vocabulary, matches Iodine Root's roots | **PASS** |
+| Forage the Far Fence | activity | Two generic words; skill-verb + zone-edge phrase | **PASS** |
+| Sump Slurry Yields | drop header | Generic words; follows the established "X Yields" header pattern | **PASS** |
+| Overpass Span Yields | drop header | Generic; established pattern | **PASS** |
+| Glow Row Yields | drop header | Generic; established pattern | **PASS** |
+| Dusk Plot Yields | drop header | Generic; established pattern (Duskcorn roots) | **PASS** |
+| Iodine Bed Yields | drop header | Generic; established pattern | **PASS** |
+| Far Fence Yields | drop header | Generic; established pattern | **PASS** |
+| Dust Bunny Yields | drop header | Follows its monster's cleared name (§3) | **PASS** |
+| Fizzard Yields | drop header | Follows its monster's cleared name (§3) | **PASS** |
+| Snack Dispenser Yields | drop header | Follows its monster's cleared name minus "Feral" (the table lists what it dispenses, not its temperament) | **PASS** |
+| Superintendent's Receipts | drop header (boss) | Possessive of the cleared boss name (§3) + generic financial noun — rent collected, as the bible's concept line says; not a Nuka-/brand echo | **PASS** |
+| Draw Compliant Wire | recipe | Verb + bible item name (Compliant Wire) | **PASS** |
+| Braid Patchwork Bolt | recipe | Verb + bible item name (Patchwork Bolt) | **PASS** |
+| Forge Majority Whip | recipe | Verb + bible item name (Majority Whip) | **PASS** |
+| Press Carpool Carapace | recipe | Verb + bible item name (Carpool Carapace) | **PASS** |
+| Grind Mandatory Grits | recipe | Verb + bible item name (Mandatory Grits) | **PASS** |
+| Bake Compliant Casserole | recipe | Verb + bible item name (Compliant Casserole) | **PASS** |
+| Simmer Chef's Regret | recipe | Verb + bible item name (Chef's Regret) | **PASS** |
+| Reheat Chef's Regret | recipe | Verb + bible item name; "reheat" is the §6 joke ("TODAY'S MENU IS YESTERDAY'S MENU") made mechanical | **PASS** |
+
 ## 11. Carried-over descriptive names — re-verified (all PASS)
 
 These pre-existing approved/generic names were re-run through the same

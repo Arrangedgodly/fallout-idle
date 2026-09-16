@@ -6,9 +6,9 @@
 			"name": "Scrap Pile Yields",
 			"rolls": 1,
 			"entries": [
-				{ "item": "scrap_metal", "weight": 80, "qty_min": 1, "qty_max": 1 },
+				{ "item": "scrap_metal", "weight": 70, "qty_min": 1, "qty_max": 2 },
 				{ "item": "copper_wiring", "weight": 15, "qty_min": 1, "qty_max": 1 },
-				{ "item": "cloth_scraps", "weight": 5, "qty_min": 1, "qty_max": 2 }
+				{ "item": "cloth_scraps", "weight": 15, "qty_min": 1, "qty_max": 1 }
 			]
 		},
 		{
@@ -16,9 +16,71 @@
 			"name": "Wreck Locker Yields",
 			"rolls": 1,
 			"entries": [
-				{ "item": "scrap_metal", "weight": 50, "qty_min": 2, "qty_max": 3 },
+				{ "item": "scrap_metal", "weight": 45, "qty_min": 2, "qty_max": 4 },
 				{ "item": "copper_wiring", "weight": 30, "qty_min": 1, "qty_max": 2 },
-				{ "item": "cloth_scraps", "weight": 20, "qty_min": 1, "qty_max": 3 }
+				{ "item": "cloth_scraps", "weight": 20, "qty_min": 1, "qty_max": 3 },
+				{ "item": "girderling", "weight": 5, "qty_min": 1, "qty_max": 1 }
+			]
+		},
+		{
+			"id": "sump_slurry",
+			"name": "Sump Slurry Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "copper_wiring", "weight": 40, "qty_min": 2, "qty_max": 3 },
+				{ "item": "scrap_metal", "weight": 25, "qty_min": 2, "qty_max": 4 },
+				{ "item": "cloth_scraps", "weight": 20, "qty_min": 2, "qty_max": 3 },
+				{ "item": "girderling", "weight": 15, "qty_min": 1, "qty_max": 1 }
+			]
+		},
+		{
+			"id": "overpass_span",
+			"name": "Overpass Span Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "girderling", "weight": 40, "qty_min": 1, "qty_max": 2 },
+				{ "item": "scrap_metal", "weight": 25, "qty_min": 3, "qty_max": 5 },
+				{ "item": "copper_wiring", "weight": 20, "qty_min": 2, "qty_max": 3 },
+				{ "item": "cloth_scraps", "weight": 15, "qty_min": 2, "qty_max": 4 }
+			]
+		},
+		{
+			"id": "glow_rows",
+			"name": "Glow Row Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "glowshroom", "weight": 80, "qty_min": 1, "qty_max": 2 },
+				{ "item": "duskcorn", "weight": 20, "qty_min": 1, "qty_max": 1 }
+			]
+		},
+		{
+			"id": "dusk_plot",
+			"name": "Dusk Plot Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "duskcorn", "weight": 65, "qty_min": 2, "qty_max": 3 },
+				{ "item": "glowshroom", "weight": 25, "qty_min": 1, "qty_max": 2 },
+				{ "item": "iodine_root", "weight": 10, "qty_min": 1, "qty_max": 1 }
+			]
+		},
+		{
+			"id": "iodine_beds",
+			"name": "Iodine Bed Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "iodine_root", "weight": 60, "qty_min": 1, "qty_max": 2 },
+				{ "item": "duskcorn", "weight": 25, "qty_min": 2, "qty_max": 3 },
+				{ "item": "glowshroom", "weight": 15, "qty_min": 1, "qty_max": 2 }
+			]
+		},
+		{
+			"id": "far_fence",
+			"name": "Far Fence Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "iodine_root", "weight": 45, "qty_min": 2, "qty_max": 3 },
+				{ "item": "duskcorn", "weight": 30, "qty_min": 3, "qty_max": 4 },
+				{ "item": "glowshroom", "weight": 25, "qty_min": 2, "qty_max": 3 }
 			]
 		},
 		{
@@ -26,8 +88,47 @@
 			"name": "Litterbug Yields",
 			"rolls": 1,
 			"entries": [
-				{ "item": "roach_meat", "weight": 75, "qty_min": 1, "qty_max": 2 },
-				{ "item": "cloth_scraps", "weight": 25, "qty_min": 1, "qty_max": 1 }
+				{ "item": "roach_meat", "weight": 65, "qty_min": 1, "qty_max": 2 },
+				{ "item": "cloth_scraps", "weight": 35, "qty_min": 1, "qty_max": 1 }
+			]
+		},
+		{
+			"id": "dust_bunny_yields",
+			"name": "Dust Bunny Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "lint_pelt", "weight": 55, "qty_min": 1, "qty_max": 2 },
+				{ "item": "roach_meat", "weight": 30, "qty_min": 1, "qty_max": 1 },
+				{ "item": "cloth_scraps", "weight": 15, "qty_min": 1, "qty_max": 2 }
+			]
+		},
+		{
+			"id": "fizzard_yields",
+			"name": "Fizzard Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "fizz_gland", "weight": 60, "qty_min": 1, "qty_max": 2 },
+				{ "item": "duskcorn", "weight": 40, "qty_min": 2, "qty_max": 3 }
+			]
+		},
+		{
+			"id": "snack_dispenser_yields",
+			"name": "Snack Dispenser Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "vintage_snack_cake", "weight": 70, "qty_min": 1, "qty_max": 2 },
+				{ "item": "copper_wiring", "weight": 30, "qty_min": 1, "qty_max": 2 }
+			]
+		},
+		{
+			"id": "superintendents_receipts",
+			"name": "Superintendent's Receipts",
+			"rolls": 2,
+			"entries": [
+				{ "item": "girderling", "weight": 30, "qty_min": 1, "qty_max": 2 },
+				{ "item": "scrap_metal", "weight": 30, "qty_min": 4, "qty_max": 8 },
+				{ "item": "vintage_snack_cake", "weight": 20, "qty_min": 2, "qty_max": 3 },
+				{ "item": "iodine_root", "weight": 20, "qty_min": 1, "qty_max": 2 }
 			]
 		}
 	]

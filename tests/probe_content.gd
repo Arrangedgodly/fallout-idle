@@ -6,7 +6,8 @@ extends SceneTree
 ## Exit 0 = all checks pass; 1 = any failure (each printed to stderr).
 ##
 ## Proves the T2 acceptance criteria:
-##   1. the golden set under res://data loads + validates (zero errors,
+##   1. the authored content set under res://data (T5 balance content
+##      replaced the golden set 2026-09-15) loads + validates (zero errors,
 ##      zero warnings) and hydrates TYPED classes with int-coerced fields,
 ##      round-tripping values against the JSON source;
 ##   2. a deliberately malformed record yields an actionable error
@@ -20,7 +21,7 @@ const DOMAIN_FILES := [
 	"drop_tables.json", "monsters.json", "equipment.json", "shop_stock.json",
 	"xp_curves.json",
 ]
-const GOLDEN_RECORD_COUNT := 28  # 9 items + 3 skills + 2 activities + 3 recipes + 3 drop tables + 2 monsters + 2 equipment + 3 shop lines + 1 curve
+const GOLDEN_RECORD_COUNT := 79  # 21 items + 5 skills + 8 activities + 11 recipes + 13 drop tables + 5 monsters + 4 equipment + 11 shop lines + 1 curve (T5 set)
 
 var checks := 0
 var failures: Array[String] = []
@@ -60,8 +61,8 @@ func _check_golden_set() -> void:
 		"item value is int 2 (float->int coercion, R1)")
 	_check(scrap != null and scrap.heal == -1, "non-food item heal sentinel is -1")
 	var stew := lib.item("radstag_stew")
-	_check(stew != null and stew.is_food() and typeof(stew.heal) == TYPE_INT and stew.heal == 25,
-		"food item heal is int 25 and is_food()")
+	_check(stew != null and stew.is_food() and typeof(stew.heal) == TYPE_INT and stew.heal == 80,
+		"food item heal is int 80 and is_food()")
 	var shiv := lib.item("scrap_shiv")
 	_check(shiv != null and shiv.is_equipment(), "equipment item is_equipment()")
 
@@ -76,7 +77,7 @@ func _check_golden_set() -> void:
 		"activity skill + level_gate round-trip")
 	_check(sort != null and typeof(sort.interval_ms) == TYPE_INT and sort.interval_ms == 3000,
 		"activity interval_ms is int 3000")
-	_check(sort != null and sort.xp_per_action == 8 and sort.drop_table == "scrap_pile",
+	_check(sort != null and sort.xp_per_action == 10 and sort.drop_table == "scrap_pile",
 		"activity xp + drop_table round-trip")
 
 	# Recipes — nested inputs/output hydrate as typed ItemQty.
@@ -97,9 +98,9 @@ func _check_golden_set() -> void:
 	# Monsters — combat stats.
 	var boss := lib.monster("sewer_landlord")
 	_check(boss != null and boss.is_boss and typeof(boss.is_boss) == TYPE_BOOL, "monster is_boss is bool true")
-	_check(boss != null and typeof(boss.max_hp) == TYPE_INT and boss.max_hp == 120 and boss.min_hit <= boss.max_hit,
-		"monster max_hp int 120, hit bounds ordered")
-	_check(boss != null and boss.xp_reward == 80 and boss.drop_table == "roach_nest", "monster xp + drop_table round-trip")
+	_check(boss != null and typeof(boss.max_hp) == TYPE_INT and boss.max_hp == 340 and boss.min_hit <= boss.max_hit,
+		"monster max_hp int 340, hit bounds ordered")
+	_check(boss != null and boss.xp_reward == 1000 and boss.drop_table == "superintendents_receipts", "monster xp + drop_table round-trip")
 
 	# Equipment — slot semantics + optional fields.
 	var shiv_equip := lib.equipment_for("scrap_shiv")
@@ -109,13 +110,15 @@ func _check_golden_set() -> void:
 	_check(vest != null and vest.slot == "armor" and vest.evasion_bonus == 12 and vest.attack_speed_ms == -1,
 		"armor bonuses round-trip; no attack_speed_ms override (-1)")
 
-	# Shop stock — order, gate, ungated default.
+	# Shop stock — order, gates, ungated default.
 	var stock := lib.shop_entries()
-	_check(stock.size() == 3 and stock[0].item == "copper_wiring" and stock[0].buy_price == 9,
+	_check(stock.size() == 11 and stock[0].item == "glowshroom" and stock[0].buy_price == 6,
 		"shop stock order + buy_price round-trip")
-	_check(stock[0].is_gated() and stock[0].gate_skill == "scavenging" and stock[0].gate_level == 2,
+	_check(stock[0] != null and not stock[0].is_gated(), "ungated shop line defaults")
+	_check(stock[2] != null and stock[2].item == "copper_wiring" and stock[2].buy_price == 12,
+		"shop stock order round-trips past the first line")
+	_check(stock[2].is_gated() and stock[2].gate_skill == "scavenging" and stock[2].gate_level == 5,
 		"shop gate.skill/gate.level round-trip")
-	_check(stock[1] != null and not stock[1].is_gated(), "ungated shop line defaults")
 
 	# XP curve — array length, int packing, closed-form helpers.
 	var curve := lib.xp_curve("standard_99")
@@ -230,7 +233,7 @@ func _check_autoload_wiring() -> void:
 	_check(db.get("library") != null, "ContentDB holds a hydrated library")
 	_check(int(db.call("record_count")) == GOLDEN_RECORD_COUNT, "ContentDB record_count() == %d" % GOLDEN_RECORD_COUNT)
 	var stew: ItemDef = db.call("item", "radstag_stew")
-	_check(stew != null and stew.heal == 25, "ContentDB.item('radstag_stew') serves typed lookups")
+	_check(stew != null and stew.heal == 80, "ContentDB.item('radstag_stew') serves typed lookups")
 
 
 # ---------------------------------------------------------------- reporting

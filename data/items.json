@@ -23,6 +23,13 @@
 			"icon": "cloth_scraps"
 		},
 		{
+			"id": "girderling",
+			"name": "Girderling",
+			"category": "resource",
+			"value": 12,
+			"icon": "girderling"
+		},
+		{
 			"id": "glowshroom",
 			"name": "Nightlight Cap",
 			"category": "resource",
@@ -30,40 +37,120 @@
 			"icon": "glowshroom"
 		},
 		{
+			"id": "duskcorn",
+			"name": "Duskcorn",
+			"category": "resource",
+			"value": 3,
+			"icon": "duskcorn"
+		},
+		{
+			"id": "iodine_root",
+			"name": "Iodine Root",
+			"category": "resource",
+			"value": 6,
+			"icon": "iodine_root"
+		},
+		{
 			"id": "roach_meat",
 			"name": "Grade-D Bugmeat",
 			"category": "resource",
-			"value": 1,
+			"value": 2,
 			"icon": "roach_meat"
+		},
+		{
+			"id": "lint_pelt",
+			"name": "Lint Pelt",
+			"category": "resource",
+			"value": 5,
+			"icon": "lint_pelt"
+		},
+		{
+			"id": "fizz_gland",
+			"name": "Fizz Gland",
+			"category": "resource",
+			"value": 6,
+			"icon": "fizz_gland"
+		},
+		{
+			"id": "vintage_snack_cake",
+			"name": "Vintage Snack Cake",
+			"category": "food",
+			"value": 5,
+			"heal": 10,
+			"icon": "vintage_snack_cake"
 		},
 		{
 			"id": "scrap_ingot",
 			"name": "Almost Bullion",
 			"category": "material",
-			"value": 14,
+			"value": 8,
 			"icon": "scrap_ingot"
+		},
+		{
+			"id": "compliant_wire",
+			"name": "Compliant Wire",
+			"category": "material",
+			"value": 8,
+			"icon": "compliant_wire"
+		},
+		{
+			"id": "patchwork_bolt",
+			"name": "Patchwork Bolt",
+			"category": "material",
+			"value": 6,
+			"icon": "patchwork_bolt"
+		},
+		{
+			"id": "mandatory_grits",
+			"name": "Mandatory Grits",
+			"category": "food",
+			"value": 10,
+			"heal": 15,
+			"icon": "mandatory_grits"
+		},
+		{
+			"id": "compliant_casserole",
+			"name": "Compliant Casserole",
+			"category": "food",
+			"value": 12,
+			"heal": 35,
+			"icon": "compliant_casserole"
 		},
 		{
 			"id": "radstag_stew",
 			"name": "Chef's Regret",
 			"category": "food",
-			"value": 18,
-			"heal": 25,
+			"value": 30,
+			"heal": 80,
 			"icon": "radstag_stew"
 		},
 		{
 			"id": "scrap_shiv",
 			"name": "Point of Order",
 			"category": "equipment",
-			"value": 25,
+			"value": 40,
 			"icon": "scrap_shiv"
+		},
+		{
+			"id": "majority_whip",
+			"name": "Majority Whip",
+			"category": "equipment",
+			"value": 150,
+			"icon": "majority_whip"
 		},
 		{
 			"id": "hubcap_vest",
 			"name": "Pedestrian Plating",
 			"category": "equipment",
-			"value": 40,
+			"value": 45,
 			"icon": "hubcap_vest"
+		},
+		{
+			"id": "carpool_carapace",
+			"name": "Carpool Carapace",
+			"category": "equipment",
+			"value": 180,
+			"icon": "carpool_carapace"
 		}
 	]
 }
