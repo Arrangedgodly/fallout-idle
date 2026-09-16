@@ -28,8 +28,23 @@ extends Docket
 ## (p_next_ms / m_next_ms / HP / eaten_total / food counts) between batched
 ## flushes — swings from pending-time advances, damage from HP deltas with
 ## heal accounting, misses from swings that drew no blood, meals from ration
-## count decreases. Phase or engage changes reset the snapshot instead of
-## diffing (their own lines arrive from the immediate signals / engage path).
+## count decreases. Phase, engage or EQUIPMENT changes reset the snapshot
+## instead of diffing (their own lines arrive from the immediate signals /
+## engage path) — a mid-window weapon swap invalidates the swing arithmetic
+## (pendings ÷ current speed) and the HP baseline (armor moves max_hp), so
+## that one window stays silent rather than stamping a wrong ×N count
+## (T10b verifier corner, fixed at T13).
+##
+## Two accepted display seams (T10b verifier corners, pinned at T13 with
+## rationale — batching artifacts, never misattribution, both bounded and both
+## adjacent to the exact gauges): (1) heal accounting adds each meal's FULL
+## heal value, but a ration eaten at the max-condition cap restores less — a
+## clamped meal in the same window as fauna damage can overstate that window's
+## resident DAMAGE line by the clamped-off remainder (bounded by heal −
+## max_hp/2: ≤ 5 HP at max gear, ≤ 20 HP at mid gear); the RESIDENT gauge
+## beside it is exact. (2) a hit that rolls 0 damage (Litterbug-class fauna,
+## min_hit 0) is indistinguishable from a miss at the state level and renders
+## MISS — outcome-equivalent (no blood drawn either way).
 
 const ENGAGE_TEXT := "ENGAGE PATROL"
 const WITHDRAW_TEXT := "WITHDRAW PATROL"
@@ -434,13 +449,16 @@ func _refresh_battle() -> void:
 	var engage_ms := int(c.get("engage_ms", 0))
 
 	# Attribution: diff only while the SAME fight keeps fighting. Any phase,
-	# target or engage change resets the baseline (those moments stamp their
-	# own lines through the immediate signals / engage path) — except the
-	# offline recall, whose only surfacing is this flush. Meals eaten in the
-	# window the fight ENDED still count: ration decreases are diffable on
-	# every exit from fighting.
+	# target, engage or EQUIPMENT change resets the baseline (those moments
+	# stamp their own lines through the immediate signals / engage path — and a
+	# mid-window gear swap breaks the swing-count division and the HP baseline)
+	# — except the offline recall, whose only surfacing is this flush. Meals
+	# eaten in the window the fight ENDED still count: ration decreases are
+	# diffable on every exit from fighting.
+	var gear_swapped := str(c.get("weapon", "")) != str(_snap.get("weapon", "")) \
+			or str(c.get("armor", "")) != str(_snap.get("armor", ""))
 	if phase != str(_snap.get("phase", "")) or monster_id != str(_snap.get("monster_id", "")) \
-			or engage_ms != int(_snap.get("engage_ms", -1)):
+			or engage_ms != int(_snap.get("engage_ms", -1)) or gear_swapped:
 		if str(_snap.get("phase", "")) == CombatSession.PHASE_FIGHTING:
 			if phase == CombatSession.PHASE_RECALLED:
 				_stamp("PATROL RECALLED · WITHDRAWN ALIVE AT THE LIMIT · ZERO LOSS")
@@ -663,6 +681,8 @@ func _take_snapshot() -> void:
 		"phase": str(c.get("phase", CombatSession.PHASE_IDLE)),
 		"monster_id": str(c.get("monster_id", "")),
 		"engage_ms": int(c.get("engage_ms", 0)),
+		"weapon": str(c.get("weapon", "")),
+		"armor": str(c.get("armor", "")),
 		"p_hp": int(c.get("p_hp", 0)),
 		"m_hp": int(c.get("m_hp", 0)),
 		"p_next_ms": int(c.get("p_next_ms", 0)),
