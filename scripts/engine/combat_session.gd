@@ -35,6 +35,14 @@ extends RefCounted
 ## through and the fight resumes bit-exact. RNG int64s ship as STRINGS inside
 ## the dict (T3's JSON 2^53-cliff convention; int() parses them back exactly).
 ##
+## HIT COUNTERS (refinement 3, critique P3#5): per-engagement `p_hits` /
+## `m_hits` count the swings whose ACCURACY ROLL PASSED, incremented inside
+## the shared swing helpers at the exact connect — before the damage roll, so
+## a hit that then rolls 0 damage (Litterbug-class min_hit 0) still counts as
+## landed. They exist so the T10b diff seam can word a bloodless window by its
+## truth (MISS vs NO DAMAGE); they draw no RNG and change no outcome, draw
+## order, or save shape beyond the two defaulted ints (old saves hydrate 0).
+##
 ## RNG STREAMS (T6-consistent): one stream per combat skill, seeded
 ## FNV-1a(world_seed + "|" + skill_id) — engaging RESEEDS the stream (mirrors
 ## T6: restarting a slot replays its skill's stream), so the same world seed +
@@ -138,6 +146,8 @@ func ensure_defaults(state: PlayerState) -> void:
 	_default(c, "rng_state", "0")
 	_default(c, "stream_started", false)
 	_default(c, "eaten_total", 0)
+	_default(c, "p_hits", 0)
+	_default(c, "m_hits", 0)
 	_default(c, "zone_clear", false)
 
 
@@ -154,7 +164,7 @@ func hydrate(state: PlayerState) -> void:
 	c["phase"] = str(c["phase"])
 	c["rng_seed"] = str(int(str(c["rng_seed"])))
 	c["rng_state"] = str(int(str(c["rng_state"])))
-	for key in ["p_hp", "m_hp", "engage_ms", "p_next_ms", "m_next_ms", "eaten_total"]:
+	for key in ["p_hp", "m_hp", "engage_ms", "p_next_ms", "m_next_ms", "eaten_total", "p_hits", "m_hits"]:
 		c[key] = int(c[key])
 	c["stream_started"] = bool(c["stream_started"])
 	c["zone_clear"] = bool(c["zone_clear"])
@@ -260,6 +270,8 @@ func engage(state: PlayerState, monster_id: String, now_ms: int) -> Dictionary:
 	c["rng_state"] = "0"
 	c["stream_started"] = false
 	c["eaten_total"] = 0
+	c["p_hits"] = 0
+	c["m_hits"] = 0
 	batcher.mark("combat")
 	return {"ok": true, "reason": ""}
 
@@ -281,16 +293,22 @@ func retreat(state: PlayerState) -> void:
 # construction (pinned by the replay-vs-live-twin test).
 
 ## One player swing → damage dealt (0 on miss). Draw order: hit roll, then a
-## damage roll ONLY on hit. Returns 0 on a miss that rolled 0-equivalent.
-func _player_swing(rng: RandomNumberGenerator, stats: Dictionary, mdef: MonsterDef) -> int:
+## damage roll ONLY on hit (the determinism contract — the counter write in
+## between draws nothing). R3: the hit roll's verdict is recorded in c.p_hits
+## BEFORE the damage roll, so a landed 0-damage hit stays distinguishable from
+## a miss for the T10b diff seam.
+func _player_swing(rng: RandomNumberGenerator, stats: Dictionary, mdef: MonsterDef, c: Dictionary) -> int:
 	if rng.randi_range(0, 9999) < hit_chance_bp(int(stats["accuracy"]), mdef.evasion):
+		c["p_hits"] = int(c["p_hits"]) + 1
 		return rng.randi_range(int(stats["min_hit"]), int(stats["max_hit"]))
 	return 0
 
 
-## One monster swing → damage dealt (0 on miss).
-func _monster_swing(rng: RandomNumberGenerator, stats: Dictionary, mdef: MonsterDef) -> int:
+## One monster swing → damage dealt (0 on miss). Same contract as the player
+## swing; c.m_hits counts landed swings (a 0-damage roll still landed).
+func _monster_swing(rng: RandomNumberGenerator, stats: Dictionary, mdef: MonsterDef, c: Dictionary) -> int:
 	if rng.randi_range(0, 9999) < hit_chance_bp(mdef.accuracy, int(stats["evasion"])):
+		c["m_hits"] = int(c["m_hits"]) + 1
 		return rng.randi_range(mdef.min_hit, mdef.max_hit)
 	return 0
 
@@ -344,7 +362,7 @@ func tick(state: PlayerState, now_ms: int) -> void:
 		if p_next > now_ms and m_next > now_ms:
 			break
 		if p_next <= m_next:  # player resolves first on ties (§1.2)
-			m_hp -= _player_swing(rng, stats, mdef)
+			m_hp -= _player_swing(rng, stats, mdef, c)
 			c["p_next_ms"] = p_next + int(stats["speed"])
 			if m_hp <= 0:
 				c["p_hp"] = p_hp
@@ -353,7 +371,7 @@ func tick(state: PlayerState, now_ms: int) -> void:
 				_victory(state, mdef, p_next)
 				return
 		else:
-			p_hp -= _monster_swing(rng, stats, mdef)
+			p_hp -= _monster_swing(rng, stats, mdef, c)
 			c["m_next_ms"] = m_next + mdef.attack_speed_ms
 			if p_hp <= 0:
 				c["p_hp"] = 0
@@ -636,14 +654,14 @@ func _replay_fight(state: PlayerState, c: Dictionary, mdef: MonsterDef, rng: Ran
 			break  # gap exhausted mid-fight
 		used += 1
 		if p_next <= m_next:  # player resolves first on ties (§1.2)
-			m_hp -= _player_swing(rng, stats, mdef)
+			m_hp -= _player_swing(rng, stats, mdef, c)
 			c["p_next_ms"] = p_next + int(stats["speed"])
 			if m_hp <= 0:
 				c["p_hp"] = p_hp
 				c["m_hp"] = 0
 				return {"outcome": "victory", "blow_ms": p_next, "p_hp": p_hp, "m_hp": 0, "events": used}
 		else:
-			var dmg := _monster_swing(rng, stats, mdef)
+			var dmg := _monster_swing(rng, stats, mdef, c)
 			if p_hp - dmg <= 0:
 				# The blow never lands — no-agency death can not occur (ruling b).
 				return {"outcome": "recall", "blow_ms": m_next, "p_hp": p_hp, "m_hp": m_hp, "events": used}
@@ -671,6 +689,8 @@ func _reengage_at(state: PlayerState, c: Dictionary, at_ms: int) -> void:
 	c["rng_state"] = "0"
 	c["stream_started"] = false
 	c["eaten_total"] = 0
+	c["p_hits"] = 0
+	c["m_hits"] = 0
 
 
 ## Fold the replay's deltas into the MAIL CALL payload (additive merges over

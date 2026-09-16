@@ -50,6 +50,15 @@ extends SceneTree
 ##      lines — at 1280x720 AND 1920x1080, 100% AND 200% font scale, across
 ##      all seven departments; plus the manifest EQUIP-control clearance at
 ##      200% (the critique's unverified claim, pinned as refuted);
+##   9b. R3 polish pin (refinement 3, critique P3#5 + minor): department
+##      hotkeys — the plates post their designation digits, real key presses
+##      1-7 (row and keypad) through the viewport's input pipeline select the
+##      departments from anywhere, focus follows to the destination plate, a
+##      repeat press is a guarded no-op, and a posted MAIL CALL owns the
+##      input; the battle log words a landed-0-damage swing NO DAMAGE and a
+##      true whiff MISS (engine hit counters verified); the Depot posts BOTH
+##      prices per line (buy + sell rate on stock lines, per-unit tender on
+##      disposal lines);
 ##   10. (capture mode) PNGs at 1280x720 + 1920x1080 for first-run and
 ##      active-department states under .impeccable/review/t9/, plus the T10a
 ##      set (one per department, running state, MAIL CALL, locked gates)
@@ -96,6 +105,7 @@ func _run() -> void:
 	await _check_focus_traversal()
 	await _check_focus_rings()
 	await _check_transition()
+	await _check_hotkeys()
 	await _check_console_signals()
 	await _check_t10a_dockets()
 	await _check_t10b_patrol()
@@ -151,10 +161,11 @@ func _check_structure() -> void:
 	_check(unthemed.is_empty(), "all panels carry theme variations (offenders: %s)" % ", ".join(unthemed))
 
 	# Plate wall: 7 plates, names and order per naming bible / first viewport.
+	# R3: each plate posts its designation digit (the hotkey that selects it).
 	var plates := _concourse.plate_buttons_in_order()
 	_check(plates.size() == 7, "plate wall has 7 department plates (got %d)" % plates.size())
 	for i in mini(plates.size(), EXPECTED_PLATES.size()):
-		var expect: String = EXPECTED_PLATES[i]
+		var expect: String = "%s · %d" % [EXPECTED_PLATES[i], i + 1]
 		if i == 0 and _concourse.active_department() == EXPECTED_IDS[0]:
 			expect = ">> " + expect  # first plate is energized at boot
 		_check(plates[i].text == expect,
@@ -345,11 +356,11 @@ func _check_transition() -> void:
 	await _frames(20)  # let the swell settle
 	var patrol := plates[4]
 	var scav := plates[0]
-	_check(patrol.theme_type_variation == "Energized" and patrol.text == ">> WASTELAND PATROL",
-		"patrol plate energized after transition")
+	_check(patrol.theme_type_variation == "Energized" and patrol.text == ">> WASTELAND PATROL · 5",
+		"patrol plate energized after transition (digit posted, R3)")
 	_check(absf(patrol.scale.x - 1.05) < 0.02, "patrol plate swell settled (%.3f)" % patrol.scale.x)
-	_check(scav.theme_type_variation == "" and scav.text == "SCAVENGING" and scav.scale == Vector2.ONE,
-		"scavenging plate reset to default state")
+	_check(scav.theme_type_variation == "" and scav.text == "SCAVENGING · 1" and scav.scale == Vector2.ONE,
+		"scavenging plate reset to default state (digit posted, R3)")
 	_check(_concourse.docket_for("wasteland_patrol").visible, "patrol docket visible after transition")
 	_check(not _concourse.docket_for("scavenging").visible, "scavenging docket hidden after transition")
 	_check(not _concourse.chalk().visible and not _concourse.first_run,
@@ -363,6 +374,82 @@ func _check_transition() -> void:
 	await _frames(50)
 	_check(_counts["changed"] == 1 and _counts["selected"] == 1,
 		"duplicate/unknown department selections ignored")
+
+# ------------------------------------------------------------------ R3 hotkeys
+## Refinement 3 (critique P3#5): the designation digit on each plate is a
+## live accelerator. Real InputEventKey presses through the viewport's input
+## pipeline must select the right department from anywhere in the concourse
+## (focus parked on an unrelated control), the row AND the keypad work, a
+## repeat press on the active department is a no-op, and a posted MAIL CALL
+## owns the input while it is up.
+func _check_hotkeys() -> void:
+	_hook(_concourse.department_selected, "hk_selected")
+	_hook(_concourse.department_changed, "hk_changed")
+	# Park focus somewhere unrelated (deep in the console) so the check proves
+	# the shortcut works from anywhere, not just from the plate wall.
+	_concourse.save_button.grab_focus()
+	await _frames(1)
+	for i in EXPECTED_IDS.size():
+		_push_key(KEY_1 + i)
+		# Wait for the full transition (active id AND the shutter cleared) — a
+		# key pressed mid-transition is dropped by design, same as a plate
+		# press, so the check must observe the settled state.
+		var ok := await _wait_until(func() -> bool:
+			return _concourse.active_department() == EXPECTED_IDS[i] and not _concourse.is_transitioning(), 150)
+		_check(ok, "hotkey %d selects %s through the real input pipeline" % [i + 1, EXPECTED_IDS[i]])
+		if not ok:
+			return
+		await _frames(2)
+		var owner := _vp.gui_get_focus_owner()
+		_check(owner == _concourse.plate_buttons_in_order()[i],
+			"hotkey %d moves focus to the destination plate (tab chain resumes into the docket)" % (i + 1))
+	# The keypad half of the table works too.
+	_push_key(KEY_KP_7)
+	var kp := await _wait_until(func() -> bool:
+		return _concourse.active_department() == "manifest" and not _concourse.is_transitioning(), 150)
+	_check(kp, "keypad 7 selects the Manifest")
+	await _frames(2)
+	# Repeat press on the ACTIVE department is a guarded no-op.
+	var selected_before: int = _counts["hk_selected"]
+	_push_key(KEY_KP_7)
+	await _frames(10)
+	_check(_counts["hk_selected"] == selected_before and _concourse.active_department() == "manifest",
+		"hotkey on the active department emits nothing")
+	# While MAIL CALL is posted the notice owns the input — digits wait.
+	var payload := {"elapsed_ms": 60_000, "skills_xp": {"scavenging": 10},
+		"items": {}, "levels": {}, "actions": {}, "stopped": []}
+	_concourse.mail_call.present(payload, _concourse.bound_tick_manager().engine.lib)
+	await _frames(1)
+	_push_key(KEY_1)
+	await _frames(20)
+	_check(_concourse.active_department() == "manifest",
+		"hotkey suppressed while MAIL CALL is posted (Esc acknowledges the notice)")
+	_concourse.mail_call.acknowledge()
+	await _frames(1)
+	_push_key(KEY_1)
+	var after := await _wait_until(func() -> bool:
+		return _concourse.active_department() == "scavenging" and not _concourse.is_transitioning(), 150)
+	_check(after, "hotkey works again once MAIL CALL is acknowledged")
+	await _frames(2)
+	# Restore the section's standing state (wasteland_patrol active) for the
+	# downstream console/t10a checks.
+	_push_key(KEY_5)
+	await _wait_until(func() -> bool:
+		return _concourse.active_department() == "wasteland_patrol" and not _concourse.is_transitioning(), 150)
+	await _frames(2)
+
+
+## One physical key press through the viewport's REAL input pipeline (the same
+## funnel a keyboard resident's press takes).
+func _push_key(code: int) -> void:
+	var ev := InputEventKey.new()
+	ev.keycode = code
+	ev.pressed = true
+	_vp.push_input(ev)
+	var up := InputEventKey.new()
+	up.keycode = code
+	up.pressed = false
+	_vp.push_input(up)
 
 func _check_console_signals() -> void:
 	# BEGIN SHIFT on the active docket, driven by keyboard. (T10b: the patrol
@@ -569,6 +656,17 @@ func _check_t10a_dockets() -> void:
 	_check(tm.state.crowns == 994 and int(tm.state.inventory.get("glowshroom", 0)) == 1,
 		"keyboard BUY 1 tenders 6 Crowns and stocks one unit")
 	_check(depot.crowns_read.text == "994", "currency plate updated via the batched signal")
+	# R3 (critique P3 minor, sell-rate affordance — verified satisfied, now
+	# pinned): BOTH prices post per line at a glance — the stock (buy) line
+	# carries buy price AND the honest sell rate; the disposal (sell) line
+	# carries the per-unit tender next to the on-hand count.
+	var buy_row := depot.find_child("BuyRow_glowshroom", true, false) as Control
+	var buy_text := ""
+	if buy_row != null:
+		for l in buy_row.find_children("*", "Label", true, false):
+			buy_text += (l as Label).text + " "
+	_check("6 CROWNS EA · SELL RATE 2" in buy_text,
+		"stock line posts buy price AND honest sell rate per line (got '%s')" % buy_text)
 	var gated_row := depot.find_child("BuyRow_scrap_metal", true, false) as Control
 	var gate_text := ""
 	if gated_row != null:
@@ -577,6 +675,13 @@ func _check_t10a_dockets() -> void:
 	_check("CLEARANCE 3 REQUIRED" in gate_text, "gated stock line posts CLEARANCE 3 REQUIRED (got '%s')" % gate_text)
 	var sell1 := depot.find_child("Sell1_glowshroom", true, false) as Button
 	_check(sell1 != null, "owned item shows a disposal line")
+	var sell_row := depot.find_child("SellRow_glowshroom", true, false) as Control
+	var sell_text := ""
+	if sell_row != null:
+		for l in sell_row.find_children("*", "Label", true, false):
+			sell_text += (l as Label).text + " "
+	_check("×1 ON HAND · 2 CROWNS EA" in sell_text,
+		"disposal line posts the per-unit tender at a glance (got '%s')" % sell_text)
 	sell1.grab_focus()
 	await _frames(1)
 	_push_action("ui_accept")
@@ -660,6 +765,14 @@ func _check_t10b_patrol() -> void:
 	_check(tm != null, "engine bound for the patrol checks")
 	if tm == null:
 		return
+	# R3: the wording checks below pin SEEDED facts (which swings land, which
+	# draws zero blood) — start the section from the capture set's own seed so
+	# headless runs assert the same deterministic fight the captures show.
+	tm.new_game(20260915)
+	tm.batcher.mark("inventory")
+	tm.batcher.mark("xp")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	await _frames(2)
 	_concourse.select_department("wasteland_patrol", true)
 	await _frames(2)
 	var patrol := _concourse.docket_controller("wasteland_patrol") as DocketPatrol
@@ -695,7 +808,11 @@ func _check_t10b_patrol() -> void:
 	_check((litter.title as Label).text == ">> LITTERBUG", "engaged fauna card energized")
 	_check(_concourse.begin_button_for("wasteland_patrol").text == "WITHDRAW PATROL",
 		"primary retexts to WITHDRAW PATROL while fighting")
-	_pump(tm, 7_000)
+	# R3 (critique P3#5): 8,500 ms reaches the seeded fight's third fauna
+	# swing (8,400 ms) — the deterministic LANDED-0-DAMAGE case (Litterbug
+	# min_hit 0; all three of this fight's fauna swings connect at this seed,
+	# so the counter proves the third drew blood-zero, not a whiff).
+	_pump(tm, 8_500)
 	await _frames(1)
 	var cc: Dictionary = tm.state.combat
 	_check(patrol.p_read.text == "RESIDENT · %s/100 CONDITION" % str(int(cc["p_hp"])),
@@ -708,6 +825,13 @@ func _check_t10b_patrol() -> void:
 		if "»" in t and ("DAMAGE" in t or "MISS" in t):
 			battle_line = true
 	_check(battle_line, "battle lines stamped from the batched signals")
+	_check(int(cc["m_hits"]) == 3, "engine m_hits counts all three landed fauna swings (got %d)" % int(cc["m_hits"]))
+	var no_damage_line := false
+	for i in patrol.log.item_count:
+		if patrol.log.get_item_text(i) == "LITTERBUG » RESIDENT · NO DAMAGE":
+			no_damage_line = true
+	_check(no_damage_line,
+		"the seeded landed-0-damage swing words itself NO DAMAGE (not MISS)")
 
 	# Keyboard withdraw via the primary button.
 	_concourse.begin_button_for("wasteland_patrol").grab_focus()
@@ -750,6 +874,14 @@ func _check_t10b_patrol() -> void:
 			and "DESIGNATION IS PRESERVED" in patrol.phase_directive.text
 			and "FULL CONDITION" in patrol.phase_directive.text,
 		"death plate posts the recovery directive (got '%s')" % patrol.phase_directive.text)
+	# R3 (critique P3#5): a true whiff stays MISS — the ungearred boss fight's
+	# resident swings (45% hit vs boss evasion) produce honest MISS lines that
+	# must not have been re-worded NO DAMAGE.
+	var true_miss_line := false
+	for i in patrol.log.item_count:
+		if patrol.log.get_item_text(i).ends_with("· MISS"):
+			true_miss_line = true
+	_check(true_miss_line, "a true whiff still words itself MISS (boss death stretch)")
 	need_w = _concourse.docket_for("wasteland_patrol").get_combined_minimum_size().x
 	_check(need_w <= housing_w, "patrol docket fits in the death state (%.0f <= %.0f)" % [
 		need_w, housing_w])
@@ -1133,8 +1265,20 @@ func _capture_t10b_sets() -> void:
 	tm.equip_item("carpool_carapace")
 	await _frames(2)
 
-	# Engaged battle: mid-fight against the boss with gear + rations visible.
+	# R3: the seeded 0-damage case, on the log for the record — the Litterbug
+	# fight at this seed connects every fauna swing and its third (8,400 ms)
+	# draws zero blood: the log must read NO DAMAGE, not MISS.
 	var patrol := _concourse.docket_controller("wasteland_patrol") as DocketPatrol
+	var litter: DocketPatrol.FaunaCard = (patrol.get("_cards") as Dictionary).get("junkyard_roach")
+	(litter.button as Button).pressed.emit()
+	_pump(tm, 9_500)
+	await _frames(2)
+	if not _snap_t10b("patrol_litterbug_nodamage_1280x720.png"):
+		return
+	tm.stop_combat()
+	await _frames(2)
+
+	# Engaged battle: mid-fight against the boss with gear + rations visible.
 	var boss: DocketPatrol.FaunaCard = (patrol.get("_cards") as Dictionary).get("sewer_landlord")
 	(boss.button as Button).pressed.emit()
 	_pump(tm, 40_000)  # gauges partially drained, swings + rations stamped
@@ -1203,6 +1347,7 @@ func _snap_t10b(file_name: String) -> bool:
 func _validate_t10b_pngs() -> void:
 	var expects := {
 		"patrol_engaged_1280x720.png": Vector2i(1280, 720),
+		"patrol_litterbug_nodamage_1280x720.png": Vector2i(1280, 720),
 		"patrol_death_1280x720.png": Vector2i(1280, 720),
 		"patrol_zone_clear_1280x720.png": Vector2i(1280, 720),
 		"patrol_engaged_1920x1080.png": Vector2i(1920, 1080),
@@ -1337,7 +1482,7 @@ func _check(ok: bool, label: String) -> void:
 func _report_and_quit() -> void:
 	_done = true
 	if failures.is_empty():
-		print("PROBE_OK checks=%d (concourse themed; 7 plates; two-thirds docket; first-run chalk + energized cues; full tab/arrow coverage with amber focus rings incl. T10a/T10b docket content; bounded bulkhead slide; console signals wired; T10a live-engine dockets: gates + earning-path copy, honest rates, keyboard start/stop, gauge==state, stamps, equip/unequip, depot tenders, MAIL CALL, save notices; T10b patrol: honest fauna stats + claim rates + gates + earning path, keyboard engage/withdraw, gauges==state, battle stamps, DECEASED/RETURN TO SHELTER zero-loss + recovery directive, PATROL RECALLED + mail call, persistent ZONE SECURED, gear-derived stats, traversal)" % checks)
+		print("PROBE_OK checks=%d (concourse themed; 7 plates with posted designation digits; two-thirds docket; first-run chalk + energized cues; full tab/arrow coverage with amber focus rings incl. T10a/T10b docket content; bounded bulkhead slide; R3 hotkeys 1-7 row+keypad via real input pipeline, focus-follow, mail-call suppression; console signals wired; T10a live-engine dockets: gates + earning-path copy, honest rates, keyboard start/stop, gauge==state, stamps, equip/unequip, depot tenders + both-prices-per-line pin, MAIL CALL, save notices; T10b patrol: honest fauna stats + claim rates + gates + earning path, keyboard engage/withdraw, gauges==state, battle stamps with NO DAMAGE vs MISS wording pinned, DECEASED/RETURN TO SHELTER zero-loss + recovery directive, PATROL RECALLED + mail call, persistent ZONE SECURED, gear-derived stats, traversal)" % checks)
 		quit(0)
 	else:
 		printerr("PROBE_FAILED checks=%d failures=%d" % [checks, failures.size()])

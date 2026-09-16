@@ -242,7 +242,7 @@ Desktop-native Godot Control layout; minimum window 1280×720, resizable up; mou
 
 **Concourse topology** (`scenes/main.gd`, the single game shell): a full-rect rolled-steel wall; a 160 px half-open bulkhead mouth at the left edge (daylight slit, drawn in code); a shell margin (56/24/28/18) holding one column (16 px separation) of: **header row** (20 px separation — the bone facility plate expanding, beside a 380 px posted paper notice) → **body row** (20 px separation — the plate wall plus the docket region) → **console bar** (a riveted steel panel; its row is an HFlow that wraps to two lines at 200% font scale).
 
-- **Plate wall** (left ~third): vertical scroll only, 10 px separation, seven department plates at 340×56 minimum each — Buttons with stencil caps and word-smart autowrap.
+- **Plate wall** (left ~third): vertical scroll only, 10 px separation, seven department plates at 340×56 minimum each — Buttons with stencil caps and word-smart autowrap, each posting its designation digit after the name (`SCAVENGING · 1` … `MANIFEST · 7` — the digit of the plate's D-0n serial and the key that selects it).
 - **Docket region** (right ~two-thirds): scrollable riveted-steel housing (`SteelPanel`, clipped) with a 24/18 inner margin. A department change always opens the docket at its content top — the scroll offset resets so the enamel header plate leads (pinned by the concourse probe's R1 geometry checks). Each department's docket is a VBox (16 px separation): enamel header plate (title + serial) → posted paper directive → live content controller (VBox, 14 px separation) → the big stencled BEGIN SHIFT button (300×64, energized) → a wrapping footer serial.
 - **Docket internals** (skill dockets): hidden-at-rest energized status plate → vent housing with the clearance gauge + mono readout → micro section header → cards VBox (8 px separation) → vent-housed stamped log.
 - **Bulkhead transitions**: department changes slide a riveted shutter across the docket (bounded — 0.24 s close, 0.34 s open; see Components), the daylight mouth pulses, and the new docket settles out of the door's shadow (28 px offset + 0.35 alpha → home, 0.30 s).
@@ -328,7 +328,7 @@ One plate component, four worded states — the color only escorts the wording: 
 
 ### Stamped Logs
 
-The vent-housed ItemList ("stamped drop lines"): mono 15 px bone on the recessed ground, 18 px inline icons, fixed 24 px row height per reserved line. Lines arrive only from batched engine signals, newest last, selected and scrolled into view, capped (60 skill / 160 patrol). Level-ups stamp "CLEARANCE %02d EARNED".
+The vent-housed ItemList ("stamped drop lines"): mono 15 px bone on the recessed ground, 18 px inline icons, fixed 24 px row height per reserved line. Lines arrive only from batched engine signals, newest last, selected and scrolled into view, capped (60 skill / 160 patrol). Level-ups stamp "CLEARANCE %02d EARNED". A bloodless patrol window words its truth: every swing whiffed stamps MISS, a swing that connected and drew no blood (fauna min_hit 0) stamps NO DAMAGE — the engine's per-engagement hit counters (`combat.p_hits`/`m_hits`, ticked at the connect, before the damage roll) carry the distinction the HP diff cannot.
 
 ### MAIL CALL Modal (offline gains)
 
@@ -340,7 +340,7 @@ Recessed pockets: steel-deep ground, machined 2/1 px border, 2 px radius, 10/7 p
 
 ### Navigation
 
-Department plates (the wall) + TabBar where tabs exist: selected tab = bone plate with 2 px navy border and navy stencil; unselected = steel-deep with a 2 px steel-lo underline; hover tints steel-hi at 35%. Scrollbars are thin steel (4 px radius grabber, steel-hi) going amber when highlighted, bone when pressed. Full keyboard reachability is part of the navigation contract: every visible enabled control is focusable, and the shell scrolls focus into view.
+Department plates (the wall) + TabBar where tabs exist: selected tab = bone plate with 2 px navy border and navy stencil; unselected = steel-deep with a 2 px steel-lo underline; hover tints steel-hi at 35%. The plate's posted digit is a live accelerator: keys 1–7 (digit row and keypad) select their department from anywhere in the concourse — no Tab walk — with focus following to the destination plate so the tab chain resumes into the new docket; a posted MAIL CALL owns the input while it is up, and modifier combos (Cmd/Ctrl/Alt + digit) stay with the OS. Scrollbars are thin steel (4 px radius grabber, steel-hi) going amber when highlighted, bone when pressed. Full keyboard reachability is part of the navigation contract: every visible enabled control is focusable, and the shell scrolls focus into view.
 
 ### Focus Ring
 

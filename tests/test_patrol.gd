@@ -227,6 +227,60 @@ func test_engage_gauges_and_log_match_engine() -> void:
 
 
 # ---------------------------------------------------------------------------
+# R3 (critique P3#5): MISS vs NO DAMAGE — a landed 0-damage hit words itself
+# distinctly from a true miss
+# ---------------------------------------------------------------------------
+
+## Count attacker lines whose outcome segment is exactly `outcome`.
+func _count_outcome_lines(docket: DocketPatrol, attacker: String, outcome: String) -> int:
+	var n := 0
+	for i in docket.log.item_count:
+		var t := docket.log.get_item_text(i)
+		if t.begins_with(attacker) and t.ends_with("· " + outcome):
+			n += 1
+	return n
+
+
+func test_log_distinguishes_landed_zero_damage_from_miss() -> void:
+	var tm: Variant = _make_tm(SEED)
+	var packed := await _make_patrol(tm)
+	var docket: DocketPatrol = packed[1]
+
+	# Deterministic at this seed (stream replay): the Litterbug fight's fauna
+	# swings at 2,800/5,600/8,400 ms ALL CONNECT; the third draws zero blood
+	# (min_hit 0). Flushed in aligned windows, the log must word it NO DAMAGE.
+	(_cards(docket)["junkyard_roach"].button as Button).pressed.emit()
+	for window in 3:
+		_pump(tm, 2_800)
+		tm.batcher.force_flush(tm.sim_time_ms)
+		await wait_frames(1)
+		if str(tm.state.combat["phase"]) != "fighting":
+			break
+	var cc: Dictionary = tm.state.combat
+	assert_eq(int(cc["m_hits"]), 3, "all three fauna swings connected (engine counter)")
+	assert_eq(_count_outcome_lines(docket, "LITTERBUG » RESIDENT", "NO DAMAGE"), 1,
+		"the landed 0-damage swing words itself NO DAMAGE — never MISS")
+	assert_eq(_count_outcome_lines(docket, "LITTERBUG » RESIDENT", "MISS"), 0,
+		"no true whiff occurred in this stretch — none may be stamped MISS")
+	tm.stop_combat()
+
+	# A true whiff still reads MISS: the ungearred boss fight (resident hit
+	# chance 45 %, damage floor 1) produces honest MISS lines and can never
+	# produce a resident-side NO DAMAGE (the floor makes landed == blood).
+	tm.engine.grant_xp(tm.state, "wasteland_combat", 8_340)
+	_flush(tm, "xp")
+	await wait_frames(1)
+	(_cards(docket)["sewer_landlord"].button as Button).pressed.emit()
+	assert_true(_pump_until_phase(tm, "dead", 90_000), "ungearred boss fight ends in death")
+	await wait_frames(1)
+	assert_gt(_count_outcome_lines(docket, "RESIDENT » THE SUPERINTENDENT", "MISS"), 0,
+		"a true whiff still words itself MISS")
+	assert_eq(_count_outcome_lines(docket, "RESIDENT » THE SUPERINTENDENT", "NO DAMAGE"), 0,
+		"resident swings never land bloodless (damage floor 1) — NO DAMAGE is the fauna's wording alone")
+	tm.stop_combat()
+
+
+# ---------------------------------------------------------------------------
 # victory: drops + XP stamps, gauges settle at the kill
 # ---------------------------------------------------------------------------
 

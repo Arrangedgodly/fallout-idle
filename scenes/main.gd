@@ -22,6 +22,16 @@ extends Control
 ## focus ring (the slider lights its track border — Godot sliders draw no
 ## focus stylebox of their own).
 ##
+## R3 (refinement 3, critique P3#5) — department hotkeys: each plate posts its
+## designation digit ("SCAVENGING · 1" — the digit of its D-0n serial), and
+## pressing that digit on the keyboard (row or keypad) selects the department
+## from anywhere in the concourse, no Tab walk. The digit suffix rides the
+## plate's own stencil text (the established button-digit idiom — the Depot's
+## "BUY ×2"), so no new component and no geometry risk at 200% font scale; the
+## tooltip names the key outright. Modifier combos (Cmd/Ctrl/Alt) are left to
+## the OS, and a posted MAIL CALL owns the input while it is up (Esc
+## acknowledges it — an interruption notice earns protected focus).
+##
 ## Signals (SaveStore wires the two record controls since T3; T10a/T6 own the
 ## rest):
 ##   department_selected(id)       — plate pressed (intent, before transition)
@@ -91,6 +101,11 @@ const TRANSITION_CLOSE_S := 0.24
 const TRANSITION_OPEN_S := 0.34
 const SWELL := 1.05
 const FONT_STEPS := [1.0, 1.5, 2.0]
+
+## Department hotkeys (R3): the digit row and the keypad both select; the
+## index is the plate's position + 1 (the designation digit it posts).
+const HOTKEY_KEYS := [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7,
+	KEY_KP_1, KEY_KP_2, KEY_KP_3, KEY_KP_4, KEY_KP_5, KEY_KP_6, KEY_KP_7]
 
 var first_run := true
 var font_slider: HSlider
@@ -277,6 +292,36 @@ func _on_mail_call_ready(payload: Dictionary) -> void:
 	mail_call.present(payload, _tm.engine.lib)
 
 
+# ------------------------------------------------------------------ hotkeys
+## R3 (critique P3#5): the designation digit selects its department from
+## anywhere in the concourse — the accelerator the Tab walk never had. Works
+## unfocused (unhandled input, after the GUI had its turn — no control in the
+## concourse consumes bare digits), honors the row AND the keypad, and is
+## suppressed while MAIL CALL is posted (the interruption notice owns input;
+## Esc acknowledges it). Modifier combos (Cmd/Ctrl/Alt + digit) stay with the
+## OS. Focus follows the jump: the destination plate takes focus so the tab
+## chain resumes INTO the new docket instead of dangling in the hidden one.
+func _unhandled_input(event: InputEvent) -> void:
+	if mail_call != null and mail_call.is_presenting():
+		return
+	var key := event as InputEventKey
+	if key == null or not key.pressed or key.echo:
+		return
+	if key.is_command_or_control_pressed() or key.is_alt_pressed():
+		return
+	var idx := HOTKEY_KEYS.find(key.keycode)
+	if idx < 0:
+		return
+	if idx >= DEPARTMENTS.size():
+		idx -= DEPARTMENTS.size()  # keypad half of the table
+	var id: String = DEPARTMENTS[idx].id
+	if not _plates.has(id) or id == _active_id or _transitioning:
+		return
+	_plates[id].grab_focus()
+	select_department(id, false)
+	get_viewport().set_input_as_handled()
+
+
 # ------------------------------------------------------------------ build
 func _build_ui() -> void:
 	set_anchors_preset(PRESET_FULL_RECT)
@@ -380,19 +425,27 @@ func _build_plate_wall() -> Control:
 	wall.name = "PlateWall"
 	wall.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(wall)
-	for d in DEPARTMENTS:
+	for i in DEPARTMENTS.size():
+		var d: Dictionary = DEPARTMENTS[i]
 		var plate := Button.new()
 		plate.name = "Plate_" + d.id
 		plate.custom_minimum_size = Vector2(340.0, 56.0)
 		plate.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		plate.text = d.plate
-		plate.tooltip_text = "Open the %s docket" % d.plate.capitalize()
+		plate.text = _plate_text(d, i)
+		plate.tooltip_text = "Open the %s docket (press %d)" % [d.plate.capitalize(), i + 1]
 		plate.set_meta("dept_id", d.id)
+		plate.set_meta("dept_index", i)
 		plate.pressed.connect(select_department.bind(d.id, false))
 		wall.add_child(plate)
 		_plates[d.id] = plate
 		_plate_order.append(plate)
 	return scroll
+
+
+## R3: the plate posts its designation digit — the D-0n serial's own number
+## and the key that selects the department from anywhere in the concourse.
+func _plate_text(d: Dictionary, index: int) -> String:
+	return "%s · %d" % [d.plate, index + 1]
 
 func _build_docket_region() -> Control:
 	var scroll := ScrollContainer.new()
@@ -603,13 +656,14 @@ func _apply_active(id: String, animate: bool) -> void:
 ## one of them non-color (Daredevil: state must not rely on color alone).
 func _set_plate_state(plate: Button, energized: bool, animate: bool) -> void:
 	var d: Dictionary = _dept_by_id[plate.get_meta("dept_id")]
+	var text := _plate_text(d, int(plate.get_meta("dept_index")))
 	if energized:
 		plate.theme_type_variation = "Energized"
-		plate.text = ENERGIZED_PREFIX + d.plate
+		plate.text = ENERGIZED_PREFIX + text
 		plate.z_index = 10
 	else:
 		plate.theme_type_variation = ""
-		plate.text = d.plate
+		plate.text = text
 		plate.z_index = 0
 	plate.pivot_offset = Vector2(0.0, plate.size.y * 0.5)
 	var target := Vector2.ONE * (SWELL if energized else 1.0)

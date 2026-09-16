@@ -40,16 +40,19 @@ extends Docket
 ## that one window stays silent rather than stamping a wrong ×N count
 ## (T10b verifier corner, fixed at T13).
 ##
-## Two accepted display seams (T10b verifier corners, pinned at T13 with
-## rationale — batching artifacts, never misattribution, both bounded and both
-## adjacent to the exact gauges): (1) heal accounting adds each meal's FULL
-## heal value, but a ration eaten at the max-condition cap restores less — a
-## clamped meal in the same window as fauna damage can overstate that window's
-## resident DAMAGE line by the clamped-off remainder (bounded by heal −
-## max_hp/2: ≤ 5 HP at max gear, ≤ 20 HP at mid gear); the RESIDENT gauge
-## beside it is exact. (2) a hit that rolls 0 damage (Litterbug-class fauna,
-## min_hit 0) is indistinguishable from a miss at the state level and renders
-## MISS — outcome-equivalent (no blood drawn either way).
+## Two display seams, one retired (refinement 3, critique P3#5): (1) ACCEPTED
+## (T13, bounded) — heal accounting adds each meal's FULL heal value, but a
+## ration eaten at the max-condition cap restores less — a clamped meal in the
+## same window as fauna damage can overstate that window's resident DAMAGE
+## line by the clamped-off remainder (bounded by heal − max_hp/2: ≤ 5 HP at
+## max gear, ≤ 20 HP at mid gear); the RESIDENT gauge beside it is exact.
+## (2) RETIRED (R3 supersedes the T13 accepted corner): a hit that rolls 0
+## damage (Litterbug-class fauna, min_hit 0) used to render MISS — the state
+## diff could not separate it from a true miss. The engine now keeps
+## per-engagement hit counters (combat.p_hits / m_hits, incremented at the
+## connect, before the damage roll), and a bloodless window words itself by
+## its truth: every swing whiffed reads MISS, a swing that CONNECTED and drew
+## no blood reads NO DAMAGE.
 
 const ENGAGE_TEXT := "ENGAGE PATROL"
 const WITHDRAW_TEXT := "WITHDRAW PATROL"
@@ -738,6 +741,8 @@ func _take_snapshot() -> void:
 		"p_next_ms": int(c.get("p_next_ms", 0)),
 		"m_next_ms": int(c.get("m_next_ms", 0)),
 		"eaten_total": int(c.get("eaten_total", 0)),
+		"p_hits": int(c.get("p_hits", 0)),
+		"m_hits": int(c.get("m_hits", 0)),
 		"foods": foods,
 	}
 
@@ -759,19 +764,32 @@ func _stamp_fight_deltas() -> void:
 	var heal_total := _heal_since_snapshot()
 	var dmg_to_fauna := int(_snap["m_hp"]) - int(c["m_hp"])
 	var dmg_to_resident := int(_snap["p_hp"]) + heal_total - int(c["p_hp"])
+	# R3 (critique P3#5): the engine's hit counters carry the connect-truth
+	# the HP diff cannot — landed deltas separate a whiffed window (MISS) from
+	# one where a swing CONNECTED and drew no blood (NO DAMAGE).
+	var p_landed := maxi(0, int(c["p_hits"]) - int(_snap["p_hits"]))
+	var m_landed := maxi(0, int(c["m_hits"]) - int(_snap["m_hits"]))
 	if p_swings > 0:
 		var tag := "RESIDENT » %s" % mname
 		if p_swings > 1:
 			tag += " ×%d SWINGS" % p_swings
 		_stamp("%s · %s" % [tag, ("%s DAMAGE" % SignageFmt.num(dmg_to_fauna))
-			if dmg_to_fauna > 0 else "MISS"])
+			if dmg_to_fauna > 0 else _bloodless_wording(p_landed)])
 	if m_swings > 0:
 		var mtag := "%s » RESIDENT" % mname
 		if m_swings > 1:
 			mtag += " ×%d SWINGS" % m_swings
 		_stamp("%s · %s" % [mtag, ("%s DAMAGE" % SignageFmt.num(dmg_to_resident))
-			if dmg_to_resident > 0 else "MISS"])
+			if dmg_to_resident > 0 else _bloodless_wording(m_landed)])
 	_stamp_meals()
+
+
+## A window that drew no blood words itself by its truth (R3, critique P3#5):
+## nothing connected reads MISS (the honest whiff); something connected and
+## failed to draw reads NO DAMAGE (the landed 0-damage hit — Litterbug-class
+## min_hit 0). Naming-bible §8: calm ALL-CAPS form outcome, no exclamation.
+func _bloodless_wording(landed: int) -> String:
+	return "NO DAMAGE" if landed > 0 else "MISS"
 
 
 ## Total HP mended by rations consumed since the snapshot (decreases only).

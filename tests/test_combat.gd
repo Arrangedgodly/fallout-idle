@@ -144,7 +144,9 @@ func _oracle_stream_seed(world_seed: int) -> int:
 
 
 ## One seeded §1 fight. `food` is CONSUMED (pass a duplicate). Returns
-## {win, ms, eaten, p_hp, m_hp, food, rng_state, timeout}.
+## {win, ms, eaten, p_hp, m_hp, food, rng_state, timeout} — plus R3 hit
+## counters (p_hits/m_hits: swings whose accuracy roll passed; a 0-damage
+## roll still counts), mirroring the engine's connect-truth state.
 func _oracle_fight(stats: Dictionary, monster: MonsterDef, food: Dictionary, stream_seed: int, cap_ms: int) -> Dictionary:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = stream_seed
@@ -152,25 +154,31 @@ func _oracle_fight(stats: Dictionary, monster: MonsterDef, food: Dictionary, str
 	var p_hp := max_hp
 	var m_hp := monster.max_hp
 	var p_next: int = stats["speed"]  # first swing after one full interval (§1.2)
-	var m_next := monster.attack_speed_ms
+	var m_next: int = monster.attack_speed_ms
 	var eaten := 0
+	var p_hits := 0
+	var m_hits := 0
 	while p_next <= cap_ms and m_next <= cap_ms:
 		if p_next <= m_next:  # player resolves first on ties (§1.2)
 			if rng.randi_range(0, 9999) < _oracle_bp(int(stats["accuracy"]), monster.evasion):
+				p_hits += 1
 				m_hp -= rng.randi_range(int(stats["min_hit"]), int(stats["max_hit"]))
 			var p_blow := p_next
 			p_next += int(stats["speed"])
 			if m_hp <= 0:
 				return {"win": true, "ms": p_blow, "eaten": eaten, "p_hp": p_hp,
-					"m_hp": 0, "food": food, "rng_state": rng.state, "timeout": false}
+					"m_hp": 0, "food": food, "rng_state": rng.state, "timeout": false,
+					"p_hits": p_hits, "m_hits": m_hits}
 		else:
 			if rng.randi_range(0, 9999) < _oracle_bp(monster.accuracy, int(stats["evasion"])):
+				m_hits += 1
 				p_hp -= rng.randi_range(monster.min_hit, monster.max_hit)
 			var m_blow := m_next
 			m_next += monster.attack_speed_ms
 			if p_hp <= 0:
 				return {"win": false, "ms": m_blow, "eaten": eaten, "p_hp": 0,
-					"m_hp": m_hp, "food": food, "rng_state": rng.state, "timeout": false}
+					"m_hp": m_hp, "food": food, "rng_state": rng.state, "timeout": false,
+					"p_hits": p_hits, "m_hits": m_hits}
 		# Auto-eat §1.2: <= half HP (integer division), highest-heal first, repeat.
 		while p_hp <= max_hp / 2 and not food.is_empty():
 			var best := ""
@@ -188,7 +196,8 @@ func _oracle_fight(stats: Dictionary, monster: MonsterDef, food: Dictionary, str
 			p_hp = mini(max_hp, p_hp + best_heal)
 			eaten += 1
 	return {"win": false, "ms": cap_ms, "eaten": eaten, "p_hp": p_hp,
-		"m_hp": m_hp, "food": food, "rng_state": rng.state, "timeout": true}
+		"m_hp": m_hp, "food": food, "rng_state": rng.state, "timeout": true,
+		"p_hits": p_hits, "m_hits": m_hits}
 
 
 ## Victory drops a stream-state replay predicts (draw order = the engine's:
@@ -379,9 +388,69 @@ func test_engine_matches_oracle_across_ladder() -> void:
 				"%s seed %d: final player HP matches oracle" % [label, seed])
 			assert_eq(eng["food_left"], oracle["food"],
 				"%s seed %d: remaining food matches oracle" % [label, seed])
+			# R3 (critique P3#5): landed-swing counters match the oracle's own
+			# hit rolls exactly — a 0-damage hit still counts as landed.
+			assert_eq(int(eng["tm"].state.combat["p_hits"]), int(oracle["p_hits"]),
+				"%s seed %d: player landed swings match oracle" % [label, seed])
+			assert_eq(int(eng["tm"].state.combat["m_hits"]), int(oracle["m_hits"]),
+				"%s seed %d: monster landed swings match oracle" % [label, seed])
 			if outcome == "victory":
 				assert_eq(result["drops"], _oracle_drops(monster.drop_table, int(oracle["rng_state"])),
 					"%s seed %d: drops match the seeded stream replay" % [label, seed])
+
+
+## R3 (critique P3#5) — the hit counters that separate a landed 0-damage hit
+## from a miss at the diff seam: engage resets them, they count ONLY accuracy
+## connects (before the damage roll — a 0-damage hit counts), and they ride
+## the save round-trip like every other combat int.
+func test_hit_counters_mark_connects_not_damage() -> void:
+	var tm: Variant = _make_tm(SEED_A)
+	var st: PlayerState = tm.state
+	assert_true(tm.engage_monster("junkyard_roach")["ok"], "engage the min_hit-0 fauna")
+	assert_eq(int(st.combat["p_hits"]), 0, "engage resets p_hits (fresh engagement)")
+	assert_eq(int(st.combat["m_hits"]), 0, "engage resets m_hits")
+	# Swing-by-swing: every pendings advance is exactly one swing per side;
+	# counters may only tick when the roll passed, and a landed swing that
+	# drew zero blood STILL ticks (the Litterbug's min_hit 0 case).
+	var landed_zero_seen := false
+	var mismatch := ""
+	for i in 60:
+		var before := {
+			"p_next": int(st.combat["p_next_ms"]), "m_next": int(st.combat["m_next_ms"]),
+			"p_hp": int(st.combat["p_hp"]), "m_hp": int(st.combat["m_hp"]),
+			"p_hits": int(st.combat["p_hits"]), "m_hits": int(st.combat["m_hits"])}
+		tm.advance_wall_ms(100)
+		if str(st.combat["phase"]) != "fighting":
+			break
+		var p_swung: bool = int(st.combat["p_next_ms"]) > int(before["p_next"])
+		var m_swung: bool = int(st.combat["m_next_ms"]) > int(before["m_next"])
+		var p_hit: int = int(st.combat["p_hits"]) - before["p_hits"]
+		var m_hit: int = int(st.combat["m_hits"]) - before["m_hits"]
+		if p_swung and (p_hit < 0 or p_hit > 1):
+			mismatch = "player swing ticked p_hits by %d" % p_hit
+		if m_swung and (m_hit < 0 or m_hit > 1):
+			mismatch = "fauna swing ticked m_hits by %d" % m_hit
+		# A landed fauna swing that moved no HP IS the 0-damage connect.
+		if m_swung and m_hit == 1 and int(st.combat["p_hp"]) == before["p_hp"]:
+			landed_zero_seen = true
+		# The player's damage floor is 1: a landed player swing must move
+		# the fauna's HP (misses are the only bloodless player swings).
+		if p_swung and p_hit == 1 and int(st.combat["m_hp"]) == before["m_hp"]:
+			mismatch = "landed player swing drew no blood (min_hit floor violated)"
+	assert_eq(mismatch, "", "counters tick exactly on connects: %s" % mismatch)
+	assert_gt(int(st.combat["p_hits"]) + int(st.combat["m_hits"]), 0, "some swings landed")
+	# Deterministic at this seed: the Litterbug fight's FIRST fauna swing
+	# (2,800 ms) connects and rolls 0 damage — the exact case the counters
+	# exist to separate from a miss (verified by stream replay).
+	assert_true(landed_zero_seen,
+		"the seeded fight's first fauna swing connects for 0 damage — counted as landed")
+
+	# Re-engage resets the counters with the rest of the engagement state.
+	tm.stop_combat()
+	assert_true(tm.engage_monster("junkyard_roach")["ok"], "re-engage")
+	assert_eq(int(st.combat["p_hits"]), 0, "re-engage resets p_hits")
+	assert_eq(int(st.combat["m_hits"]), 0, "re-engage resets m_hits")
+	tm.stop_combat()
 
 
 # ---------------------------------------------------------------------------
@@ -663,6 +732,11 @@ func test_save_round_trip_resumes_exactly() -> void:
 	assert_eq(resume.state.inventory, whole.state.inventory,
 		"final Manifest identical (exact stream continuation)")
 	assert_eq(resume.state.skills_xp, whole.state.skills_xp, "final XP identical")
+	# R3: the hit counters survive the JSON round-trip and finish identical.
+	assert_eq(int(resume.state.combat["p_hits"]), int(whole.state.combat["p_hits"]),
+		"final p_hits identical (counters ride the save round-trip)")
+	assert_eq(int(resume.state.combat["m_hits"]), int(whole.state.combat["m_hits"]),
+		"final m_hits identical")
 
 
 # ---------------------------------------------------------------------------

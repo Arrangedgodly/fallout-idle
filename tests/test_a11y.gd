@@ -15,6 +15,9 @@ extends GutTest
 ##      CardButton fix (cards previously collapsed to ~22 px);
 ##   4. every interactive control carries an accessible name (self-describing
 ##      text or an explicit tooltip);
+##   4b. R3 department hotkeys: plates post their designation digits and keys
+##      1-7 (row + keypad) select the departments through the real input
+##      pipeline from anywhere, focus following to the destination plate;
 ##   5. state changes never ride on color alone (">> " prefixes, CLEARANCE
 ##      gate text, distinct phase wording, distinct toggle glyphs);
 ##   6. the MAIL CALL modal traps focus and escapes by Esc AND Enter;
@@ -431,6 +434,56 @@ func _collect_interactive(node: Node, out: Array[Control]) -> void:
 # ---------------------------------------------------------------------------
 # 5. state changes never ride on color alone
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 4b. R3 (critique P3#5): department hotkeys — the posted designation digit
+#     is a live accelerator through the real input pipeline
+# ---------------------------------------------------------------------------
+func test_department_hotkeys_select_from_anywhere() -> void:
+	await _boot()
+	# Every plate posts its designation digit (also its D-0n serial digit).
+	var plates := _concourse.plate_buttons_in_order()
+	for i in plates.size():
+		assert_true(plates[i].text.ends_with("· %d" % (i + 1)),
+			"plate %d posts its designation digit (got '%s')" % [i, plates[i].text])
+		assert_string_contains(plates[i].tooltip_text, "press %d" % (i + 1),
+			"plate %d tooltip names the key" % i)
+	# Park focus deep in the console and start AWAY from key 1's department —
+	# the shortcut must work from anywhere, and a digit pressed on the ACTIVE
+	# department is a guarded no-op (asserted below), not a focus jump.
+	_concourse.select_department("manifest", true)
+	await wait_frames(1)
+	_concourse.save_button.grab_focus()
+	await wait_frames(1)
+	for i in DEPT_IDS.size():
+		_push_key(KEY_1 + i)
+		assert_true(await _await_department(DEPT_IDS[i], 150),
+			"key %d selects %s through the real input pipeline" % [i + 1, DEPT_IDS[i]])
+		await wait_frames(1)
+		assert_eq(_vp.gui_get_focus_owner(), plates[i],
+			"key %d moves focus to the destination plate" % (i + 1))
+	# The keypad works; a repeat press on the active department is a no-op.
+	_push_key(KEY_KP_7)
+	assert_true(await _await_department("manifest", 150), "keypad 7 selects the Manifest")
+	var selected := {"n": 0}
+	_concourse.department_selected.connect(func(_id: String) -> void: selected["n"] += 1)
+	_push_key(KEY_KP_7)
+	await wait_frames(10)
+	assert_eq(int(selected["n"]), 0, "hotkey on the active department emits nothing")
+	assert_eq(_concourse.active_department(), "manifest", "active department unchanged")
+
+
+## One physical key press through the SubViewport's real input pipeline.
+func _push_key(code: int) -> void:
+	var ev := InputEventKey.new()
+	ev.keycode = code
+	ev.pressed = true
+	_vp.push_input(ev)
+	var up := InputEventKey.new()
+	up.keycode = code
+	up.pressed = false
+	_vp.push_input(up)
+
+
 func test_state_changes_not_color_alone() -> void:
 	var tm: Variant = await _boot()
 	# Plates: the active plate carries the prefix + variation, others don't.
