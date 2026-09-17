@@ -204,8 +204,8 @@ func test_shipped_early_rungs_stamp_within_first_minutes() -> void:
 	assert_false(tm.is_objective_stamped("forage_clearance_2"), "an unplayed dossier stamps nothing")
 	assert_eq(tm.objectives.progress(tm.state, "scav_girderling_100")["current"], 0,
 		"GATHER 100 GIRDERLING reads 0 at tier 1 — the counter tracks yields, not wishes")
-	assert_eq(int(tm.state.crowns), 30 + 25 + 50,
-		"three MERIT PAY legs posted exactly (grade 2, sort 25, grade 5)")
+	assert_eq(int(tm.state.crowns), 4 + 5 + 5,
+		"three MERIT PAY legs posted exactly (grade 2, sort 25, grade 5 — T27-tuned)")
 
 
 ## The meta cascade across a REAL skill's set: every one of scavenging's 23

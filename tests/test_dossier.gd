@@ -189,7 +189,7 @@ func test_stamp_dims_row_notices_and_flashes_console() -> void:
 	var forage_log: ItemList = (_docket(c, "foraging") as DocketSkill).log
 	var forage_lines := forage_log.item_count
 
-	# A real level crossing stamps scav_clearance_2 (reward 30 crowns from
+	# A real level crossing stamps scav_clearance_2 (reward 4 crowns from
 	# data) through the engine's own level_up seam.
 	tm.engine.grant_xp(tm.state, "scavenging", 500)
 	_flush(tm, "xp")
@@ -211,7 +211,7 @@ func test_stamp_dims_row_notices_and_flashes_console() -> void:
 
 	# Auto-grant notice: log stamp + console flash, naming-bible verbatim.
 	assert_true(_log_has((_docket(c, "scavenging") as DocketSkill).log,
-		"FORM R-1 STAMPED · 30 CROWNS POSTED"),
+		"FORM R-1 STAMPED · 4 CROWNS POSTED"),
 		"grant posts the verbatim FORM R-1 notice in the owning docket's log")
 	assert_string_contains(c.console_serial.text, "FORM R-1 STAMPED",
 		"console serial flashes the notice (got '%s')" % c.console_serial.text)

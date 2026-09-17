@@ -23,15 +23,35 @@ extends SceneTree
 ## budget (16,667 us -> <= 833 us per frame).
 ##
 ## This is a measured REPORT, not just pass/fail: average + max frame time,
-## average + max engine+UI cost, budget share, signal counts and sim stats all
-## print for the production log (exit 0 pass / 1 fail, probe convention).
+## average + p99 + max engine+UI cost, budget share, signal counts and sim
+## stats all print for the production log (exit 0 pass / 1 fail, probe
+## convention).
+##
+## T27 WORST-FRAME RECALIBRATION: the raw single-frame max was proven a
+## machine-noise statistic by the T26 verifier's baseline A/B — the 8,000 us
+## ceiling on max FAILED at BOTH trees (HEAD 8,035 / baseline 8,056) while
+## HEAD's AVERAGES beat baseline (25.5-28.6 us vs 29.3-29.6, 0.15-0.18% of
+## budget) and memory settled +0: rare OS-scheduling/service interrupts land
+## INSIDE the timed advance_wall_ms call (1-3 frames per 60 s window), not
+## engine work. The pin is now the robust p99 of the window: 99% of frames
+## must hold under the ceiling, which trips on any real sustained regression
+## (the T25 counter-index class showed up across many frames) while ignoring
+## the handful of noise frames. The raw max still REPORTS (data, no pin);
+## the average pin (<= 833 us = 5% budget) is unchanged and binding. Fresh
+## T27 baseline at HEAD, 5 windowed runs (~7,150 frames each): avg 23.5-28.6
+## us (0.14-0.17% of budget), p99 74-89 us, p99.9 3.6-4.7 ms, raw max
+## 6.6-8.5 ms — one run's max exceeded the OLD 8,000 ceiling on a single
+## frame while its p99 sat at 79 us, the noise the switch removes in the
+## flesh. p99 ceiling set at 1,000 us: 11-13x the observed p99, 6% of the
+## frame budget, and it still trips on any sustained regression (the T25
+## counter-index class lifted p99 itself into the milliseconds).
 
 const CONCOURSE_PATH := "res://scenes/main.tscn"
 const WINDOW_S := 60.0
 const WARMUP_S := 2.0
 const BUDGET_FRAME_US := 16_667  ## one 60 fps frame
 const UI_BUDGET_US := 833        ## 5% of the frame budget
-const HARD_MAX_US := 8_000       ## never burn half a frame in the loop
+const P99_MAX_US := 1_000        ## robust worst-frame pin: p99 at 6% of the frame budget
 const L14_XP := 8_340            ## combat clearance 14 (boss gate)
 
 var failures: Array[String] = []
@@ -53,6 +73,7 @@ var _frame_us_max := 0
 var _engine_us_total := 0
 var _engine_us_max := 0
 var _engine_us_last := 0
+var _engine_us_samples: Array[int] = []  ## per-frame engine+UI cost (the p99 pool)
 
 # signal + sim counters
 var _bulk := 0
@@ -192,6 +213,7 @@ func _measure_tick() -> bool:
 		_frame_us_max = maxi(_frame_us_max, frame_us)
 		_engine_us_total += _engine_us_last
 		_engine_us_max = maxi(_engine_us_max, _engine_us_last)
+		_engine_us_samples.append(_engine_us_last)
 	elif now >= _collect_until_msec:
 		_report()
 		return true
@@ -199,6 +221,17 @@ func _measure_tick() -> bool:
 
 
 # ------------------------------------------------------------ report
+## p-th percentile of the sample pool (0 <= p <= 1), nearest-rank on the
+## sorted copy — the robust worst-frame statistic (T27 recalibration).
+func _percentile(samples: Array[int], p: float) -> int:
+	if samples.is_empty():
+		return 0
+	var sorted := samples.duplicate()
+	sorted.sort()
+	var index: int = clampi(int(p * float(sorted.size())), 0, sorted.size() - 1)
+	return sorted[index]
+
+
 func _report() -> void:
 	_done = true
 	if _frames < 60 * 30:
@@ -209,6 +242,8 @@ func _report() -> void:
 	var avg_frame_us := float(_frame_us_total) / float(_frames)
 	var avg_engine_us := float(_engine_us_total) / float(_frames)
 	var share_pct := 100.0 * avg_engine_us / float(BUDGET_FRAME_US)
+	var p99_us := _percentile(_engine_us_samples, 0.99)
+	var p999_us := _percentile(_engine_us_samples, 0.999)
 	var ticks: int = int(_tm.stats["ticks_executed"])
 	var stalls: int = int(_tm.stats["clamped_stalls"])
 	var max_ticks: int = int(_tm.stats["max_ticks_in_one_advance"])
@@ -217,8 +252,8 @@ func _report() -> void:
 	print("  frames=%d  wall=%.2f s  avg fps=%.1f" % [_frames, wall_s, float(_frames) / wall_s])
 	print("  frame time: avg %.2f ms  max %.2f ms" % [
 		avg_frame_us / 1000.0, float(_frame_us_max) / 1000.0])
-	print("  ENGINE+UI loop cost: avg %.1f us/frame  max %d us  (share of the 16.67 ms 60 fps budget: %.2f%%)" % [
-		avg_engine_us, _engine_us_max, share_pct])
+	print("  ENGINE+UI loop cost: avg %.1f us/frame  p99 %d us  p99.9 %d us  max %d us  (share of the 16.67 ms 60 fps budget: %.2f%%)" % [
+		avg_engine_us, p99_us, p999_us, _engine_us_max, share_pct])
 	print("  signals: bulk_state_changed=%d level_up=%d combat_ended=%d zone_cleared=%d" % [
 		_bulk, _levelups, _combats, _zone_clears])
 	print("  sim: ticks=%d clamped_stalls=%d max_ticks_in_one_advance=%d batcher_emissions=%d" % [
@@ -227,8 +262,11 @@ func _report() -> void:
 	# Criterion 6: the game loop holds <= 5% of the frame budget for UI at 60 fps.
 	_check(avg_engine_us <= float(UI_BUDGET_US),
 		"engine+UI avg %.1f us/frame within the 5%% budget (%d us)" % [avg_engine_us, UI_BUDGET_US])
-	_check(_engine_us_max <= HARD_MAX_US,
-		"engine+UI worst frame %d us under the %d us hard ceiling" % [_engine_us_max, HARD_MAX_US])
+	# The robust worst-frame pin (T27): p99 under the ceiling — any sustained
+	# regression trips it; the raw max (reported above) is machine noise.
+	_check(p99_us <= P99_MAX_US,
+		"engine+UI p99 %d us under the %d us robust ceiling (raw max %d us = OS noise, reported not pinned)" % [
+			p99_us, P99_MAX_US, _engine_us_max])
 	# The 4 Hz bulk ceiling over the window (gate-limited flushes; the count
 	# excludes the handful of user-action force flushes from the setup and any
 	# re-engages — each of those is a discrete click-equivalent).

@@ -1067,9 +1067,9 @@ func _check_t17_personnel() -> void:
 		"fresh posting 1 reads AVAILABLE (outline badge state)")
 	_check(_row_has_badge(rows[0], "deputy_badge_outline"),
 		"AVAILABLE row carries the OUTLINE badge (fill = state, never color alone)")
-	_check(personnel.deputize_button.text == "DEPUTIZE RESIDENT · 250 CROWNS",
+	_check(personnel.deputize_button.text == "DEPUTIZE RESIDENT · 300 CROWNS",
 		"purchase button posts the naming-bible label with the DATA price (got '%s')" % personnel.deputize_button.text)
-	_check(Docket.flow_text(personnel.purchase_flow).contains("250 CROWNS")
+	_check(Docket.flow_text(personnel.purchase_flow).contains("300 CROWNS")
 			and Docket.flow_text(personnel.purchase_flow).contains("POSTING 2 OPENS"),
 		"price line carries the crowns mark beside the number: %s" % Docket.flow_text(personnel.purchase_flow))
 
@@ -1117,9 +1117,9 @@ func _check_t17_personnel() -> void:
 	_check(int(tm.state.staffing["deputies"]) == 0 and tm.state.crowns == 0,
 		"no-funds purchase changes nothing")
 	_check(_log_texts(personnel).any(func(t: String) -> bool:
-			return "INSUFFICIENT CROWNS (250 REQUIRED)" in t),
+			return "INSUFFICIENT CROWNS (300 REQUIRED)" in t),
 		"no-funds purchase stamps the in-voice tender refusal")
-	tm.state.add_crowns(250)
+	tm.state.add_crowns(300)
 	tm.batcher.mark("inventory")
 	tm.batcher.force_flush(tm.sim_time_ms)
 	await _frames(2)

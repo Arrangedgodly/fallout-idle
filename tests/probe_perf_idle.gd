@@ -21,6 +21,15 @@ extends SceneTree
 ##
 ## Exit 0 pass / 1 fail (probe convention). A measured REPORT prints for the
 ## production log.
+##
+## T27 WORST-FRAME RECALIBRATION (same decision as tests/probe_perf.gd): the
+## raw single-frame max is a machine-noise statistic — the T26 verifier's
+## baseline A/B measured 8,117 us at BASELINE on this probe with averages
+## healthy (memory +0), i.e. OS interrupts inside the timed call, not engine
+## work. The worst-frame pin is now the p99 of all pooled window frames
+## (ceiling 1,000 us — 11-13x the observed p99 in the fresh T27 baseline);
+## the worst-window-AVERAGE pin (<= 833 us) is unchanged and binding; the
+## raw max still reports as data.
 
 const CONCOURSE_PATH := "res://scenes/main.tscn"
 const WINDOW_S := 60.0
@@ -28,7 +37,7 @@ const WARMUP_S := 3.0
 const WINDOWS := 5
 const BUDGET_FRAME_US := 16_667  ## one 60 fps frame
 const UI_BUDGET_US := 833        ## 5% of the frame budget (T13 criterion 6)
-const HARD_MAX_US := 8_000       ## never burn half a frame in the loop
+const P99_MAX_US := 1_000        ## robust worst-frame pin (T27 recalibration — see header)
 ## Leak ceilings: static heap may warm caches but must settle (4 MiB over
 ## the measured span); live object/node counts must settle by the FINAL
 ## window (the docket logs cap at 60 stamps each and fill during the first
@@ -55,6 +64,7 @@ var _frame_us_max := 0
 var _engine_us_total := 0
 var _engine_us_max := 0
 var _engine_us_last := 0
+var _engine_us_samples: Array[int] = []  ## pooled across ALL windows (the p99 pool)
 
 # per-window memory snapshots + rolled-up report rows
 var _static_at: Array[int] = []
@@ -164,6 +174,7 @@ func _measure_tick() -> bool:
 	_frame_us_max = maxi(_frame_us_max, frame_us)
 	_engine_us_total += _engine_us_last
 	_engine_us_max = maxi(_engine_us_max, _engine_us_last)
+	_engine_us_samples.append(_engine_us_last)
 
 	if now >= _win_start_msec + (int(WINDOW_S) * 1000):
 		_close_window()
@@ -201,13 +212,28 @@ func _close_window() -> void:
 	_engine_us_max = 0
 
 # ------------------------------------------------------------- report
+## Nearest-rank percentile of the pooled samples (the robust worst-frame
+## statistic — T27 recalibration, same as tests/probe_perf.gd).
+func _percentile(samples: Array[int], p: float) -> int:
+	if samples.is_empty():
+		return 0
+	var sorted := samples.duplicate()
+	sorted.sort()
+	var index: int = clampi(int(p * float(sorted.size())), 0, sorted.size() - 1)
+	return sorted[index]
+
+
 func _report() -> void:
 	_done = true
 	var ticks: int = int(_tm.stats["ticks_executed"])
 	var stalls: int = int(_tm.stats["clamped_stalls"])
+	var p99_us := _percentile(_engine_us_samples, 0.99)
+	var p999_us := _percentile(_engine_us_samples, 0.999)
 	print("T14 IDLE PERF REPORT — windowed, %dx%.0f s idle state, 1280x720, real renderer, zero input" % [WINDOWS, WINDOW_S])
 	for row in _rows:
 		print(row)
+	print("  pooled engine+UI: p99 %d us  p99.9 %d us  max %d us (raw max = OS noise, reported not pinned)" % [
+		p99_us, p999_us, _worst_engine_max_us])
 	print("  memory (boundaries: warmup + one per window):")
 	for i in _static_at.size():
 		var delta := ""
@@ -227,9 +253,11 @@ func _report() -> void:
 	_check(_worst_window_avg_us <= float(UI_BUDGET_US),
 		"engine+UI worst window avg %.1f us/frame within the 5%% budget (%d us)" % [
 			_worst_window_avg_us, UI_BUDGET_US])
-	_check(_worst_engine_max_us <= HARD_MAX_US,
-		"engine+UI worst single frame %d us under the %d us hard ceiling" % [
-			_worst_engine_max_us, HARD_MAX_US])
+	# The robust worst-frame pin (T27): p99 of the POOLED windows — see the
+	# header for the recalibration cause + fresh baseline.
+	_check(p99_us <= P99_MAX_US,
+		"engine+UI p99 %d us under the %d us robust ceiling (raw worst %d us = OS noise, reported not pinned)" % [
+			p99_us, P99_MAX_US, _worst_engine_max_us])
 	_check(stalls <= 1, "clamped stalls %d — the idle loop never fell behind" % stalls)
 
 	# Leak discipline: warmup snapshot is index 0, one per window after.

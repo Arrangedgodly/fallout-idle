@@ -247,8 +247,8 @@ func test_completion_in_reverse_order_stipend_once() -> void:
 	var completed: Array = []
 	tm.orientation_completed.connect(func(payload: Dictionary) -> void: completed.append(payload))
 	# Reverse order: 7 -> 1. Each step stamps through its real event.
-	assert_eq(tm.next_deputy_price(), 250, "ladder price from data (T20-tuned)")
-	tm.state.add_crowns(300)
+	assert_eq(tm.next_deputy_price(), 300, "ladder price from data (T27-retuned, balance-notes §6.4)")
+	tm.state.add_crowns(350)
 	assert_true(tm.deputize_resident()["ok"], "step 7: deputize")
 	assert_true(tm.engage_monster("junkyard_roach")["ok"], "step 6: engage")
 	_pump(tm, 300_000, 2_500)
@@ -263,7 +263,7 @@ func test_completion_in_reverse_order_stipend_once() -> void:
 	tm.state.add_item("scrap_metal", 5)
 	assert_true(tm.depot_sell("scrap_metal", 5)["ok"], "step 3: sell 5 (exact tender)")
 	tm.engine.grant_xp(tm.state, "foraging", 25, false)  # step 2: a clearance
-	# crowns before the seventh stamp: 300-250=50, +10 for five Scrapnel, = 60
+	# crowns before the seventh stamp: 350-300=50, +10 for five Scrapnel, = 60
 	assert_eq(tm.state.crowns, 60, "crowns before the stipend land")
 	assert_true(tm.start_activity("sort_scrap_pile")["ok"], "step 1: gather (the seventh stamp)")
 	assert_eq(int(_lib().orientation_stipend), 150, "stipend amount from data (T20-tuned)")

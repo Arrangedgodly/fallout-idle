@@ -18,7 +18,7 @@ extends GutTest
 ##       re-rewards through a real save/load round trip.
 ##   A2  slot-enforcement journey — fresh save → a second skill start is
 ##       refused with the verbatim POSTING REFUSED directive and ZERO state
-##       change; deputy 1 is bought with 250 Crowns EARNED through the
+##       change; deputy 1 is bought with 300 Crowns EARNED through the
 ##       slice's own economy (gather → sell at the Depot) via the real
 ##       purchase path; the second skill then starts and both run
 ##       concurrently; ceasing frees the posting again.
@@ -203,14 +203,14 @@ func test_a1_tutorial_journey_seven_steps_to_duly_oriented() -> void:
 	# completion fires with the stipend — the T20 ordering: the stipend posts AT
 	# the seventh stamp, i.e. immediately after the first deputize).
 	var crowns_before := int(tm.state.crowns)
-	tm.state.add_crowns(maxi(250 - crowns_before, 0))  # top up to the data price
+	tm.state.add_crowns(maxi(300 - crowns_before, 0))  # top up to the data price
 	var wallet_before_purchase := int(tm.state.crowns)
 	var deputized: Dictionary = tm.deputize_resident()
 	assert_true(deputized["ok"], "step 7: DEPUTIZE RESIDENT through the real purchase path")
-	assert_eq(int(deputized["price"]), 250, "rung 1 price is the T20-tuned data value")
+	assert_eq(int(deputized["price"]), 300, "rung 1 price is the T27-retuned data value")
 	assert_eq(completed.size(), 1, "orientation_completed fired EXACTLY once")
 	assert_eq(int(completed[0]["stipend"]), 150, "payload carries the data/staffing.json stipend")
-	assert_eq(int(tm.state.crowns), wallet_before_purchase - 250 + 150,
+	assert_eq(int(tm.state.crowns), wallet_before_purchase - 300 + 150,
 		"crowns moved by EXACTLY -price +stipend (net +150 at the seventh stamp)")
 	assert_true(bool(tm.state.orientation["completed"]), "completed flag set")
 	assert_true(bool(tm.state.orientation["stipend_claimed"]), "stipend claimed exactly once")
@@ -296,27 +296,27 @@ func test_a2_slot_enforcement_journey_refusal_earned_deputize_concurrency() -> v
 
 	# ---- earn the deputy through the slice's own economy: gather, then sell.
 	# The scrap-pile table's honest sell EV is 2.85 cr/action (balance-notes
-	# §5.1); pump in 30 s bites until the whole inventory tenders >= 250
+	# §5.1); pump in 30 s bites until the whole inventory tenders >= 300
 	# (deterministic for the fixed seed; ~2 min of sim on the mean curve).
 	var fed := 0
-	while _stack_value(tm) < 250 and fed < 900_000:
+	while _stack_value(tm) < 300 and fed < 900_000:
 		_pump(tm, 30_000, 2_500)
 		fed += 30_000
-	assert_gte(_stack_value(tm), 250,
+	assert_gte(_stack_value(tm), 300,
 		"the posted shifts earned the deputy's price at honest sell value (%d cr)" % _stack_value(tm))
 	for item_id in ["scrap_metal", "copper_wiring", "cloth_scraps"]:  # the shift keeps running — selling needs no cease
 		if tm.state.item_count(item_id) > 0:
 			assert_true(tm.depot_sell(item_id)["ok"], "tender the whole %s stack" % item_id)
-	assert_gte(tm.state.crowns, 250, "the wallet holds the earned price")
+	assert_gte(tm.state.crowns, 300, "the wallet holds the earned price")
 
-	# ---- the real purchase path: 250 Crowns buy deputy 1 exactly.
+	# ---- the real purchase path: 300 Crowns buy deputy 1 exactly.
 	var wallet := int(tm.state.crowns)
 	var bought: Dictionary = tm.deputize_resident()
 	assert_true(bought["ok"], "DEPUTIZE RESIDENT settles through the real purchase path")
-	assert_eq(int(bought["price"]), 250, "the data ladder's rung-1 price")
+	assert_eq(int(bought["price"]), 300, "the data ladder's rung-1 price")
 	assert_eq(int(bought["deputies"]), 1, "one deputy on the establishment")
 	assert_eq(int(bought["posting_opened"]), 2, "a second posting opened")
-	assert_eq(tm.state.crowns, wallet - 250, "EXACTLY the price tendered")
+	assert_eq(tm.state.crowns, wallet - 300, "EXACTLY the price tendered")
 	assert_eq(tm.posting_slots(), 2, "two postings now")
 
 	# ---- the second skill starts (posting 1 still on post), and both run

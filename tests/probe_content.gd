@@ -138,9 +138,9 @@ func _check_golden_set() -> void:
 	# Staffing ladder (T17) — typed hydration + the read path the engine uses.
 	_check(lib.deputies.size() == 4, "staffing ladder posts exactly 4 rungs (1 + 4 = 5 postings)")
 	var rung0: DeputyDef = lib.deputies[0]
-	_check(rung0 != null and rung0.id == "second_deputy" and typeof(rung0.price) == TYPE_INT and rung0.price == 250,
-		"first deputy rung hydrates (id + int price 250, T20-tuned)")
-	_check(lib.deputy_price_at(0) == 250 and lib.deputy_price_at(3) == 25000 and lib.deputy_price_at(4) == -1,
+	_check(rung0 != null and rung0.id == "second_deputy" and typeof(rung0.price) == TYPE_INT and rung0.price == 300,
+		"first deputy rung hydrates (id + int price 300, T27-retuned)")
+	_check(lib.deputy_price_at(0) == 300 and lib.deputy_price_at(3) == 25000 and lib.deputy_price_at(4) == -1,
 		"deputy_price_at() reads the ladder and returns -1 past the cap")
 
 	# Zones (T23) — both run-3 ids ship from day one; the reserved Gift Court
@@ -263,7 +263,7 @@ func _check_malformed_set() -> void:
 	if cheap_ladder != null:
 		for err in cheap_ladder.errors:
 			print("    mutated-set error: " + err)
-		_check_contains(cheap_ladder.errors, "deputies[1] (id=third_deputy) · price: 10 is lower than the previous rung's 250",
+		_check_contains(cheap_ladder.errors, "deputies[1] (id=third_deputy) · price: 10 is lower than the previous rung's 300",
 			"descending-ladder error names the rung + both prices")
 
 	_check(wrong_type != null and dangling != null and missing != null

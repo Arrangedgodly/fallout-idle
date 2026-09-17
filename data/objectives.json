@@ -6,805 +6,805 @@
 			"skill": "scavenging",
 			"description": "EARN CLEARANCE 2",
 			"condition": { "kind": "level_reach", "target": 2 },
-			"reward": { "crowns": 30 }
+			"reward": { "crowns": 4 }
 		},
 		{
 			"id": "scav_clearance_5",
 			"skill": "scavenging",
 			"description": "EARN CLEARANCE 5",
 			"condition": { "kind": "level_reach", "target": 5 },
-			"reward": { "crowns": 50 }
+			"reward": { "crowns": 5 }
 		},
 		{
 			"id": "scav_clearance_10",
 			"skill": "scavenging",
 			"description": "EARN CLEARANCE 10",
 			"condition": { "kind": "level_reach", "target": 10 },
-			"reward": { "crowns": 100, "xp": { "skill": "scavenging", "amount": 75 } }
+			"reward": { "crowns": 45, "xp": { "skill": "scavenging", "amount": 75 } }
 		},
 		{
 			"id": "scav_clearance_16",
 			"skill": "scavenging",
 			"description": "EARN CLEARANCE 16",
 			"condition": { "kind": "level_reach", "target": 16 },
-			"reward": { "crowns": 150 }
+			"reward": { "crowns": 35 }
 		},
 		{
 			"id": "scav_clearance_30",
 			"skill": "scavenging",
 			"description": "EARN CLEARANCE 30",
 			"condition": { "kind": "level_reach", "target": 30 },
-			"reward": { "crowns": 400 }
+			"reward": { "crowns": 300 }
 		},
 		{
 			"id": "scav_clearance_41",
 			"skill": "scavenging",
 			"description": "EARN CLEARANCE 41",
 			"condition": { "kind": "level_reach", "target": 41 },
-			"reward": { "crowns": 800 }
+			"reward": { "crowns": 400 }
 		},
 		{
 			"id": "scav_clearance_54",
 			"skill": "scavenging",
 			"description": "EARN CLEARANCE 54",
 			"condition": { "kind": "level_reach", "target": 54 },
-			"reward": { "crowns": 1200 }
+			"reward": { "crowns": 800 }
 		},
 		{
 			"id": "scav_clearance_70",
 			"skill": "scavenging",
 			"description": "EARN CLEARANCE 70",
 			"condition": { "kind": "level_reach", "target": 70 },
-			"reward": { "crowns": 2000 }
+			"reward": { "crowns": 1200 }
 		},
 		{
 			"id": "scav_sort_25",
 			"skill": "scavenging",
 			"description": "SORT THE SCRAP PILE 25",
 			"condition": { "kind": "gather_count", "ref": "sort_scrap_pile", "target": 25 },
-			"reward": { "crowns": 25 }
+			"reward": { "crowns": 5 }
 		},
 		{
 			"id": "scav_sort_250",
 			"skill": "scavenging",
 			"description": "SORT THE SCRAP PILE 250",
 			"condition": { "kind": "gather_count", "ref": "sort_scrap_pile", "target": 250 },
-			"reward": { "crowns": 100 }
+			"reward": { "crowns": 25 }
 		},
 		{
 			"id": "scav_strip_50",
 			"skill": "scavenging",
 			"description": "STRIP A WRECK 50",
 			"condition": { "kind": "gather_count", "ref": "strip_wreck", "target": 50 },
-			"reward": { "crowns": 75 }
+			"reward": { "crowns": 18 }
 		},
 		{
 			"id": "scav_sump_40",
 			"skill": "scavenging",
 			"description": "DRAIN THE SUMP 40",
 			"condition": { "kind": "gather_count", "ref": "drain_the_sump", "target": 40 },
-			"reward": { "crowns": 100 }
+			"reward": { "crowns": 18 }
 		},
 		{
 			"id": "scav_overpass_60",
 			"skill": "scavenging",
 			"description": "UNBUILD THE OVERPASS 60",
 			"condition": { "kind": "gather_count", "ref": "unbuild_the_overpass", "target": 60 },
-			"reward": { "crowns": 150 }
+			"reward": { "crowns": 30 }
 		},
 		{
 			"id": "scav_corridors_75",
 			"skill": "scavenging",
 			"description": "SWEEP THE SERVICE CORRIDORS 75",
 			"condition": { "kind": "gather_count", "ref": "sweep_service_corridors", "target": 75 },
-			"reward": { "crowns": 200 }
+			"reward": { "crowns": 150 }
 		},
 		{
 			"id": "scav_lockers_100",
 			"skill": "scavenging",
 			"description": "PRY THE MEZZANINE LOCKERS 100",
 			"condition": { "kind": "gather_count", "ref": "pry_mezzanine_lockers", "target": 100 },
-			"reward": { "crowns": 300 }
+			"reward": { "crowns": 200 }
 		},
 		{
 			"id": "scav_signal_150",
 			"skill": "scavenging",
 			"description": "DECONSTRUCT THE SIGNAL TOWER 150",
 			"condition": { "kind": "gather_count", "ref": "deconstruct_signal_tower", "target": 150 },
-			"reward": { "crowns": 500, "xp": { "skill": "scavenging", "amount": 1500 } }
+			"reward": { "crowns": 400, "xp": { "skill": "scavenging", "amount": 1500 } }
 		},
 		{
 			"id": "scav_foundation_200",
 			"skill": "scavenging",
 			"description": "EXCAVATE THE FOUNDATION GRID 200",
 			"condition": { "kind": "gather_count", "ref": "excavate_foundation_grid", "target": 200 },
-			"reward": { "crowns": 800 }
+			"reward": { "crowns": 600 }
 		},
 		{
 			"id": "scav_strongroom_250",
 			"skill": "scavenging",
 			"description": "AUDIT THE ARCHIVE STRONGROOM 250",
 			"condition": { "kind": "gather_count", "ref": "audit_archive_vault", "target": 250 },
-			"reward": { "crowns": 1200 }
+			"reward": { "crowns": 800 }
 		},
 		{
 			"id": "scav_girderling_100",
 			"skill": "scavenging",
 			"description": "GATHER 100 GIRDERLING",
 			"condition": { "kind": "gather_count", "ref": "girderling", "target": 100 },
-			"reward": { "crowns": 150 }
+			"reward": { "crowns": 40 }
 		},
 		{
 			"id": "scav_counterweight_250",
 			"skill": "scavenging",
 			"description": "GATHER 250 COUNTERWEIGHTS",
 			"condition": { "kind": "gather_count", "ref": "counterweight", "target": 250 },
-			"reward": { "crowns": 500 }
+			"reward": { "crowns": 300 }
 		},
 		{
 			"id": "scav_sell_scrap_1000",
 			"skill": "scavenging",
 			"description": "SELL 1,000 SCRAPNEL",
 			"condition": { "kind": "sell_count", "ref": "scrap_metal", "target": 1000 },
-			"reward": { "crowns": 400 }
+			"reward": { "crowns": 32 }
 		},
 		{
 			"id": "scav_crowns_5000",
 			"skill": "scavenging",
 			"description": "EARN 5,000 CROWNS",
 			"condition": { "kind": "crowns_total", "target": 5000 },
-			"reward": { "crowns": 800 }
+			"reward": { "crowns": 40 }
 		},
 		{
 			"id": "scav_stamped_22",
 			"skill": "scavenging",
 			"description": "STAMP 22 RECLAMATION DUTIES",
 			"condition": { "kind": "stamped_count", "target": 22 },
-			"reward": { "crowns": 3000 }
+			"reward": { "crowns": 2500 }
 		},
 		{
 			"id": "forage_clearance_2",
 			"skill": "foraging",
 			"description": "EARN CLEARANCE 2",
 			"condition": { "kind": "level_reach", "target": 2 },
-			"reward": { "crowns": 30 }
+			"reward": { "crowns": 4 }
 		},
 		{
 			"id": "forage_clearance_5",
 			"skill": "foraging",
 			"description": "EARN CLEARANCE 5",
 			"condition": { "kind": "level_reach", "target": 5 },
-			"reward": { "crowns": 50 }
+			"reward": { "crowns": 5 }
 		},
 		{
 			"id": "forage_clearance_10",
 			"skill": "foraging",
 			"description": "EARN CLEARANCE 10",
 			"condition": { "kind": "level_reach", "target": 10 },
-			"reward": { "crowns": 100, "xp": { "skill": "foraging", "amount": 75 } }
+			"reward": { "crowns": 45, "xp": { "skill": "foraging", "amount": 75 } }
 		},
 		{
 			"id": "forage_clearance_16",
 			"skill": "foraging",
 			"description": "EARN CLEARANCE 16",
 			"condition": { "kind": "level_reach", "target": 16 },
-			"reward": { "crowns": 150 }
+			"reward": { "crowns": 35 }
 		},
 		{
 			"id": "forage_clearance_30",
 			"skill": "foraging",
 			"description": "EARN CLEARANCE 30",
 			"condition": { "kind": "level_reach", "target": 30 },
-			"reward": { "crowns": 400 }
+			"reward": { "crowns": 300 }
 		},
 		{
 			"id": "forage_clearance_41",
 			"skill": "foraging",
 			"description": "EARN CLEARANCE 41",
 			"condition": { "kind": "level_reach", "target": 41 },
-			"reward": { "crowns": 800 }
+			"reward": { "crowns": 400 }
 		},
 		{
 			"id": "forage_clearance_54",
 			"skill": "foraging",
 			"description": "EARN CLEARANCE 54",
 			"condition": { "kind": "level_reach", "target": 54 },
-			"reward": { "crowns": 1200 }
+			"reward": { "crowns": 800 }
 		},
 		{
 			"id": "forage_clearance_70",
 			"skill": "foraging",
 			"description": "EARN CLEARANCE 70",
 			"condition": { "kind": "level_reach", "target": 70 },
-			"reward": { "crowns": 2000 }
+			"reward": { "crowns": 1200 }
 		},
 		{
 			"id": "forage_glow_25",
 			"skill": "foraging",
 			"description": "WALK THE GLOW ROWS 25",
 			"condition": { "kind": "gather_count", "ref": "walk_the_glow_rows", "target": 25 },
-			"reward": { "crowns": 25 }
+			"reward": { "crowns": 5 }
 		},
 		{
 			"id": "forage_glow_250",
 			"skill": "foraging",
 			"description": "WALK THE GLOW ROWS 250",
 			"condition": { "kind": "gather_count", "ref": "walk_the_glow_rows", "target": 250 },
-			"reward": { "crowns": 100 }
+			"reward": { "crowns": 25 }
 		},
 		{
 			"id": "forage_plot_50",
 			"skill": "foraging",
 			"description": "HARVEST THE 6:14 PLOT 50",
 			"condition": { "kind": "gather_count", "ref": "harvest_the_614_plot", "target": 50 },
-			"reward": { "crowns": 75 }
+			"reward": { "crowns": 18 }
 		},
 		{
 			"id": "forage_beds_40",
 			"skill": "foraging",
 			"description": "DIG THE IODINE BEDS 40",
 			"condition": { "kind": "gather_count", "ref": "dig_the_iodine_beds", "target": 40 },
-			"reward": { "crowns": 100 }
+			"reward": { "crowns": 18 }
 		},
 		{
 			"id": "forage_fence_60",
 			"skill": "foraging",
 			"description": "FORAGE THE FAR FENCE 60",
 			"condition": { "kind": "gather_count", "ref": "forage_the_far_fence", "target": 60 },
-			"reward": { "crowns": 150 }
+			"reward": { "crowns": 30 }
 		},
 		{
 			"id": "forage_atrium_75",
 			"skill": "foraging",
 			"description": "PRUNE THE ATRIUM THICKET 75",
 			"condition": { "kind": "gather_count", "ref": "prune_atrium_thicket", "target": 75 },
-			"reward": { "crowns": 200 }
+			"reward": { "crowns": 150 }
 		},
 		{
 			"id": "forage_relay_100",
 			"skill": "foraging",
 			"description": "REAP THE RELAY GARDEN 100",
 			"condition": { "kind": "gather_count", "ref": "reap_relay_garden", "target": 100 },
-			"reward": { "crowns": 300 }
+			"reward": { "crowns": 200 }
 		},
 		{
 			"id": "forage_hydro_150",
 			"skill": "foraging",
 			"description": "TEND THE HYDROPONICS BAY 150",
 			"condition": { "kind": "gather_count", "ref": "tend_hydroponics_bay", "target": 150 },
-			"reward": { "crowns": 500, "xp": { "skill": "foraging", "amount": 1500 } }
+			"reward": { "crowns": 400, "xp": { "skill": "foraging", "amount": 1500 } }
 		},
 		{
 			"id": "forage_greenhouse_200",
 			"skill": "foraging",
 			"description": "GATHER THE GREENHOUSE SPAN 200",
 			"condition": { "kind": "gather_count", "ref": "gather_greenhouse_span", "target": 200 },
-			"reward": { "crowns": 800 }
+			"reward": { "crowns": 600 }
 		},
 		{
 			"id": "forage_canopy_250",
 			"skill": "foraging",
 			"description": "WORK THE CANOPY ROWS 250",
 			"condition": { "kind": "gather_count", "ref": "work_canopy_rows", "target": 250 },
-			"reward": { "crowns": 1200 }
+			"reward": { "crowns": 800 }
 		},
 		{
 			"id": "forage_duskcorn_250",
 			"skill": "foraging",
 			"description": "GATHER 250 DUSKCORN",
 			"condition": { "kind": "gather_count", "ref": "duskcorn", "target": 250 },
-			"reward": { "crowns": 150 }
+			"reward": { "crowns": 22 }
 		},
 		{
 			"id": "forage_bloom_150",
 			"skill": "foraging",
 			"description": "GATHER 150 SKYLIGHT BLOOMS",
 			"condition": { "kind": "gather_count", "ref": "skylight_bloom", "target": 150 },
-			"reward": { "crowns": 500 }
+			"reward": { "crowns": 400 }
 		},
 		{
 			"id": "forage_sell_caps_400",
 			"skill": "foraging",
 			"description": "SELL 400 NIGHTLIGHT CAPS",
 			"condition": { "kind": "sell_count", "ref": "glowshroom", "target": 400 },
-			"reward": { "crowns": 300 }
+			"reward": { "crowns": 28 }
 		},
 		{
 			"id": "forage_crowns_10000",
 			"skill": "foraging",
 			"description": "EARN 10,000 CROWNS",
 			"condition": { "kind": "crowns_total", "target": 10000 },
-			"reward": { "crowns": 1000 }
+			"reward": { "crowns": 55 }
 		},
 		{
 			"id": "forage_stamped_22",
 			"skill": "foraging",
 			"description": "STAMP 22 GROUNDSKEEPING DUTIES",
 			"condition": { "kind": "stamped_count", "target": 22 },
-			"reward": { "crowns": 3000 }
+			"reward": { "crowns": 2500 }
 		},
 		{
 			"id": "junk_clearance_2",
 			"skill": "junksmithing",
 			"description": "EARN CLEARANCE 2",
 			"condition": { "kind": "level_reach", "target": 2 },
-			"reward": { "crowns": 30 }
+			"reward": { "crowns": 4 }
 		},
 		{
 			"id": "junk_clearance_8",
 			"skill": "junksmithing",
 			"description": "EARN CLEARANCE 8",
 			"condition": { "kind": "level_reach", "target": 8 },
-			"reward": { "crowns": 100 }
+			"reward": { "crowns": 22 }
 		},
 		{
 			"id": "junk_clearance_15",
 			"skill": "junksmithing",
 			"description": "EARN CLEARANCE 15",
 			"condition": { "kind": "level_reach", "target": 15 },
-			"reward": { "crowns": 200, "xp": { "skill": "junksmithing", "amount": 400 } }
+			"reward": { "crowns": 32, "xp": { "skill": "junksmithing", "amount": 350 } }
 		},
 		{
 			"id": "junk_clearance_26",
 			"skill": "junksmithing",
 			"description": "EARN CLEARANCE 26",
 			"condition": { "kind": "level_reach", "target": 26 },
-			"reward": { "crowns": 400 }
+			"reward": { "crowns": 300 }
 		},
 		{
 			"id": "junk_clearance_36",
 			"skill": "junksmithing",
 			"description": "EARN CLEARANCE 36",
 			"condition": { "kind": "level_reach", "target": 36 },
-			"reward": { "crowns": 800 }
+			"reward": { "crowns": 500 }
 		},
 		{
 			"id": "junk_clearance_45",
 			"skill": "junksmithing",
 			"description": "EARN CLEARANCE 45",
 			"condition": { "kind": "level_reach", "target": 45 },
-			"reward": { "crowns": 1000 }
+			"reward": { "crowns": 800 }
 		},
 		{
 			"id": "junk_clearance_60",
 			"skill": "junksmithing",
 			"description": "EARN CLEARANCE 60",
 			"condition": { "kind": "level_reach", "target": 60 },
-			"reward": { "crowns": 1500 }
+			"reward": { "crowns": 1200 }
 		},
 		{
 			"id": "junk_smelt_25",
 			"skill": "junksmithing",
 			"description": "SMELT 25 ALMOST BULLION",
 			"condition": { "kind": "craft_count", "ref": "smelt_scrap_ingot", "target": 25 },
-			"reward": { "crowns": 40 }
+			"reward": { "crowns": 5 }
 		},
 		{
 			"id": "junk_smelt_250",
 			"skill": "junksmithing",
 			"description": "SMELT 250 ALMOST BULLION",
 			"condition": { "kind": "craft_count", "ref": "smelt_scrap_ingot", "target": 250 },
-			"reward": { "crowns": 150 }
+			"reward": { "crowns": 28 }
 		},
 		{
 			"id": "junk_wire_50",
 			"skill": "junksmithing",
 			"description": "DRAW 50 COMPLIANT WIRE",
 			"condition": { "kind": "craft_count", "ref": "draw_compliant_wire", "target": 50 },
-			"reward": { "crowns": 75 }
+			"reward": { "crowns": 15 }
 		},
 		{
 			"id": "junk_bolt_50",
 			"skill": "junksmithing",
 			"description": "BRAID 50 PATCHWORK BOLTS",
 			"condition": { "kind": "craft_count", "ref": "braid_patchwork_bolt", "target": 50 },
-			"reward": { "crowns": 75 }
+			"reward": { "crowns": 15 }
 		},
 		{
 			"id": "junk_shiv_15",
 			"skill": "junksmithing",
 			"description": "FORGE 15 POINTS OF ORDER",
 			"condition": { "kind": "craft_count", "ref": "forge_scrap_shiv", "target": 15 },
-			"reward": { "crowns": 150, "xp": { "skill": "wasteland_combat", "amount": 120 } }
+			"reward": { "crowns": 25, "xp": { "skill": "wasteland_combat", "amount": 40 } }
 		},
 		{
 			"id": "junk_vest_5",
 			"skill": "junksmithing",
 			"description": "PRESS 5 PEDESTRIAN PLATING",
 			"condition": { "kind": "craft_count", "ref": "forge_hubcap_vest", "target": 5 },
-			"reward": { "crowns": 100 }
+			"reward": { "crowns": 25 }
 		},
 		{
 			"id": "junk_whip_15",
 			"skill": "junksmithing",
 			"description": "FORGE 15 MAJORITY WHIPS",
 			"condition": { "kind": "craft_count", "ref": "forge_majority_whip", "target": 15 },
-			"reward": { "crowns": 400 }
+			"reward": { "crowns": 35 }
 		},
 		{
 			"id": "junk_alloy_100",
 			"skill": "junksmithing",
 			"description": "SMELT 100 QUORUM ALLOY",
 			"condition": { "kind": "craft_count", "ref": "smelt_quorum_alloy", "target": 100 },
-			"reward": { "crowns": 300 }
+			"reward": { "crowns": 150 }
 		},
 		{
 			"id": "junk_steel_50",
 			"skill": "junksmithing",
 			"description": "SMELT 50 UNANIMOUS STEEL",
 			"condition": { "kind": "craft_count", "ref": "smelt_unanimous_steel", "target": 50 },
-			"reward": { "crowns": 500 }
+			"reward": { "crowns": 300 }
 		},
 		{
 			"id": "junk_gavel_5",
 			"skill": "junksmithing",
 			"description": "RAISE 5 QUORUM GAVELS",
 			"condition": { "kind": "craft_count", "ref": "raise_quorum_gavel", "target": 5 },
-			"reward": { "crowns": 600 }
+			"reward": { "crowns": 300 }
 		},
 		{
 			"id": "junk_veto_5",
 			"skill": "junksmithing",
 			"description": "ENACT 5 LINE-ITEM VETOES",
 			"condition": { "kind": "craft_count", "ref": "enact_line_item_veto", "target": 5 },
-			"reward": { "crowns": 1000 }
+			"reward": { "crowns": 500 }
 		},
 		{
 			"id": "junk_batch_alloy_50",
 			"skill": "junksmithing",
 			"description": "BATCH SMELT QUORUM ALLOY 50",
 			"condition": { "kind": "craft_count", "ref": "batch_smelt_quorum_alloy", "target": 50 },
-			"reward": { "crowns": 800 }
+			"reward": { "crowns": 700 }
 		},
 		{
 			"id": "junk_batch_steel_25",
 			"skill": "junksmithing",
 			"description": "BATCH SMELT UNANIMOUS STEEL 25",
 			"condition": { "kind": "craft_count", "ref": "batch_smelt_unanimous_steel", "target": 25 },
-			"reward": { "crowns": 1200 }
+			"reward": { "crowns": 1000 }
 		},
 		{
 			"id": "junk_sell_bullion_200",
 			"skill": "junksmithing",
 			"description": "SELL 200 ALMOST BULLION",
 			"condition": { "kind": "sell_count", "ref": "scrap_ingot", "target": 200 },
-			"reward": { "crowns": 300 }
+			"reward": { "crowns": 28 }
 		},
 		{
 			"id": "junk_crowns_25000",
 			"skill": "junksmithing",
 			"description": "EARN 25,000 CROWNS",
 			"condition": { "kind": "crowns_total", "target": 25000 },
-			"reward": { "crowns": 1500 }
+			"reward": { "crowns": 300 }
 		},
 		{
 			"id": "junk_stamped_22",
 			"skill": "junksmithing",
 			"description": "STAMP 22 FABRICATION DUTIES",
 			"condition": { "kind": "stamped_count", "target": 22 },
-			"reward": { "crowns": 3000 }
+			"reward": { "crowns": 2500 }
 		},
 		{
 			"id": "cook_clearance_2",
 			"skill": "cooking",
 			"description": "EARN CLEARANCE 2",
 			"condition": { "kind": "level_reach", "target": 2 },
-			"reward": { "crowns": 30 }
+			"reward": { "crowns": 4 }
 		},
 		{
 			"id": "cook_clearance_5",
 			"skill": "cooking",
 			"description": "EARN CLEARANCE 5",
 			"condition": { "kind": "level_reach", "target": 5 },
-			"reward": { "crowns": 75 }
+			"reward": { "crowns": 15 }
 		},
 		{
 			"id": "cook_clearance_13",
 			"skill": "cooking",
 			"description": "EARN CLEARANCE 13",
 			"condition": { "kind": "level_reach", "target": 13 },
-			"reward": { "crowns": 150 }
+			"reward": { "crowns": 32 }
 		},
 		{
 			"id": "cook_clearance_21",
 			"skill": "cooking",
 			"description": "EARN CLEARANCE 21",
 			"condition": { "kind": "level_reach", "target": 21 },
-			"reward": { "crowns": 250 }
+			"reward": { "crowns": 150 }
 		},
 		{
 			"id": "cook_clearance_32",
 			"skill": "cooking",
 			"description": "EARN CLEARANCE 32",
 			"condition": { "kind": "level_reach", "target": 32 },
-			"reward": { "crowns": 500, "xp": { "skill": "cooking", "amount": 600 } }
+			"reward": { "crowns": 350, "xp": { "skill": "cooking", "amount": 600 } }
 		},
 		{
 			"id": "cook_clearance_55",
 			"skill": "cooking",
 			"description": "EARN CLEARANCE 55",
 			"condition": { "kind": "level_reach", "target": 55 },
-			"reward": { "crowns": 1000 }
+			"reward": { "crowns": 800 }
 		},
 		{
 			"id": "cook_clearance_85",
 			"skill": "cooking",
 			"description": "EARN CLEARANCE 85",
 			"condition": { "kind": "level_reach", "target": 85 },
-			"reward": { "crowns": 1800 }
+			"reward": { "crowns": 1500 }
 		},
 		{
 			"id": "cook_grits_25",
 			"skill": "cooking",
 			"description": "GRIND 25 MANDATORY GRITS",
 			"condition": { "kind": "craft_count", "ref": "grind_mandatory_grits", "target": 25 },
-			"reward": { "crowns": 40 }
+			"reward": { "crowns": 5 }
 		},
 		{
 			"id": "cook_grits_250",
 			"skill": "cooking",
 			"description": "GRIND 250 MANDATORY GRITS",
 			"condition": { "kind": "craft_count", "ref": "grind_mandatory_grits", "target": 250 },
-			"reward": { "crowns": 150 }
+			"reward": { "crowns": 28 }
 		},
 		{
 			"id": "cook_casserole_50",
 			"skill": "cooking",
 			"description": "BAKE 50 COMPLIANT CASSEROLES",
 			"condition": { "kind": "craft_count", "ref": "bake_compliant_casserole", "target": 50 },
-			"reward": { "crowns": 100 }
+			"reward": { "crowns": 25 }
 		},
 		{
 			"id": "cook_regret_20",
 			"skill": "cooking",
 			"description": "SIMMER 20 CHEF'S REGRETS",
 			"condition": { "kind": "craft_count", "ref": "simmer_chefs_regret", "target": 20 },
-			"reward": { "crowns": 150 }
+			"reward": { "crowns": 28 }
 		},
 		{
 			"id": "cook_fritters_30",
 			"skill": "cooking",
 			"description": "FRY 30 GRADE-D FRITTERS",
 			"condition": { "kind": "craft_count", "ref": "fry_grade_d_fritters", "target": 30 },
-			"reward": { "crowns": 200 }
+			"reward": { "crowns": 28 }
 		},
 		{
 			"id": "cook_compote_40",
 			"skill": "cooking",
 			"description": "JAR 40 QUARANTINE COMPOTES",
 			"condition": { "kind": "craft_count", "ref": "jar_quarantine_compote", "target": 40 },
-			"reward": { "crowns": 300 }
+			"reward": { "crowns": 150 }
 		},
 		{
 			"id": "cook_cornmeal_50",
 			"skill": "cooking",
 			"description": "MILL 50 MANDATED CORNMEAL",
 			"condition": { "kind": "craft_count", "ref": "mill_mandated_cornmeal", "target": 50 },
-			"reward": { "crowns": 250 }
+			"reward": { "crowns": 150 }
 		},
 		{
 			"id": "cook_tea_40",
 			"skill": "cooking",
 			"description": "STEEP 40 NOTARY TEAS",
 			"condition": { "kind": "craft_count", "ref": "steep_notary_tea", "target": 40 },
-			"reward": { "crowns": 400 }
+			"reward": { "crowns": 200 }
 		},
 		{
 			"id": "cook_sherbet_30",
 			"skill": "cooking",
 			"description": "CHURN 30 FOUNTAIN SHERBETS",
 			"condition": { "kind": "craft_count", "ref": "churn_fountain_sherbet", "target": 30 },
-			"reward": { "crowns": 500 }
+			"reward": { "crowns": 250 }
 		},
 		{
 			"id": "cook_feast_25",
 			"skill": "cooking",
 			"description": "PLATE 25 COURT FEASTS",
 			"condition": { "kind": "craft_count", "ref": "plate_court_feast", "target": 25 },
-			"reward": { "crowns": 600 }
+			"reward": { "crowns": 300 }
 		},
 		{
 			"id": "cook_reissue_25",
 			"skill": "cooking",
 			"description": "REISSUE 25 COURT FEASTS",
 			"condition": { "kind": "craft_count", "ref": "reissue_court_feast", "target": 25 },
-			"reward": { "crowns": 500 }
+			"reward": { "crowns": 300 }
 		},
 		{
 			"id": "cook_bulk_tea_50",
 			"skill": "cooking",
 			"description": "BULK STEEP 50 NOTARY TEAS",
 			"condition": { "kind": "craft_count", "ref": "bulk_steep_notary_tea", "target": 50 },
-			"reward": { "crowns": 800 }
+			"reward": { "crowns": 700 }
 		},
 		{
 			"id": "cook_mass_regret_15",
 			"skill": "cooking",
 			"description": "MASS-PRODUCE 15 REGRETS",
 			"condition": { "kind": "craft_count", "ref": "mass_produce_regret", "target": 15 },
-			"reward": { "crowns": 1200, "xp": { "skill": "cooking", "amount": 2000 } }
+			"reward": { "crowns": 1000, "xp": { "skill": "cooking", "amount": 2000 } }
 		},
 		{
 			"id": "cook_sell_stew_100",
 			"skill": "cooking",
 			"description": "SELL 100 CHEF'S REGRETS",
 			"condition": { "kind": "sell_count", "ref": "radstag_stew", "target": 100 },
-			"reward": { "crowns": 400 }
+			"reward": { "crowns": 28 }
 		},
 		{
 			"id": "cook_crowns_2500",
 			"skill": "cooking",
 			"description": "EARN 2,500 CROWNS",
 			"condition": { "kind": "crowns_total", "target": 2500 },
-			"reward": { "crowns": 400 }
+			"reward": { "crowns": 28 }
 		},
 		{
 			"id": "cook_stamped_22",
 			"skill": "cooking",
 			"description": "STAMP 22 MESS DUTIES",
 			"condition": { "kind": "stamped_count", "target": 22 },
-			"reward": { "crowns": 3000 }
+			"reward": { "crowns": 2500 }
 		},
 		{
 			"id": "combat_clearance_2",
 			"skill": "wasteland_combat",
 			"description": "EARN CLEARANCE 2",
 			"condition": { "kind": "level_reach", "target": 2 },
-			"reward": { "crowns": 30 }
+			"reward": { "crowns": 4 }
 		},
 		{
 			"id": "combat_clearance_4",
 			"skill": "wasteland_combat",
 			"description": "EARN CLEARANCE 4",
 			"condition": { "kind": "level_reach", "target": 4 },
-			"reward": { "crowns": 50 }
+			"reward": { "crowns": 22 }
 		},
 		{
 			"id": "combat_clearance_7",
 			"skill": "wasteland_combat",
 			"description": "EARN CLEARANCE 7",
 			"condition": { "kind": "level_reach", "target": 7 },
-			"reward": { "crowns": 100 }
+			"reward": { "crowns": 30 }
 		},
 		{
 			"id": "combat_clearance_10",
 			"skill": "wasteland_combat",
 			"description": "EARN CLEARANCE 10",
 			"condition": { "kind": "level_reach", "target": 10 },
-			"reward": { "crowns": 200 }
+			"reward": { "crowns": 32 }
 		},
 		{
 			"id": "combat_clearance_14",
 			"skill": "wasteland_combat",
 			"description": "EARN CLEARANCE 14",
 			"condition": { "kind": "level_reach", "target": 14 },
-			"reward": { "crowns": 400 }
+			"reward": { "crowns": 40 }
 		},
 		{
 			"id": "combat_clearance_22",
 			"skill": "wasteland_combat",
 			"description": "EARN CLEARANCE 22",
 			"condition": { "kind": "level_reach", "target": 22 },
-			"reward": { "crowns": 800 }
+			"reward": { "crowns": 200 }
 		},
 		{
 			"id": "combat_clearance_30",
 			"skill": "wasteland_combat",
 			"description": "EARN CLEARANCE 30",
 			"condition": { "kind": "level_reach", "target": 30 },
-			"reward": { "crowns": 1200 }
+			"reward": { "crowns": 250 }
 		},
 		{
 			"id": "combat_clearance_40",
 			"skill": "wasteland_combat",
 			"description": "EARN CLEARANCE 40",
 			"condition": { "kind": "level_reach", "target": 40 },
-			"reward": { "crowns": 2000 }
+			"reward": { "crowns": 500 }
 		},
 		{
 			"id": "combat_litterbug_10",
 			"skill": "wasteland_combat",
 			"description": "CLEAR 10 LITTERBUGS",
 			"condition": { "kind": "kill_count", "ref": "junkyard_roach", "target": 10 },
-			"reward": { "crowns": 25 }
+			"reward": { "crowns": 6 }
 		},
 		{
 			"id": "combat_litterbug_100",
 			"skill": "wasteland_combat",
 			"description": "CLEAR 100 LITTERBUGS",
 			"condition": { "kind": "kill_count", "ref": "junkyard_roach", "target": 100 },
-			"reward": { "crowns": 200 }
+			"reward": { "crowns": 32 }
 		},
 		{
 			"id": "combat_bunny_50",
 			"skill": "wasteland_combat",
 			"description": "CLEAR 50 GREATER DUST BUNNIES",
 			"condition": { "kind": "kill_count", "ref": "greater_dust_bunny", "target": 50 },
-			"reward": { "crowns": 150 }
+			"reward": { "crowns": 28 }
 		},
 		{
 			"id": "combat_fizzard_40",
 			"skill": "wasteland_combat",
 			"description": "CLEAR 40 FIZZARDS",
 			"condition": { "kind": "kill_count", "ref": "fizzard", "target": 40 },
-			"reward": { "crowns": 250, "xp": { "skill": "wasteland_combat", "amount": 500 } }
+			"reward": { "crowns": 40, "xp": { "skill": "wasteland_combat", "amount": 350 } }
 		},
 		{
 			"id": "combat_dispenser_25",
 			"skill": "wasteland_combat",
 			"description": "CLEAR 25 FERAL SNACK DISPENSERS",
 			"condition": { "kind": "kill_count", "ref": "feral_snack_dispenser", "target": 25 },
-			"reward": { "crowns": 300 }
+			"reward": { "crowns": 32 }
 		},
 		{
 			"id": "combat_escalator_25",
 			"skill": "wasteland_combat",
 			"description": "CLEAR 25 RESTLESS ESCALATORS",
 			"condition": { "kind": "kill_count", "ref": "restless_escalator", "target": 25 },
-			"reward": { "crowns": 600 }
+			"reward": { "crowns": 250 }
 		},
 		{
 			"id": "combat_superintendent_5",
 			"skill": "wasteland_combat",
 			"description": "CLEAR THE SUPERINTENDENT 5",
 			"condition": { "kind": "kill_count", "ref": "sewer_landlord", "target": 5 },
-			"reward": { "crowns": 1000 }
+			"reward": { "crowns": 175 }
 		},
 		{
 			"id": "combat_manager_3",
 			"skill": "wasteland_combat",
 			"description": "CLEAR THE REGIONAL MANAGER 3",
 			"condition": { "kind": "kill_count", "ref": "regional_manager", "target": 3 },
-			"reward": { "crowns": 2500 }
+			"reward": { "crowns": 800 }
 		},
 		{
 			"id": "combat_equip_whip",
 			"skill": "wasteland_combat",
 			"description": "EQUIP MAJORITY WHIP",
 			"condition": { "kind": "equip_item", "ref": "majority_whip", "target": 1 },
-			"reward": { "crowns": 150 }
+			"reward": { "crowns": 15 }
 		},
 		{
 			"id": "combat_equip_carapace",
 			"skill": "wasteland_combat",
 			"description": "EQUIP CARPOOL CARAPACE",
 			"condition": { "kind": "equip_item", "ref": "carpool_carapace", "target": 1 },
-			"reward": { "crowns": 150 }
+			"reward": { "crowns": 15 }
 		},
 		{
 			"id": "combat_equip_veto",
 			"skill": "wasteland_combat",
 			"description": "EQUIP LINE-ITEM VETO",
 			"condition": { "kind": "equip_item", "ref": "line_item_veto", "target": 1 },
-			"reward": { "crowns": 600 }
+			"reward": { "crowns": 200 }
 		},
 		{
 			"id": "combat_equip_aegis",
 			"skill": "wasteland_combat",
 			"description": "EQUIP TURNPIKE AEGIS",
 			"condition": { "kind": "equip_item", "ref": "turnpike_aegis", "target": 1 },
-			"reward": { "crowns": 600 }
+			"reward": { "crowns": 200 }
 		},
 		{
 			"id": "combat_secure_flats",
 			"skill": "wasteland_combat",
 			"description": "SECURE THE SUNNY ZONE",
 			"condition": { "kind": "zone_clear", "ref": "dusty_flats", "target": 1 },
-			"reward": { "crowns": 1500 }
+			"reward": { "crowns": 750 }
 		},
 		{
 			"id": "combat_secure_court",
 			"skill": "wasteland_combat",
 			"description": "SECURE THE GIFT COURT",
 			"condition": { "kind": "zone_clear", "ref": "gift_court", "target": 1 },
-			"reward": { "crowns": 2500, "xp": { "skill": "wasteland_combat", "amount": 3500 } }
+			"reward": { "crowns": 1500, "xp": { "skill": "wasteland_combat", "amount": 2000 } }
 		},
 		{
 			"id": "combat_stamped_22",
 			"skill": "wasteland_combat",
 			"description": "STAMP 22 EXTERIOR DUTIES",
 			"condition": { "kind": "stamped_count", "target": 22 },
-			"reward": { "crowns": 3000 }
+			"reward": { "crowns": 2500 }
 		}
 	]
 }

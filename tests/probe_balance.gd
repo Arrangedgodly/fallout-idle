@@ -45,6 +45,17 @@ extends SceneTree
 ##      grind), processing XP discipline (per-band best rate never falls as
 ##      gates rise), every craftable gear piece has a recipe, and the new
 ##      materials flow both ways (gathering/drop source -> recipe sink).
+##  11. T27 OBJECTIVE REWARD ECONOMY — the dossier MERIT PAY ladder
+##      (data/objectives.json) modeled into the §5.1 curve: every objective
+##      carries a documented expected stamp MINUTE (below), the deputy
+##      windows hold with objective income folded in (with-merit crossing
+##      inside every window; merit pay never exceeds 20% of duty income at
+##      a rung's crossing; not owned at window open; 1.15x margin at close),
+##      COMMENDATION XP legs never exceed 20% of one clearance step at their
+##      landing level, the boss gate stays crown-proof (T4 Depot impulse
+##      lines clearance-gated, merit pay bounded at the deep boundary), and
+##      the ladder back-loads past the deputy-4 window. Derivation:
+##      docs/balance-notes.md §6.4 (the §6.3 placeholders are superseded).
 
 const SEEDS := 25
 const SIM_CAP_MS := 3_600_000
@@ -145,6 +156,7 @@ func _initialize() -> void:
 	_check_shop_integrity()
 	_check_combat_sims()
 	_check_personnel_economy()
+	_check_objective_economy()
 	_check_xp_coverage()
 
 
@@ -803,6 +815,80 @@ const PERSONNEL_RETAIN := 0.75
 const PERSONNEL_STREAMS := [1.5, 2.2, 3.0]
 const DEPUTY1_FAST_GUARD_MIN := 3  # a pure tier-1 seller cannot own rung 1 inside this
 
+# ------------------------------------------------------ T27 objective economy
+# The documented stamp-minute model (balance-notes §6.4): when each dossier
+# line is EXPECTED to stamp on the conservative §5.1 phase curve. Derivation
+# keys (all in the doc):
+#   - level_reach rungs sit at their per-skill clearance-crossing minute
+#     (OBJ_LEVEL_MINUTES below — gathering from the phase XP model at the
+#     T20 tier schedule: per-skill XP/min = tier XP/min x streams x
+#     retention / 2; processing + combat anchored to §4's stage table);
+#   - count rungs sit at gate minute + (count x interval / 60) divided by
+#     the phase's per-skill posting share, feed-limited where materials
+#     lag (e.g. SMELT 250 waits on 750 Scrapnel);
+#   - economy rungs sit on the combined curve (crowns_total crosses with
+#     merit pay itself folded in), stamped_22 capstones at their dossier's
+#     last other rung.
+# Minutes are modeled expectations, rounded to the minute — pins compare
+# against them deterministically, so a reward retune that breaks a window
+# trips HERE before it ships.
+const OBJ_MERIT_SHARE := 0.20  # merit pay <= 20% of duty income at a crossing
+const OBJ_STAMP_MINUTES := {
+	# scavenging
+	"scav_clearance_2": 1, "scav_clearance_5": 6, "scav_clearance_10": 27, "scav_clearance_16": 69,
+	"scav_clearance_30": 200, "scav_clearance_41": 348, "scav_clearance_54": 552, "scav_clearance_70": 810,
+	"scav_sort_25": 4, "scav_sort_250": 28, "scav_strip_50": 17, "scav_sump_40": 32,
+	"scav_overpass_60": 78, "scav_corridors_75": 125, "scav_lockers_100": 215, "scav_signal_150": 374,
+	"scav_foundation_200": 590, "scav_strongroom_250": 865, "scav_girderling_100": 108,
+	"scav_counterweight_250": 430, "scav_sell_scrap_1000": 90, "scav_crowns_5000": 74,
+	"scav_stamped_22": 865,
+	# foraging
+	"forage_clearance_2": 1, "forage_clearance_5": 6, "forage_clearance_10": 27, "forage_clearance_16": 69,
+	"forage_clearance_30": 200, "forage_clearance_41": 348, "forage_clearance_54": 552, "forage_clearance_70": 810,
+	"forage_glow_25": 4, "forage_glow_250": 28, "forage_plot_50": 17, "forage_beds_40": 32,
+	"forage_fence_60": 78, "forage_atrium_75": 125, "forage_relay_100": 215, "forage_hydro_150": 374,
+	"forage_greenhouse_200": 590, "forage_canopy_250": 865, "forage_duskcorn_250": 26,
+	"forage_bloom_150": 610, "forage_sell_caps_400": 65, "forage_crowns_10000": 100,
+	"forage_stamped_22": 865,
+	# junksmithing
+	"junk_clearance_2": 2, "junk_clearance_8": 20, "junk_clearance_15": 65, "junk_clearance_26": 300,
+	"junk_clearance_36": 470, "junk_clearance_45": 750, "junk_clearance_60": 1600,
+	"junk_smelt_25": 7, "junk_smelt_250": 45, "junk_wire_50": 30, "junk_bolt_50": 32,
+	"junk_shiv_15": 35, "junk_vest_5": 40, "junk_whip_15": 85, "junk_alloy_100": 130,
+	"junk_steel_50": 330, "junk_gavel_5": 320, "junk_veto_5": 520, "junk_batch_alloy_50": 800,
+	"junk_batch_steel_25": 1700, "junk_sell_bullion_200": 60, "junk_crowns_25000": 240,
+	"junk_stamped_22": 1700,
+	# cooking
+	"cook_clearance_2": 2, "cook_clearance_5": 15, "cook_clearance_13": 55, "cook_clearance_21": 160,
+	"cook_clearance_32": 330, "cook_clearance_55": 900, "cook_clearance_85": 2300,
+	"cook_grits_25": 7, "cook_grits_250": 45, "cook_casserole_50": 35, "cook_regret_20": 75,
+	"cook_fritters_30": 70, "cook_compote_40": 130, "cook_cornmeal_50": 180, "cook_tea_40": 260,
+	"cook_sherbet_30": 320, "cook_feast_25": 380, "cook_reissue_25": 450, "cook_bulk_tea_50": 800,
+	"cook_mass_regret_15": 2400, "cook_sell_stew_100": 120, "cook_crowns_2500": 48,
+	"cook_stamped_22": 2400,
+	# wasteland combat (the EXTERIOR DOSSIER)
+	"combat_clearance_2": 3, "combat_clearance_4": 20, "combat_clearance_7": 45, "combat_clearance_10": 60,
+	"combat_clearance_14": 62, "combat_clearance_22": 130, "combat_clearance_30": 240, "combat_clearance_40": 390,
+	"combat_litterbug_10": 14, "combat_litterbug_100": 40, "combat_bunny_50": 40, "combat_fizzard_40": 68,
+	"combat_dispenser_25": 85, "combat_escalator_25": 280, "combat_superintendent_5": 85,
+	"combat_manager_3": 500, "combat_equip_whip": 66, "combat_equip_carapace": 66,
+	"combat_equip_veto": 500, "combat_equip_aegis": 505, "combat_secure_flats": 68,
+	"combat_secure_court": 500, "combat_stamped_22": 505,
+}
+
+# Per-skill clearance-crossing minutes (the level_reach stamp minutes; also
+# the landing-level lookup for the COMMENDATION XP-leg rule). Gathering:
+# phase XP model per balance-notes §6.4 (per-skill XP/min = tier rate x
+# streams x retention / 2 at the T20 tier schedule, phases A1-D at T1-T4);
+# processing/combat: §4's stage-table anchors extended up the ladder.
+const OBJ_LEVEL_MINUTES := {
+	"scavenging": {2: 1, 5: 6, 10: 27, 16: 69, 30: 200, 41: 348, 54: 552, 70: 810},
+	"foraging": {2: 1, 5: 6, 10: 27, 16: 69, 30: 200, 41: 348, 54: 552, 70: 810},
+	"junksmithing": {2: 2, 8: 20, 15: 65, 26: 300, 36: 470, 45: 750, 60: 1600},
+	"cooking": {2: 2, 5: 15, 13: 55, 21: 160, 32: 330, 55: 900, 85: 2300},
+	"wasteland_combat": {2: 3, 4: 20, 7: 45, 10: 60, 14: 62, 22: 130, 30: 240, 40: 390},
+}
+
 
 ## EV per action of one table: sum of P(entry) x avg_qty x item value
 ## (qty uniform in [qty_min, qty_max], the engine's inclusive draw), times
@@ -878,19 +964,13 @@ func _check_personnel_economy() -> void:
 		"the curve costs the phase boundaries assume hold (L5 425 / L10 3226 / L16 12113 XP)")
 
 	# -- the documented conservative model (§5.1) --
-	var r_a1: float = PERSONNEL_ATTENTION * PERSONNEL_RETAIN_NEW * _tier_blend(0)
-	var r_a2: float = PERSONNEL_ATTENTION * PERSONNEL_RETAIN_NEW * _tier_blend(1)
-	var r_b: float = PERSONNEL_RETAIN * PERSONNEL_STREAMS[0] * _tier_blend(1)
-	var r_c: float = PERSONNEL_RETAIN * PERSONNEL_STREAMS[1] * _tier_blend(2)
-	var r_d: float = PERSONNEL_RETAIN * PERSONNEL_STREAMS[2] * _tier_blend(3)
-	var phases: Array = [
-		{"end": 6.0, "rate": r_a1},
-		{"end": 15.0, "rate": r_a2},
-		{"end": 60.0, "rate": r_b},
-		{"end": 180.0, "rate": r_c},
-		{"end": 480.0, "rate": r_d},
-	]
-	print("    personnel curve  phase rates cr/min: A1 %.2f  A2 %.2f  B %.2f  C %.2f  D %.2f" % [r_a1, r_a2, r_b, r_c, r_d])
+	var phases := _personnel_phases()
+	print("    personnel curve  phase rates cr/min: A1 %.2f  A2 %.2f  B %.2f  C %.2f  D %.2f" % [
+		PERSONNEL_ATTENTION * PERSONNEL_RETAIN_NEW * _tier_blend(0),
+		PERSONNEL_ATTENTION * PERSONNEL_RETAIN_NEW * _tier_blend(1),
+		PERSONNEL_RETAIN * PERSONNEL_STREAMS[0] * _tier_blend(1),
+		PERSONNEL_RETAIN * PERSONNEL_STREAMS[1] * _tier_blend(2),
+		PERSONNEL_RETAIN * PERSONNEL_STREAMS[2] * _tier_blend(3)])
 
 	# -- the ladder itself (data/staffing.json; prices are T20's tuning) --
 	_check(lib.deputies.size() == 4, "deputy ladder holds 4 rungs (got %d)" % lib.deputies.size())
@@ -906,16 +986,23 @@ func _check_personnel_economy() -> void:
 
 	# -- deputy 1: the first-session unlock (~10-15 min window) --
 	# The stipend posts at the SEVENTH stamp (after the first purchase — T18
-	# engine), so rung 1 must be affordable from minute-12 earnings ALONE;
-	# the stipend rules below still bind its proportion (§5.2).
+	# engine), so rung 1 must be affordable from minute-12 first-session
+	# income ALONE (duty + merit pay — merit pay is earned income; the T27
+	# fold-in, §6.4); the stipend rules below still bind its proportion
+	# (§5.2). Duty-alone at minute 12 is 270.0 < 300: the FIRST deputize
+	# needs a merit-pay rung or two stamped beside the selling — priced so
+	# on purpose (p1 250 -> 300 with the dossier cascade folded in).
 	var cum10 := _modeled_cumulative(10.0, phases)
 	var cum12 := _modeled_cumulative(12.0, phases)
 	var cum15 := _modeled_cumulative(15.0, phases)
-	_check(cum10 < float(p1), "deputy 1 NOT owned before the window opens (min-10 modeled %.1f < %d)" % [cum10, p1])
-	_check(cum12 >= float(p1), "deputy 1 affordable by minute 12 on earnings alone (%.1f >= %d)" % [cum12, p1])
-	_check(cum15 >= 1.15 * float(p1), "deputy 1 reachable with margin by the window close (min-15 %.1f >= 1.15 x %d)" % [cum15, p1])
+	var merit10 := _objective_income_by(10.0)
+	var merit12 := _objective_income_by(12.0)
+	var merit15 := _objective_income_by(15.0)
+	_check(cum10 + merit10 < float(p1), "deputy 1 NOT owned before the window opens (min-10 duty+merit %.1f < %d)" % [cum10 + merit10, p1])
+	_check(cum12 + merit12 >= float(p1), "deputy 1 affordable by minute 12 on first-session income (duty+merit %.1f >= %d)" % [cum12 + merit12, p1])
+	_check(cum15 + merit15 >= 1.15 * float(p1), "deputy 1 reachable with margin by the window close (min-15 duty+merit %.1f >= 1.15 x %d)" % [cum15 + merit15, p1])
 	_check(float(stipend) + cum12 >= float(p1),
-		"stipend + modeled minute-12 earnings cover deputy 1 (%d + %.1f >= %d)" % [stipend, cum12, p1])
+		"stipend + modeled minute-12 duty income cover deputy 1 (%d + %.1f >= %d)" % [stipend, cum12, p1])
 	_check(p1 > stipend, "deputy 1 costs more than the stipend alone (%d > %d — the resident must still sell)" % [p1, stipend])
 	_check(float(stipend) >= 0.5 * float(p1), "stipend funds most of deputy 1 (%d >= %.1f)" % [stipend, 0.5 * float(p1)])
 	_check(float(p1) > float(DEPUTY1_FAST_GUARD_MIN) * best_t1,
@@ -939,6 +1026,148 @@ func _check_personnel_economy() -> void:
 	# Boss-gate integrity rides the SAME probe run: _check_combat_sims above
 	# re-proves §2/§2.1 with content untouched by this ladder (deputies buy
 	# postings, not power — §5.3).
+
+
+## The §5.1 phase schedule, data-recomputed (shared by the personnel and
+## objective-economy checks).
+func _personnel_phases() -> Array:
+	return [
+		{"end": 6.0, "rate": PERSONNEL_ATTENTION * PERSONNEL_RETAIN_NEW * _tier_blend(0)},
+		{"end": 15.0, "rate": PERSONNEL_ATTENTION * PERSONNEL_RETAIN_NEW * _tier_blend(1)},
+		{"end": 60.0, "rate": PERSONNEL_RETAIN * PERSONNEL_STREAMS[0] * _tier_blend(1)},
+		{"end": 180.0, "rate": PERSONNEL_RETAIN * PERSONNEL_STREAMS[1] * _tier_blend(2)},
+		{"end": 480.0, "rate": PERSONNEL_RETAIN * PERSONNEL_STREAMS[2] * _tier_blend(3)},
+	]
+
+
+# ---------------------------------------------------- T27 objective economy
+## Modeled MERIT PAY income (crowns) posted by minute `t` on the stamp table.
+func _objective_income_by(t: float) -> float:
+	var total := 0.0
+	for obj in lib.objectives.values():
+		if obj.reward_crowns > 0 and float(int(OBJ_STAMP_MINUTES.get(obj.id, 1_000_000))) <= t:
+			total += float(obj.reward_crowns)
+	return total
+
+
+## Invert the (duty [+ merit]) wallet curve: the minute it first covers
+## `price` on top of `spent` (bisection; the curve is monotone non-decreasing).
+func _crossing_minute(phases: Array, spent: float, price: float, with_merit: bool) -> float:
+	var lo := 0.0
+	var hi := 4000.0
+	for i in range(60):
+		var mid := (lo + hi) / 2.0
+		var wallet := _modeled_cumulative(mid, phases) - spent
+		if with_merit:
+			wallet += _objective_income_by(mid)
+		if wallet < price:
+			lo = mid
+		else:
+			hi = mid
+	return (lo + hi) / 2.0
+
+
+## The skill's modeled clearance at minute `t` (the XP-leg landing level).
+func _level_at_minute(skill_id: String, t: int) -> int:
+	var best := 1
+	for level in OBJ_LEVEL_MINUTES[skill_id]:
+		if int(OBJ_LEVEL_MINUTES[skill_id][level]) <= t:
+			best = maxi(best, int(level))
+	return best
+
+
+func _check_objective_economy() -> void:
+	var phases := _personnel_phases()
+	var curve := lib.xp_curve("standard_99")
+
+	# -- the stamp table IS the shipped set (a content edit trips here) --
+	_check(OBJ_STAMP_MINUTES.size() == lib.objectives.size(),
+		"the stamp-minute model covers exactly the shipped set (%d entries vs %d objectives)" % [
+			OBJ_STAMP_MINUTES.size(), lib.objectives.size()])
+	var covered := true
+	for obj in lib.objectives.values():
+		if not OBJ_STAMP_MINUTES.has(obj.id):
+			covered = false
+	_check(covered, "every shipped objective id has a modeled stamp minute")
+
+	# -- the deputy windows with merit pay folded in (§6.4) --
+	var windows := [[10.0, 15.0], [30.0, 60.0], [90.0, 180.0], [240.0, 480.0]]
+	var spent := 0.0
+	for k in range(mini(lib.deputies.size(), windows.size())):
+		var price := float(lib.deputies[k].price)
+		var open_m: float = windows[k][0]
+		var close_m: float = windows[k][1]
+		var x_duty := _crossing_minute(phases, spent, price, false)
+		var x_with := _crossing_minute(phases, spent, price, true)
+		var duty_at := _modeled_cumulative(x_duty, phases)
+		var merit_at := _objective_income_by(x_duty)
+		_check(merit_at <= OBJ_MERIT_SHARE * duty_at,
+			"deputy %d: merit pay %.0f cr <= %.0f%% of duty income at the crossing (min %.1f, %.0f cr)" % [
+				k + 1, merit_at, OBJ_MERIT_SHARE * 100.0, x_duty, duty_at])
+		_check(x_with >= open_m, "deputy %d with merit pay crosses at min %.1f — not before the window opens (%.0f)" % [k + 1, x_with, open_m])
+		_check(x_with <= close_m, "deputy %d with merit pay crosses at min %.1f — inside the window (<= %.0f)" % [k + 1, x_with, close_m])
+		_check(_modeled_cumulative(open_m, phases) + _objective_income_by(open_m) - spent < price,
+			"deputy %d NOT owned at the window open (min-%.0f duty+merit-spendable %.1f < %.0f)" % [
+				k + 1, open_m, _modeled_cumulative(open_m, phases) + _objective_income_by(open_m) - spent, price])
+		_check(_modeled_cumulative(close_m, phases) + _objective_income_by(close_m) - spent >= 1.15 * price,
+			"deputy %d affordable with margin at the window close (min-%.0f duty+merit-spendable %.1f >= 1.15 x %.0f)" % [
+				k + 1, close_m, _modeled_cumulative(close_m, phases) + _objective_income_by(close_m) - spent, price])
+		print("    objective economy deputy %d (%d cr): duty crossing min %.1f -> with-merit %.1f (merit %.0f cr = %.1f%% of duty)" % [
+			k + 1, int(price), x_duty, x_with, merit_at, 100.0 * merit_at / duty_at])
+		spent += price
+
+	# -- first-session feel: the onboarding cascade pays, but recognition-scale --
+	var merit15 := _objective_income_by(15.0)
+	_check(merit15 >= 35.0, "first-session merit take >= 35 cr by minute 15 (got %.0f — early rungs still read as pay)" % merit15)
+	var smallest := 1 << 30
+	var early_cascade := 0
+	for obj in lib.objectives.values():
+		if obj.reward_crowns > 0:
+			smallest = mini(smallest, obj.reward_crowns)
+		if int(OBJ_STAMP_MINUTES[obj.id]) <= 7:
+			early_cascade += 1
+	_check(smallest >= 3, "every merit line pays at least 3 cr (smallest %d — no comedy rungs)" % smallest)
+	_check(early_cascade >= 8, "the onboarding cascade posts >= 8 rungs inside minute 7 (got %d)" % early_cascade)
+
+	# -- COMMENDATION XP legs: <= 20% of ONE step at the landing level --
+	for obj in lib.objectives.values():
+		if obj.reward_xp_skill != "":
+			var landing := _level_at_minute(obj.reward_xp_skill, int(OBJ_STAMP_MINUTES[obj.id]))
+			var step: int = curve.xp_per_level[landing - 1]
+			_check(float(obj.reward_xp_amount) <= OBJ_MERIT_SHARE * float(step),
+				"XP leg '%s' (%d %s XP) <= 20%% of one step at landing %s L%d (step %d)" % [
+					obj.id, obj.reward_xp_amount, obj.reward_xp_skill, obj.reward_xp_skill, landing, step])
+
+	# -- boss gate stays crown-proof (§5.3 with merit pay folded in) --
+	# The intended T4 path is CRAFTED (clearances 34/36 + Unanimous Steel —
+	# zero crowns in any recipe input); the Depot impulse lines stay
+	# clearance-gated, so no wallet size skips the gate; and merit pay stays
+	# bounded at the deep boundary (it can never out-pace duty income).
+	for item_id in ["line_item_veto", "motorcade_mantle", "cloture", "turnpike_aegis"]:
+		var line: ShopEntryDef = null
+		for entry in lib.shop_entries():
+			if entry.item == item_id:
+				line = entry
+		_check(line != null and line.is_gated() and line.gate_skill == "wasteland_combat" and line.gate_level >= 34,
+			"Depot impulse line '%s' stays combat-clearance-gated >= 34 (crowns never buy past the boss gate)" % item_id)
+	_check(_objective_income_by(480.0) <= OBJ_MERIT_SHARE * _modeled_cumulative(480.0, phases),
+		"merit pay by minute 480 (%.0f cr) <= 20%% of duty income (%.0f cr) — no deputy-skip scale" % [
+			_objective_income_by(480.0), _modeled_cumulative(480.0, phases)])
+
+	# -- the ladder back-loads past the deputy-4 window (§6.3 intent, kept) --
+	var lifetime := 0
+	var per_skill := {}
+	for obj in lib.objectives.values():
+		lifetime += obj.reward_crowns
+		per_skill[obj.skill] = int(per_skill.get(obj.skill, 0)) + obj.reward_crowns
+	_check(_objective_income_by(480.0) <= 0.45 * float(lifetime),
+		"the ladder back-loads: <= 45%% of lifetime merit posts by minute 480 (got %.0f of %d)" % [
+			_objective_income_by(480.0), lifetime])
+	for skill_id in per_skill:
+		_check(int(per_skill[skill_id]) >= 5000 and int(per_skill[skill_id]) <= 12000,
+			"dossier '%s' lifetime merit %d cr sits in the 5,000-12,000 spread band" % [skill_id, int(per_skill[skill_id])])
+	print("    objective economy lifetime ladder %d cr (T25 placeholder 71,480); by min 480: %.0f cr" % [
+		lifetime, _objective_income_by(480.0)])
 
 
 # ------------------------------------------------------ T24 XP-curve coverage

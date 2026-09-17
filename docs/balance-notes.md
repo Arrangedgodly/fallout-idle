@@ -3,7 +3,9 @@
 Authored by T5 (Data lane, Mr. Fantastic; carrying Professor X's
 genre-conventions claims); §5.1–§5.3 (personnel economy) authored by T20
 (same lane, same lens, 2026-09-17). **Run-3 depth (§2.1, §3.1 and the §6
-economy extension) authored by T24 (2026-09-15).** Source of truth for every
+economy extension) authored by T24 (2026-09-15); the §6.4 objective reward
+economy + the §5.2 deputy-1 re-price authored by T27 (2026-09-15).** Source
+of truth for every
 number lives in `data/*.json`; this file records the *reasoning*, the
 **combat spec T7 must implement**, the intended progression timeline to the
 slice's win moment (boss clear), and the economy rules the numbers obey.
@@ -421,32 +423,35 @@ Cumulative modeled earnings (before purchases): min 10 → 220.9 · min 12
 
 | Purchase | Price | Window | Modeled crossing | Probe pins |
 |---|---|---|---|---|
-| DEPUTIZE RESIDENT #1 | **250** | first session, 10–15 min | minute ≈ 11.2 | not affordable at min 10 (220.9 < 250); affordable at min 12 (270.0 ≥ 250) and min 15 (343.5, 1.37×); a pure T1 seller cannot own it inside 3 min (250 > 3 × 60) |
-| #2 | **2,000** | early-mid, 30–60 min | minute ≈ 39 | not at min 30 (1,275.6 spendable < 2,000); at min 60 spendable 3,639.8 ≥ 1.15× |
-| #3 | **9,500** | mid, 1.5–3 h | minute ≈ 123 | not at min 90 (5,358.5 < 9,500); at min 180 spendable 16,514.5 ≥ 1.15× |
-| #4 | **25,000** | late-mid, 4–8 h | minute ≈ 268 (4.5 h) | not at min 240 (19,299.5 < 25,000); at min 480 spendable 68,439.5 ≥ 1.15× |
+| DEPUTIZE RESIDENT #1 | **300** (T27; was 250 — cause in §6.4: the dossier's onboarding cascade made the 250 rung affordable at ~min 9.5, outside this window) | first session, 10–15 min | duty min ≈ 13.2 / with merit pay ≈ 11.2 (§6.4) | not affordable at min 10 on duty+merit (270.9 < 300); affordable at min 12 on first-session income (270.0 + 50 ≥ 300); margin at min 15 (343.5 + 71 ≥ 1.15×); a pure T1 seller cannot own it inside 3 min (300 > 3 × 60) |
+| #2 | **2,000** | early-mid, 30–60 min | duty ≈ 39.8 / with merit ≈ 35.0 (§6.4) | not at min 30 (1,225.6 spendable < 2,000); at min 60 spendable 3,589.8 ≥ 1.15× |
+| #3 | **9,500** | mid, 1.5–3 h | duty ≈ 123.8 / with merit ≈ 106.1 (§6.4) | not at min 90 (5,308.5 < 9,500); at min 180 spendable 16,464.5 ≥ 1.15× |
+| #4 | **25,000** | late-mid, 4–8 h | duty ≈ 268.1 / with merit ≈ 244.1 (§6.4) | not at min 240 (19,249.5 < 25,000); at min 480 spendable 68,389.5 ≥ 1.15× |
 
 Spendable = modeled cumulative − prices of deputies already bought
 (purchase minutes assumed 12/45/130/270). Growth ratio softens
-(8×/4.75×/2.6×) as each posting's marginal yield shrinks (posting 3–5
+(6.7×/4.75×/2.6×) as each posting's marginal yield shrinks (posting 3–5
 add cooking value-add and combat convenience, not another full gathering
 stream) — later deputies are long-payback conveniences, Melvor-style.
 The placeholder T17 ladder (75/400/2500/12000) was priced blind to this
 curve: at real rates 75 crowns is ~1.5 min of tier-1 selling, which
 would make the first unlock a non-event and the ladder a speed bump.
+T27 (§6.4) re-pins rungs 2–4 on the combined duty+merit curve (crossings
+35.0 / 106.1 / 244.1 min — every window holds without further price moves).
 
 **ORIENTATION STIPEND = 150.** Sizing rules (probe-pinned): stipend +
 modeled minute-12 earnings (150 + 270.0 = 420) ≥ price #1; price #1 >
-stipend alone (250 > 150 — the resident must still sell something:
-≥ 100 cr ≈ 2 min of tier-1 selling before the first deputize, so FILE A
+stipend alone (300 > 150 — the resident must still sell something:
+≥ 150 cr ≈ 3 min of tier-1 selling before the first deputize, so FILE A
 CROWNS CLAIM is a real lesson, not a formality); stipend ≥ half of
-price #1 (150 = 60% — "the stipend funds most of the first deputy").
+price #1 (150 = 50%, exactly the rule's floor).
 As-built timing (T18 engine, unchanged): the stipend posts at the
 SEVENTH stamp — i.e. immediately after the first DEPUTIZE RESIDENT
 purchase completes the form — so in play it lands as the DULY ORIENTED
 windfall that seeds deputy #2 (150 of 2,000) rather than pre-funding
 deputy #1; this is why the probe also pins deputy #1 affordable from
-minute-12 earnings ALONE.
+minute-12 first-session income (duty + merit pay — both are earned
+income; §6.4).
 
 ### 5.3 Boss-gate integrity (prices must not trivialize §2/§4)
 
@@ -531,7 +536,8 @@ clearance-21+ sinks); every new gear piece is craftable AND Depot-stocked
 (buy>sell everywhere; no fully-stockable recipe buys its output's value —
 probe-pinned).
 
-### 6.3 T25 objective reward placeholders (authored 2026-09-15; T27 owns the fold-in)
+### 6.3 T25 objective reward placeholders (authored 2026-09-15; **SUPERSEDED
+by §6.4** — T27 retuned every number below; kept as the authoring rationale)
 
 The 115 DEPARTMENTAL DOSSIER lines (23/skill) carry a placeholder MERIT PAY
 ladder + 10 COMMENDATION XP legs, sized against the §5.1/§6.1 earning model
@@ -571,8 +577,98 @@ placeholder**; the windows below are authoring intent, not yet probe pins.
   minutes (25–50 × tier-1 interval), mid = 10–20 min of a dedicated posting,
   late = 30–60 min (tier-7–9 intervals are 11.5–15 s — 150–250 actions
   ≈ 30–63 min; deputies split the attention, rungs stay rungs).
-- **T27's fold-in**: model objective income into the §5.1 phase table,
-  re-check the deputy windows (10–15 min / 30–60 min / 1.5–3 h / 4–8 h) and
-  the boss gate; retune these placeholders so the windows hold (deputy
-  prices move only with documented cause). No probe pin currently depends
-  on any number in this subsection.
+- **T27's fold-in**: DONE 2026-09-15 — see §6.4: objective income modeled
+  into the §5.1 phase table, the deputy windows re-checked and re-pinned
+  with merit pay folded in, the 115 rewards retuned (lifetime 71,480 →
+  40,963 cr), deputy #1 re-priced 250 → 300 with documented cause.
+
+### 6.4 T27 objective reward economy (the fold-in; probe_balance pins)
+
+**The model.** Every one of the 115 dossier lines carries a documented
+expected STAMP MINUTE (`OBJ_STAMP_MINUTES` in tests/probe_balance.gd — the
+probe pins against it deterministically): level rungs sit at their
+per-skill clearance-crossing minute (gathering from the phase XP model —
+per-skill XP/min = tier XP rate × streams × retention ÷ 2 at the §5.1 tier
+schedule; processing/combat anchored to §4's stage table), count rungs at
+gate minute + count × interval ÷ the phase's per-skill posting share
+(feed-limited where materials lag), economy rungs on the combined curve,
+and `stamped_count` capstones at their dossier's last other rung. Modeled
+income at minute M = Σ merit pay of rungs stamped ≤ M, set against the
+§5.1 duty curve on the SAME phase assumptions — so the ratio (merit vs
+duty) is honest regardless of the model's global conservatism.
+
+**The chosen effect (documented): merit pay may accelerate a deputy window
+by at most ~20%, read as income, not time** — at each rung's duty-only
+crossing minute X, merit(X) ≤ 0.20 × duty(X). At the rungs' phase rates
+this lands at 12–15% of TIME acceleration, and the with-merit crossing of
+every rung stays inside its window:
+
+| Deputy | Price | Window | Duty crossing | With-merit crossing | Merit at crossing |
+|---|---|---|---|---|---|
+| #1 | **300** (was 250 — see §5.2) | 10–15 min | min 13.2 | **min 11.2** | 50 cr = 16.7% |
+| #2 | 2,000 | 30–60 min | min 39.8 | **min 35.0** | 429 cr = 18.7% |
+| #3 | 9,500 | 1.5–3 h | min 123.8 | **min 106.1** | 2,263 cr = 19.2% |
+| #4 | 25,000 | 4–8 h | min 268.1 | **min 244.1** | 5,113 cr = 13.9% |
+
+Not-owned-at-open and 1.15×-margin-at-close pins hold on the combined
+(duty+merit) spendable curve for all four rungs. Deputy #3 is the tightest
+(19.2%) because the first boss clear — the win moment — lands at ~min 68
+inside its window; the zone-clear capstone was cut 1,500 → 750 to hold the
+line (a capstone still pays ~19× a normal W3 rung).
+
+**The retune (lifetime 71,480 → 40,963 cr; all 115 rewards, conditions
+untouched).** Sizing principle, replacing §6.3's bands: *a merit rung pays
+≈ 0.1–3 minutes of the phase's duty income at its stamp minute —
+recognition early, real pay later, capstones 5–8 minutes, never enough to
+skip duty*:
+
+| Band | Stamp minutes | Rung pays | Was (T25) | Example rungs |
+|---|---|---|---|---|
+| onboarding cascade | 1–7 | 4–6 cr | 25–40 | EARN CLEARANCE 2 (all five), SORT 25, SMELT 25 |
+| first session | 12–45 | 15–32 cr | 50–150 | CLEARANCE 5/8/10, STRIP 50, SORT 250, shiv |
+| first hour | 48–124 | 28–45 cr | 150–400 | CLEARANCE 14/16, REGRET 20, OVERPASS 60 |
+| capstones @ win | 68 / 85 | 750 / 175 cr | 1,500 / 1,000 | SECURE THE SUNNY ZONE, SUPERINTENDENT 5 |
+| deep-D | 125–480 | 150–500 cr | 200–2,000 | CLEARANCE 22/30, TEA 40, RM rungs' band |
+| phase E–G | 480+ | 400–1,200 cr | 500–2,000 | CLEARANCE 54/70, batch lines |
+| zone capstones | 500 / 865+ | 1,500 / 2,500 cr | 2,500 / 3,000 | SECURE THE GIFT COURT, STAMP 22 sets |
+
+The early cascade is priced as *recognition*: 4–6 cr against a minute-7
+wallet of ~120 cr still reads as the dossier raining stamps (≥8 rungs by
+minute 7; 71 cr ≈ 2.5 min of tier-1 disposable income by minute 15 —
+probe-pinned floors), while the first double-digit merit lands min 12–15
+and the first real pay (30–45 cr) in the deputy-2 window when duty income
+is 79–124 cr/min. Early-feel pins: merit(15) ≥ 35 cr; no rung under 3 cr.
+
+**Deputy #1 re-priced 250 → 300 (the one price move, documented cause):**
+the T20 ladder was priced blind to merit pay, and the dossier's onboarding
+cascade (~10 rungs by minute 10 ≈ 50 cr under the retuned ladder) made the
+250 rung affordable at ~min 9.5 — outside the 10–15 window to its letter.
+300 restores every §5.2 rule: not owned at min 10 (duty+merit 270.9 <
+300), affordable at min 12 on first-session income (270.0 + 50 ≥ 300;
+duty-alone crosses at 13.2 — the first deputize now wants a merit rung or
+two stamped beside the selling, on purpose), 1.15× margin at min 15
+(343.5 + 71 ≥ 345), stipend rules intact (300 > 150; 150 = exactly half;
+150 + 270 ≥ 300), pure-seller guard intact (300 > 3 × 60). Deputies 2–4
+unchanged — their windows hold on the combined curve without moving.
+
+**COMMENDATION XP legs (the T25 verifier's two observations, resolved):**
+all 10 legs now ≤ 20% of ONE clearance step at the landing level (the
+level the rewarded skill holds at the stamp minute, per the crossing
+model; probe-pinned): the fizzard leg 500 → **350** (19.7% of the L14
+step 1,776 — it lands at combat ~L14–15 after 40 kills, not at the L7
+gate), and the court-clear leg 3,500 → **2,000** (18.9% of the L40 step
+10,581 — no capstone exception taken; the win moment pays mostly in
+crowns). Also trimmed: the forging leg 120 → 40 combat XP (19.0% of the
+L4 step — it lands at combat ~L4, the §6.3 "≈ a step" wording was wrong
+by 6×) and junk c15 400 → 350 (17.5% of the L15 step). Unchanged legs all
+sit at 5–14%.
+
+**Boss gate (§5.3 re-proven with merit pay):** the intended T4 path is
+CRAFTED (Junksmith 34/36 + Unanimous Steel + the deep haul — no recipe
+input costs crowns anywhere), the Depot impulse lines (9,000–9,500) stay
+combat-clearance-gated ≥ 34 (probe-pinned — no wallet size skips the
+gate), merit pay by min 480 (10,363 cr) ≤ 20% of duty income (16,038),
+and the §2/§2.1 boss sims re-run byte-identically in the same probe pass
+(rewards and prices never touch combat content). The ladder back-loads:
+25% of lifetime merit posts by min 480 (≤ 45% pinned), per-skill dossier
+totals 7.7k–9.8k cr.
