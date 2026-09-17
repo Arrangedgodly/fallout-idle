@@ -13,13 +13,17 @@ extends Control
 ## body; the big stencled BEGIN SHIFT button on the docket is the primary
 ## action.
 ##
-## T18 — ORIENTATION FORM O-1 is posted at the docket frame's top-right
-## corner (always on the wall, never a modal): seven stencil lines, stamps
-## filling as steps complete, and the current step carrying the orient_arrow
-## cue. While orientation is incomplete the arrow glyph ALSO posts beside the
-## current step's destination plate (the run-1 START HERE chalk, retired —
-## its first-run directional role is subsumed by the O-1 cue, which walks
-## with the resident step by step instead of pointing once).
+## T18/T29 — ORIENTATION FORM O-1 is DOCKED as a posted paper strip at the
+## top of the docket region (always posted, never a modal, and — since the
+## run-4 blockade fix — never an overlay: the docket viewport resizes around
+## the strip, the checklist body scrolls inside the strip, and a labeled FOLD
+## control sits at the strip's right edge from the very first run): seven
+## stencil lines, stamps filling as steps complete, and the current step
+## carrying the orient_arrow cue. While orientation is incomplete the arrow
+## glyph ALSO posts beside the current step's destination plate (the run-1
+## START HERE chalk, retired — its first-run directional role is subsumed by
+## the O-1 cue, which walks with the resident step by step instead of
+## pointing once).
 ##
 ## Everything is built from the T8 signage theme (installed via the UiTheme
 ## autoload) — plates, panels, notices, vents and gauges are theme variations,
@@ -181,14 +185,15 @@ func _ready() -> void:
 
 ## The first container layout pass resets child transforms assigned during
 ## _ready, so the boot swell is re-asserted one frame later, after layout.
-## T18: the O-1 form + step cue re-position on the same settle — the first
-## pass leaves them at stale rects whenever the plate wall's layout shifts
-## late (an eighth plate joined the wall in T17).
+## T18/T29: the step cue re-positions on the same settle — the first pass
+## leaves it at a stale rect whenever the plate wall's layout shifts late
+## (an eighth plate joined the wall in T17). The O-1 form needs no settle:
+## since T29 it is docked in the docket region's layout, so the layout pass
+## itself places it.
 func _settle_boot_swell() -> void:
 	await get_tree().process_frame
 	if is_inside_tree() and not _transitioning and _plates.has(_active_id):
 		_set_plate_state(_plates[_active_id], true, false)
-		_position_orientation_form()
 		_position_orientation_cue()
 
 # ------------------------------------------------------------------ public API
@@ -418,15 +423,23 @@ func _unhandled_input(event: InputEvent) -> void:
 func _build_ui() -> void:
 	set_anchors_preset(PRESET_FULL_RECT)
 
-	# Rolled-steel concourse ground.
+	# Rolled-steel concourse ground. T29: mouse-transparent like the bulkhead
+	# mouth — it is the wall behind the layout, never an input surface (the
+	# blockade audit holds every input-present control to the
+	# no-intersection law).
 	var wall := Panel.new()
 	wall.name = "Wall"
+	wall.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	wall.set_anchors_preset(PRESET_FULL_RECT)
 	add_child(wall)
 
 	# Half-open bulkhead at the left edge — daylight spilling through.
+	# T29: mouse-transparent (it is a mark on the wall drawn BEHIND the
+	# layout, never an input surface — the blockade audit holds every
+	# input-present control to the no-intersection law).
 	_mouth = BulkheadMouth.new()
 	_mouth.name = "BulkheadMouth"
+	_mouth.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_mouth.anchor_top = 0.0
 	_mouth.anchor_bottom = 1.0
 	_mouth.offset_right = 160.0
@@ -449,42 +462,23 @@ func _build_ui() -> void:
 	body.add_child(_build_docket_region())
 	col.add_child(_build_console())
 
-	# T18: ORIENTATION FORM O-1 — a posted paper notice at the docket frame's
-	# top-right corner (the tutorial is always on the wall), plus the current
-	# step's orient_arrow cue beside the destination plate. Both are drawn
-	# over the wall/docket boundary, under the bulkhead shutter's z (the door
-	# physically closes over posted paper) and under MAIL CALL.
-	orientation_form = OrientationForm.new()
-	orientation_form.name = "OrientationForm"
-	orientation_form.z_index = 4
-	orientation_form.dept_label = _dept_hint_for
-	orientation_form.step_activated.connect(_on_orientation_step_activated)
-	add_child(orientation_form)
-
+	# T18/T29: the current orientation step's orient_arrow cue beside the
+	# destination plate. The cue is a mouse-transparent mark on the wall, not
+	# a control (the O-1 form's row is the interactive twin); the form itself
+	# is DOCKED inside the docket region (T29 — never an overlay again).
 	orientation_cue = OrientationCue.new()
 	orientation_cue.name = "OrientationCue"
 	orientation_cue.z_index = 20  # the run-1 chalk's plane — over the door's slide
 	add_child(orientation_cue)
 
-	_position_orientation_form()
-	orientation_form.resized.connect(_position_orientation_form)
-	header_notice.resized.connect(_position_orientation_form)
-	docket_housing.resized.connect(_position_orientation_form)
 	docket_housing.resized.connect(_position_orientation_cue)
-	resized.connect(_position_orientation_form)
 	resized.connect(_position_orientation_cue)
 	for plate in _plate_order:
 		plate.resized.connect(_position_orientation_cue)
 
-	# T10a overlays: save notices post above the console; the MAIL CALL card
-	# dims the concourse while posted (both bound to the engines later —
-	# bind_engines() — and hidden until they have something to say).
-	save_board = SaveNoticeBoard.new()
-	save_board.name = "SaveNoticeBoard"
-	save_board.set_anchors_preset(PRESET_FULL_RECT)
-	save_board.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(save_board)
-
+	# T10a overlays: the MAIL CALL card dims the concourse while posted (bound
+	# to the engines later — bind_engines() — and hidden until it has
+	# something to say). The one intentional input trap (modal by design).
 	mail_call = MailCallModal.new()
 	mail_call.name = "MailCallModal"
 	mail_call.z_index = 40
@@ -509,15 +503,25 @@ func _build_header() -> Control:
 	facility.add_child(fcol)
 	row.add_child(facility)
 
-	# Standing posted notice. T18: while the O-1 form is EXPANDED, the form
-	# posts over this slot (intake paperwork outranks standing flavor) and the
-	# notice stands down; it returns when the form folds to its slip.
+	# Standing posted notice. (T29: the O-1 form no longer posts over this
+	# slot — it is docked in the docket region — so the standing notice keeps
+	# its post for the whole session.) T29 ergonomics: the paper SHARES the
+	# header row (EXPAND beside the facility plate, 380 kept as its floor) —
+	# the run-3 fixed-380 slot wrapped its notice to ~6 lines at 200% font
+	# scale, eating 319 px of the 720p shell and starving the docket region.
 	var notice := _panel_box("PaperNotice")
 	notice.name = "HeaderNotice"
 	notice.custom_minimum_size = Vector2(380.0, 0.0)
+	notice.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var ncol := _vbox(8)
 	var copy := _label("PaperText", HEADER_NOTICE)
 	copy.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# T29 ergonomics: the standing flavor notice never outgrows the header
+	# row — at 200% font scale the run-3 slot wrapped it to ~5 lines (208 px,
+	# the header row's tall pole) and starved the docket region below. Three
+	# wrapped lines with an ellipsis keep the paper a paper at every scale.
+	copy.max_lines_visible = 3
+	copy.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	ncol.add_child(copy)
 	ncol.add_child(_label("PaperStamp", "POSTED — SECTOR B"))
 	notice.add_child(ncol)
@@ -564,10 +568,35 @@ func _plate_text(d: Dictionary, index: int) -> String:
 	return "%s · %d" % [d.plate, index + 1]
 
 func _build_docket_region() -> Control:
+	# T29 — the docket region is a DOCKED column: the O-1 form strip posts at
+	# its top (intake paperwork leads, and since the blockade report it TAKES
+	# LAYOUT SPACE — the docket viewport resizes around the strip instead of
+	# sitting under floating paper), save notices post as a row in the same
+	# strip (never a floating plate over the docket's bottom), and the docket
+	# scroll takes the remaining — always the majority — of the region.
+	var region := _vbox(8)
+	region.name = "DocketRegion"
+	region.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	region.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	orientation_form = OrientationForm.new()
+	orientation_form.name = "OrientationForm"
+	orientation_form.dept_label = _dept_hint_for
+	orientation_form.step_activated.connect(_on_orientation_step_activated)
+	region.add_child(orientation_form)
+
+	save_board = SaveNoticeBoard.new()
+	save_board.name = "SaveNoticeBoard"
+	region.add_child(save_board)
+
 	var scroll := ScrollContainer.new()
 	scroll.name = "DocketScroll"
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# T29 law: no shell state may ever close the docket — the viewport keeps
+	# a structural floor (the O-1 strip and any posted save notice budget
+	# themselves around the region's minimums; see OrientationForm).
+	scroll.custom_minimum_size = Vector2(0.0, 100.0)
 	docket_scroll = scroll
 	docket_housing = _panel_box("SteelPanel")
 	docket_housing.name = "DocketHousing"
@@ -576,7 +605,9 @@ func _build_docket_region() -> Control:
 	docket_housing.clip_contents = true
 	scroll.add_child(docket_housing)
 
-	var dm := _margins_box(24, 18, 24, 18)
+	# T29: the docket's top margin trims 18 -> 14 (the header plate must
+	# clear the viewport at 1280x720 + 200% with the O-1 strip posted).
+	var dm := _margins_box(24, 14, 24, 18)
 	dm.name = "DocketMargin"
 	for d in DEPARTMENTS:
 		dm.add_child(_build_docket(d))
@@ -594,7 +625,8 @@ func _build_docket_region() -> Control:
 	scol.add_child(_label("MicroLabel", "DEPARTMENT CHANGE IN PROGRESS — STAND CLEAR"))
 	shutter.add_child(scol)
 	docket_housing.add_child(shutter)
-	return scroll
+	region.add_child(scroll)
+	return region
 
 ## One department's docket placeholder — T10a/T10b replace the internals; the
 ## shell (header plate, posted directive, gauge inset, primary action) keeps.
@@ -824,33 +856,6 @@ func _dept_hint_for(dept_id: String) -> String:
 	return "%s · PRESS %d" % [String(d["plate"]), idx + 1]
 
 
-## The O-1 form posts in TWO positions, both at the shell's right margin:
-## EXPANDED — over the intake notice slot at the top of the shell (intake
-## paperwork outranks the standing flavor notice, which stands down while the
-## form leads; at 200% font scale the 380 px notice slot is the only anchor
-## with vertical room for the full checklist above the console), hanging over
-## the docket's top-right corner below it; SLIP — pinned to the docket
-## frame's top-right corner. Re-positioned on every resize (window, font
-## scale, and the form's own expanded/slip height change).
-func _position_orientation_form() -> void:
-	if orientation_form == null or docket_housing == null or header_notice == null:
-		return
-	if docket_housing.size == Vector2.ZERO or header_notice.size == Vector2.ZERO:
-		return
-	var size := orientation_form.size
-	if orientation_form.is_expanded():
-		var nr := header_notice.get_global_rect()
-		orientation_form.global_position = Vector2(nr.end.x - size.x, nr.position.y)
-	else:
-		var hr := docket_housing.get_global_rect()
-		orientation_form.global_position = Vector2(
-			hr.end.x - size.x - 18.0, hr.position.y + 14.0)
-	# The standing notice stands down while intake paperwork leads — modulate,
-	# never visible=false, so the header row's layout never reflows (the
-	# facility plate must not stretch mid-tutorial).
-	header_notice.modulate = Color(1.0, 1.0, 1.0, 0.0 if orientation_form.is_expanded() else 1.0)
-
-
 func _position_orientation_cue() -> void:
 	if orientation_cue == null:
 		return
@@ -869,14 +874,14 @@ func _on_font_scale_value(value: float) -> void:
 		_ui_theme.apply_font_scale(scale)
 	font_readout.text = "%d%%" % roundi(scale * 100.0)
 	font_scale_changed.emit(scale)
-	# T18: the O-1 form + cue re-position after the scaled layout settles.
+	# T18: the O-1 cue re-positions after the scaled layout settles (the form
+	# itself is docked — the layout pass owns it).
 	_reposition_orientation_after_layout()
 
 
 func _reposition_orientation_after_layout() -> void:
 	await get_tree().process_frame
 	if is_inside_tree():
-		_position_orientation_form()
 		_position_orientation_cue()
 
 func _set_slider_focus(lit: bool) -> void:

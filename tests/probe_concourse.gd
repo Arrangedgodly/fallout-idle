@@ -114,11 +114,13 @@ func _run() -> void:
 	await _check_t17_personnel()
 	await _check_font_scale()
 	await _check_r1_viewport_geometry()
+	await _check_t29_blockade_audit()
 	if _capture_mode:
 		await _capture_sets()
 		await _capture_t10a_sets()
 		await _capture_t10b_sets()
 		await _capture_t26_sets()
+		await _capture_t29_sets()
 		if _capture_unsupported:
 			_done = true
 			return  # already quitting CAPTURE_UNSUPPORTED_EXIT for the runner
@@ -236,8 +238,14 @@ func _check_first_run() -> void:
 				"step 1 (WORK A POSTED SHIFT) is the cued current row")
 			_check(not (form.row_for("deputize_resident").get_node("Row/ArrowGlyph") as Control).is_visible_in_tree(),
 				"step 7 waits its turn (no arrow)")
-		_check(not form.get_node("FormColumn/FoldForm").is_visible_in_tree(),
-			"no fold control at zero stamps (the tutorial leads)")
+		# T29 (the user's report is law): the FOLD control posts from the very
+		# first run — step 0. The run-3 build withheld it below 5 stamps and
+		# the resident had NO way to collapse the expanded form.
+		var fold0: Control = form.get_node("FormColumn/FormHeader/FoldForm")
+		_check(fold0.is_visible_in_tree() and fold0.text == "FOLD",
+			"FOLD control posted and labeled from step 0 (unmissable, at the strip's edge)")
+		_check(fold0.focus_mode != Control.FOCUS_NONE,
+			"FOLD control is keyboard-focusable from step 0")
 	# The step cue beside the destination plate (step 1 -> SCAVENGING).
 	var cue := _concourse.cue()
 	_check(cue != null and cue.visible, "orient_arrow cue posted beside the target plate")
@@ -1284,6 +1292,265 @@ func _check_r1_viewport_geometry() -> void:
 	_concourse.font_slider.value = 0.0
 	await _frames(2)
 
+# ------------------------------------------------------------ T29 blockade audit
+## The run-4 defect class, audited structurally across representative UI
+## states x scales x resolutions. LAW (the user's report is law): no
+## non-modal Control with input presence (mouse_filter != IGNORE, visible)
+## may intersect any focusable interactive control's rect — nothing may ever
+## sit ON TOP of a control and eat its clicks — and z-order may never put a
+## non-modal panel above interactive controls (subsumed: intersecting input
+## rects are forbidden regardless of order). Ancestry is exempt (containers
+## legitimately contain their focusables). The ONE intentional exemption is
+## the MAIL CALL modal's input trap (asserted to be the only one). Audited
+## at rest (the bulkhead shutter is the door mid-transition, hidden at rest).
+func _t29_collect_solids(node: Node, out: Array[Control]) -> void:
+	if node is Control:
+		var c := node as Control
+		if c.is_visible_in_tree() and c.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+			out.append(c)
+	for child in node.get_children():
+		_t29_collect_solids(child, out)
+
+
+## Does `a` paint above `b`? (z_index first, then sibling order under the
+## common ancestor — Godot's child sort.) Used to name the offender honestly.
+func _t29_paints_above(a: Control, b: Control) -> bool:
+	var chain_a: Array[Node] = []
+	var chain_b: Array[Node] = []
+	var na: Node = a
+	while na != null:
+		chain_a.push_front(na)
+		na = na.get_parent()
+	var nb: Node = b
+	while nb != null:
+		chain_b.push_front(nb)
+		nb = nb.get_parent()
+	var i := 0
+	while i < chain_a.size() and i < chain_b.size() and chain_a[i] == chain_b[i]:
+		i += 1
+	if i == 0 or i >= chain_a.size() or i >= chain_b.size():
+		return false
+	var ca := chain_a[i] as Control
+	var cb := chain_b[i] as Control
+	if ca == null or cb == null:
+		return false
+	if ca.z_index != cb.z_index:
+		return ca.z_index > cb.z_index
+	return ca.get_index() > cb.get_index()
+
+
+## A control's EFFECTIVE rect: its global rect clipped by every clipping
+## ancestor (ScrollContainers and clip_contents panels). Scroll-hosted
+## content legitimately extends past its viewport — it is invisible and
+## unreachable there, so only the clipped rect can blockade.
+func _t29_effective_rect(c: Control) -> Rect2:
+	var r := c.get_global_rect()
+	var p := c.get_parent()
+	while p != null and p is Control:
+		var pc := p as Control
+		if pc.clip_contents or pc is ScrollContainer:
+			r = r.intersection(pc.get_global_rect())
+		p = p.get_parent()
+	return r
+
+
+func _t29_audit(tag: String, allow_modal: bool) -> void:
+	var focusables := _concourse.focusable_controls()
+	var solids: Array[Control] = []
+	_t29_collect_solids(_concourse, solids)
+	var mail := _concourse.mail_call
+	var offenders: Array[String] = []
+	var modal_pairs := 0
+	for s in solids:
+		var s_rect := _t29_effective_rect(s)
+		if s_rect.get_area() <= 0.0:
+			continue
+		for f in focusables:
+			if s == f or s.is_ancestor_of(f) or f.is_ancestor_of(s):
+				continue
+			if not s_rect.intersects(_t29_effective_rect(f)):
+				continue
+			# Only the ABOVE direction blockades: an under-painted solid can
+			# never eat the focusable's input or hide it (the focusable paints
+			# over it).
+			if not _t29_paints_above(s, f):
+				continue
+			if allow_modal and (s == mail or mail.is_ancestor_of(s) or mail.is_ancestor_of(f)):
+				modal_pairs += 1
+				continue
+			offenders.append("'%s'(%s) over '%s'" % [s.name, s.theme_type_variation, f.name])
+	_check(offenders.is_empty(),
+		"T29 %s: zero blockade-class rect intersections (%d focusables; offenders painting ABOVE: %s)" % [
+			tag, focusables.size(), "; ".join(offenders)])
+	if allow_modal:
+		_check(_concourse.mail_call.is_presenting() and modal_pairs > 0,
+			"T29 %s: the presenting MAIL CALL is the one input trap (modal by design)" % tag)
+
+
+## T29 layout pins for the docked strip, run inside the audit matrix.
+## min_scroll: the docket viewport floor the state must keep — the full
+## plate-enclosure bar for form states; a documented, smaller floor for the
+## transient save-notice state (an interruption notice may squeeze the docket
+## further, never overlap or close it).
+func _t29_strip_pins(tag: String, min_scroll := 120.0, need_plate := true) -> void:
+	var form := _concourse.orientation()
+	var fr := form.get_global_rect()
+	var scroll := _concourse.find_child("DocketScroll", true, false) as ScrollContainer
+	var sr := scroll.get_global_rect()
+	# Never on top: the strip and the docket viewport are layout siblings.
+	_check(not fr.intersects(sr),
+		"T29 %s: the O-1 strip never intersects the docket viewport" % tag)
+	_check(fr.position.x >= 0.0 and fr.end.x <= _vp.size.x + 1.0
+			and fr.position.y >= 0.0 and fr.end.y <= _vp.size.y + 1.0,
+		"T29 %s: the O-1 strip fully on screen" % tag)
+	# The docket stays usable with the form OPEN: its viewport keeps its
+	# header plate (the R1 proxy) and a working height at every scale.
+	var plate := _concourse.docket_for(_concourse.active_department()) \
+		.find_child("DocketHeader", true, false) as Control
+	var enclosed: bool = plate != null and sr.encloses(plate.get_global_rect())
+	_check(sr.size.y >= min_scroll and (enclosed or not need_plate),
+		"T29 %s: docket viewport usable with the form open (h=%.0f, header plate %s %s)" % [
+			tag, sr.size.y, "enclosed" if enclosed else "clipped",
+			"" if enclosed or plate == null else "plate=%s scroll=%s" % [
+				str(plate.get_global_rect()), str(sr)]])
+	# The wall never pays for the form: at 100% all eight plates stay on the
+	# wall unscrolled (the T17 contract), form open or folded.
+	if _concourse.font_slider.value < 1.0:
+		var wall := _concourse.find_child("PlateWallScroll", true, false) as ScrollContainer
+		_check(wall.scroll_vertical == 0,
+			"T29 %s: plate wall unscrolled at 100%% with the form posted (h=%.0f)" % [tag, fr.size.y])
+
+
+func _t29_stamp_steps(tm: Node, steps: Array) -> void:
+	# Engine-true fast paths (test_orientation's _stamp_all_but, probe-local).
+	if steps.has("work_shift"):
+		tm.start_activity("sort_scrap_pile")
+		tm.stop_skill("scavenging")
+	if steps.has("earn_clearance"):
+		tm.engine.grant_xp(tm.state, "scavenging", 25)
+	if steps.has("file_crowns_claim"):
+		tm.state.add_item("scrap_metal", 5)
+		tm.depot_sell("scrap_metal")
+	if steps.has("process_product"):
+		tm.state.add_item("scrap_metal", 30)
+		tm.start_activity("smelt_scrap_ingot")
+		_pump(tm, 5_000)
+		tm.stop_skill("junksmithing")
+	if steps.has("provision_patrol"):
+		tm.state.add_item("scrap_shiv", 1)
+		tm.equip_item("scrap_shiv")
+	if steps.has("clear_nuisance"):
+		tm.engage_monster("junkyard_roach")
+		_pump(tm, 300_000)
+	if steps.has("deputize_resident"):
+		tm.state.add_crowns(300)
+		tm.deputize_resident()
+	tm.batcher.force_flush(tm.sim_time_ms)
+
+
+func _check_t29_blockade_audit() -> void:
+	var tm: Node = _concourse.bound_tick_manager()
+	if tm == null:
+		_check(false, "T29: concourse bound a TickManager")
+		return
+	var form := _concourse.orientation()
+	for vp_size in [Vector2i(1280, 720), Vector2i(1920, 1080)]:
+		_vp.size = vp_size
+		await _frames(4)
+		for scale_value in [0.0, 2.0]:
+			_concourse.font_slider.value = scale_value
+			await _frames(3)
+			var sc := "100%" if scale_value < 1.0 else "200%"
+			var tag := "%dx%d %s" % [vp_size.x, vp_size.y, sc]
+
+			# State A — fresh run 0/7, form EXPANDED (the first-run contract).
+			tm.new_game(20260929)
+			_concourse.set_first_run(true)
+			await _frames(2)
+			_check(form.is_expanded(), "T29 %s fresh 0/7: form expanded (first-run contract)" % tag)
+			_t29_audit("fresh-0/7 " + tag, false)
+			_t29_strip_pins("fresh-0/7 " + tag)
+
+			# State B — mid 2/7 (the user's report), a running posting.
+			_t29_stamp_steps(tm, ["work_shift", "earn_clearance"])
+			tm.start_activity("sort_scrap_pile")
+			tm.batcher.force_flush(tm.sim_time_ms)
+			await _frames(2)
+			_check(int(tm.orientation_progress()["count"]) == 2,
+				"T29 %s mid 2/7 staged" % tag)
+			_t29_audit("mid-2/7 " + tag, false)
+			_t29_strip_pins("mid-2/7 " + tag)
+
+			# State C — 5/7: the auto-fold convenience fires exactly once and
+			# the slip is ONE line; a manual OPEN sticks.
+			tm.new_game(20260929)
+			_t29_stamp_steps(tm, ["work_shift", "earn_clearance", "file_crowns_claim",
+				"process_product", "provision_patrol"])
+			await _frames(2)
+			_check(int(tm.orientation_progress()["count"]) == 5,
+				"T29 %s five staged" % tag)
+			_check(not form.is_expanded(),
+				"T29 %s 5/7: the auto-fold convenience fired (form settles into the slip)" % tag)
+			_check(form.get_global_rect().size.y < 180.0,
+				"T29 %s 5/7 slip: strip collapses to its one line (h=%.0f)" % [
+					tag, form.get_global_rect().size.y])
+			_t29_audit("slip-5/7 " + tag, false)
+			form.expand()
+			await _frames(2)
+			_check(form.is_expanded(), "T29 %s 5/7 re-open: manual OPEN sticks" % tag)
+			_t29_audit("reopen-5/7 " + tag, false)
+			_t29_strip_pins("reopen-5/7 " + tag)
+			form.fold()
+			await _frames(1)
+
+			# State D — completed: the record, then the permanent slip.
+			tm.new_game(20260929)
+			_t29_stamp_steps(tm, ["work_shift", "earn_clearance", "file_crowns_claim",
+				"process_product", "provision_patrol", "clear_nuisance",
+				"deputize_resident"])
+			await _frames(2)
+			_check(bool(tm.orientation_progress()["complete"]), "T29 %s completed staged" % tag)
+			# The celebration beat expands the record once, then settles. The
+			# beat is a real 2.6 s timer — headless frames tick faster than
+			# wall time, so the budget counts frames generously.
+			var settled := await _wait_until(func() -> bool: return not form.is_expanded(), 4000)
+			_check(settled, "T29 %s completed: record celebrated once, then slipped" % tag)
+			_t29_audit("completed-slip " + tag, false)
+			form.expand()
+			await _frames(2)
+			_t29_audit("completed-record " + tag, false)
+			_t29_strip_pins("completed-record " + tag)
+			form.fold()
+			await _frames(1)
+
+			# State E — a posted save notice (docked row since T29). A posted
+			# interruption notice may squeeze the docket further (transient,
+			# acknowledged away) but never overlaps or closes it.
+			_concourse.save_board.post("save_write_failed", {"reason": "desk full"})
+			await _frames(2)
+			_check(_concourse.save_board.is_posting(), "T29 %s save notice posted" % tag)
+			_check(_concourse.save_board.ack_button.focus_mode != Control.FOCUS_NONE
+					and _concourse.save_board.ack_button.is_visible_in_tree(),
+				"T29 %s: the posted notice carries its ACKNOWLEDGE control" % tag)
+			_t29_audit("save-notice " + tag, false)
+			_t29_strip_pins("save-notice " + tag, 40.0, false)
+			_concourse.save_board.ack_button.pressed.emit()
+			await _frames(1)
+
+			# State F — MAIL CALL presented: the modal is the ONLY exemption.
+			var payload := {"elapsed_ms": 60_000, "skills_xp": {"scavenging": 10},
+				"items": {}, "levels": {}, "actions": {}, "stopped": []}
+			_concourse.mail_call.present(payload, tm.engine.lib)
+			await _frames(2)
+			_t29_audit("mail-open " + tag, true)
+			_concourse.mail_call.acknowledge()
+			await _frames(2)
+			_t29_audit("mail-closed " + tag, false)
+	# Restore the probe's standing state for the capture sets.
+	_vp.size = Vector2i(1280, 720)
+	_concourse.font_slider.value = 0.0
+	await _frames(2)
+
 # ------------------------------------------------------------------ capture
 func _capture_sets() -> void:
 	if DirAccess.make_dir_recursive_absolute(REVIEW_DIR) != OK:
@@ -1675,13 +1942,13 @@ func _capture_t26_sets() -> void:
 	await _frames(2)
 	_concourse.set_first_run(false)
 	# Staging, documented: the O-1 intake form folds to its slip so the
-	# captures show the register/board regions it corners (live, the fold
-	# control posts at >= 5 stamped steps — the tutorial stays expanded
-	# while it IS the priority; these captures review the dossier sections).
+	# captures show the register/board regions it corners (T29: folding is a
+	# first-class resident action from step 0; these captures review the
+	# dossier sections).
 	_concourse.orientation_form.fold()
 	await _frames(1)
 	_check(not _concourse.orientation_form.is_expanded()
-			and not _concourse.orientation_form.get_node("FormColumn/StepRows").is_visible_in_tree(),
+			and not _concourse.orientation_form.get_node("FormColumn/FormBody/StepRows").is_visible_in_tree(),
 		"t26 capture: O-1 form slipped (rows hidden) for register visibility")
 	var scroll: ScrollContainer = _concourse.find_child("DocketScroll", true, false) as ScrollContainer
 
@@ -1832,6 +2099,88 @@ func _validate_t26_pngs() -> void:
 		if img == null:
 			continue
 		_check(Vector2i(img.get_width(), img.get_height()) == expects[file_name],
+			"%s dimensions %dx%d" % [file_name, img.get_width(), img.get_height()])
+		var colors := {}
+		for x in range(0, img.get_width(), 16):
+			for y in range(0, img.get_height(), 16):
+				colors[img.get_pixel(x, y).to_html(true)] = true
+		_check(colors.size() >= 8, "%s renders real content (%d distinct sampled colors)" % [
+			file_name, colors.size()])
+
+
+# ------------------------------------------------------- T29 capture set
+## The de-blockade evidence set: the user's reported state (orientation 2/7,
+## a running scavenging shift) with the form OPEN at 100% and 200%, and the
+## same state FOLDED to its one-line slip. The before captures (the run-3
+## overlay form) live alongside as before_*.png from the reproduction run.
+const T29_DIR := "res://.impeccable/review/t29"
+
+
+func _capture_t29_sets() -> void:
+	if DirAccess.make_dir_recursive_absolute(T29_DIR) != OK:
+		_check(false, "t29 review dir created")
+		return
+	var tm: Node = _concourse.bound_tick_manager()
+	if tm == null:
+		_check(false, "t29 capture: engine bound")
+		return
+	_vp.size = Vector2i(1280, 720)
+	_concourse.font_slider.value = 0.0
+	await _frames(2)
+	tm.new_game(20260929)
+	_t29_stamp_steps(tm, ["work_shift", "earn_clearance"])
+	tm.start_activity("sort_scrap_pile")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	await _frames(2)
+	_concourse.set_first_run(false)
+	_concourse.orientation().expand()  # the t26 set leaves the form slipped
+	await _frames(2)
+	_check(int(tm.orientation_progress()["count"]) == 2 and _concourse.orientation().is_expanded(),
+		"t29 capture: the user's state staged (2/7, form open, shift running)")
+	if not _snap_t29("t29_form_open_1280x720.png"):
+		return
+	_concourse.orientation().fold()
+	await _frames(2)
+	if not _snap_t29("t29_form_folded_1280x720.png"):
+		return
+	_concourse.orientation().expand()
+	_concourse.font_slider.value = 2.0
+	await _frames(4)
+	if not _snap_t29("t29_form_open_1280x720_200pct.png"):
+		return
+	_concourse.font_slider.value = 0.0
+	await _frames(2)
+	_validate_t29_pngs()
+
+
+func _snap_t29(file_name: String) -> bool:
+	var img := _vp.get_texture().get_image()
+	if img == null:
+		print("HEADLESS_CAPTURE_UNSUPPORTED (dummy rasterizer returned no image)")
+		_capture_unsupported = true
+		quit(CAPTURE_UNSUPPORTED_EXIT)
+		_done = true
+		return false
+	var path := T29_DIR + "/" + file_name
+	var err := img.save_png(path)
+	_check(err == OK, "captured %s (err=%d)" % [path, err])
+	return true
+
+
+func _validate_t29_pngs() -> void:
+	for file_name: String in ["t29_form_open_1280x720.png",
+			"t29_form_folded_1280x720.png", "t29_form_open_1280x720_200pct.png"]:
+		var path := T29_DIR + "/" + file_name
+		var fa := FileAccess.open(path, FileAccess.READ)
+		_check(fa != null and fa.get_length() > 0, "%s saved with size > 0" % file_name)
+		if fa == null:
+			continue
+		fa.close()
+		var img := Image.load_from_file(path)
+		_check(img != null, "%s is a loadable image" % file_name)
+		if img == null:
+			continue
+		_check(Vector2i(img.get_width(), img.get_height()) == Vector2i(1280, 720),
 			"%s dimensions %dx%d" % [file_name, img.get_width(), img.get_height()])
 		var colors := {}
 		for x in range(0, img.get_width(), 16):

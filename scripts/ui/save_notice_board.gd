@@ -1,11 +1,15 @@
 class_name SaveNoticeBoard
-extends Control
+extends PanelContainer
 ## SaveNoticeBoard — T10a concourse posting for T3 SaveStore notice states:
 ## corruption fallbacks, backup-loaded restores, refused newer-save versions
-## and failed filings. One posted plate at a time, anchored above the console
-## bar; the resident acknowledges it away (SaveStore.clear_notice files the
-## acknowledgment). Wiring: bind(save_store) reads any notice that was
-## raised before the concourse existed and follows notice_raised after.
+## and failed filings. T29: the notice is a DOCKED row in the docket region's
+## strip (between the O-1 form and the docket scroll) — never again a floating
+## plate above the console, which sat over the docket's bottom rows and ate
+## their clicks (the same blockade class as the run-3 orientation-form
+## defect). One posted row at a time; the resident acknowledges it away
+## (SaveStore.clear_notice files the acknowledgment). Wiring: bind(save_store)
+## reads any notice that was raised before the concourse existed and follows
+## notice_raised after.
 
 signal acknowledged(kind: String)
 
@@ -25,7 +29,6 @@ const COPY := {
 }
 const PAPER_KINDS := ["save_write_failed"]
 
-var plate: PanelContainer
 var title_line: Label
 var detail_line: Label
 var ack_button: Button
@@ -36,54 +39,42 @@ var _store_connections: Array[Signal] = []
 
 
 func _init() -> void:
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	name = "SaveNoticeBoard"
 	visible = false
+	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
-	plate = PanelContainer.new()
-	plate.name = "SaveNoticePlate"
-	plate.theme_type_variation = "DangerPlate"
-	plate.z_index = 30
 	var col := VBoxContainer.new()
+	col.name = "NoticeColumn"
 	col.add_theme_constant_override("separation", 4)
+	# One bounded row: [title ... ACKNOWLEDGE] then a single detail line —
+	# the docked row shares the docket region with the O-1 strip, tight at
+	# 1280x720 + 200% font scale (T29).
+	var head := HBoxContainer.new()
+	head.name = "NoticeHead"
+	head.add_theme_constant_override("separation", 10)
 	title_line = Label.new()
+	title_line.name = "NoticeTitle"
 	title_line.theme_type_variation = "MonoValue"
 	title_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	col.add_child(title_line)
-	detail_line = Label.new()
-	detail_line.theme_type_variation = "MonoValue"
-	detail_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	col.add_child(detail_line)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(spacer)
+	title_line.max_lines_visible = 1
+	title_line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	title_line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(title_line)
 	ack_button = Button.new()
 	ack_button.name = "AcknowledgeNotice"
 	ack_button.text = "ACKNOWLEDGE"
 	ack_button.tooltip_text = "File this notice away and carry on"
 	ack_button.pressed.connect(_on_ack_pressed)
-	row.add_child(ack_button)
-	col.add_child(row)
-	plate.add_child(col)
-	add_child(plate)
-
-
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_RESIZED and visible:
-		_layout()
-
-
-func _layout() -> void:
-	if not is_inside_tree():
-		return
-	var window_w := get_viewport_rect().size.x
-	var w := minf(560.0, window_w - 120.0)
-	plate.custom_minimum_size = Vector2(w, 0.0)
-	var console := get_parent().find_child("ConsoleBar", true, false) as Control if get_parent() != null else null
-	var bottom: float = console.get_global_rect().position.y - 12.0 if console != null \
-			else get_viewport_rect().size.y - 90.0
-	plate.global_position = Vector2((window_w - w) * 0.5, bottom - plate.get_combined_minimum_size().y)
+	head.add_child(ack_button)
+	col.add_child(head)
+	detail_line = Label.new()
+	detail_line.name = "NoticeDetail"
+	detail_line.theme_type_variation = "MonoValue"
+	detail_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	detail_line.max_lines_visible = 1
+	detail_line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	col.add_child(detail_line)
+	add_child(col)
 
 
 # ------------------------------------------------------------------ binding
@@ -125,7 +116,7 @@ func _on_notice_raised(kind: String, detail: Dictionary) -> void:
 	_post(kind, detail)
 
 
-## Post one notice plate (public: tests and the concourse use it directly).
+## Post one notice row (public: tests and the concourse use it directly).
 func post(kind: String, detail: Dictionary = {}) -> void:
 	_post(kind, detail)
 
@@ -136,14 +127,12 @@ func _post(kind: String, detail: Dictionary) -> void:
 	_kind = kind
 	var copy: Array = COPY[kind]
 	var is_paper: bool = PAPER_KINDS.has(kind)
-	plate.theme_type_variation = "PaperNotice" if is_paper else "DangerPlate"
+	theme_type_variation = "PaperNotice" if is_paper else "DangerPlate"
 	title_line.theme_type_variation = "PlateSerialNavy" if is_paper else "MonoValue"
 	detail_line.theme_type_variation = "PaperText" if is_paper else "MonoValue"
 	title_line.text = copy[0]
 	detail_line.text = copy[1] + _detail_suffix(kind, detail)
 	visible = true
-	_layout()
-	_layout.call_deferred()  # console geometry settles after the pass
 
 
 func _detail_suffix(kind: String, detail: Dictionary) -> String:

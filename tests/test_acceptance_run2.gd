@@ -224,9 +224,9 @@ func test_a1_tutorial_journey_seven_steps_to_duly_oriented() -> void:
 	assert_true(form.is_expanded(), "completion holds the record open for its beat")
 	assert_lte(form.word_count(), WORD_BUDGET,
 		"the completed record is low-text (<= 40 words, got %d)" % form.word_count())
-	assert_eq((form.get_node("FormColumn/CompletionRecord/StampRow/StampLine") as Label).text,
+	assert_eq((form.get_node("FormColumn/FormBody/CompletionRecord/StampRow/StampLine") as Label).text,
 		STAMP_LINE, "the DULY ORIENTED stamp posts verbatim")
-	assert_eq((form.get_node("FormColumn/CompletionRecord/StipendRow/StipendLine") as Label).text,
+	assert_eq((form.get_node("FormColumn/FormBody/CompletionRecord/StipendRow/StipendLine") as Label).text,
 		STIPEND_LINE, "the stipend line posts the naming-bible reward wording verbatim")
 	assert_false(c.cue().visible, "the arrow class retires with the tutorial")
 	# The slip state: after the 2.6 s celebration beat the record settles.

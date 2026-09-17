@@ -517,18 +517,22 @@ func test_form_first_run_expanded_step1_cued_five_second_contract() -> void:
 		"cue vertically centered on the scavenging plate")
 	assert_almost_eq(cue_rect.position.x, plate_rect.end.x + 4.0, 10.0,
 		"cue sits at the plate's right shoulder, pointing into it")
-	# The form posts over the intake notice slot (right margin), fully on
-	# screen — the standing flavor notice stands down while intake leads.
+	# The form posts as a DOCKED strip in the docket region (T29: never an
+	# overlay again) — its rect never intersects the docket viewport, and it
+	# is fully on screen.
 	var form_rect := form.get_global_rect()
-	var housing := _concourse.docket_housing.get_global_rect()
-	assert_almost_eq(form_rect.end.x, housing.end.x, 24.0,
-		"form's right edge aligns with the docket frame's right margin")
+	var dscroll := _concourse.find_child("DocketScroll", true, false) as Control
+	assert_false(form_rect.intersects(dscroll.get_global_rect()),
+		"T29: the docked strip never intersects the docket viewport")
 	assert_true(form_rect.position.x >= 0.0 and form_rect.end.x <= 1280.0 + 1.0,
 		"form fully on screen horizontally at 100%")
 	assert_true(form_rect.end.y <= 720.0 + 1.0, "form fully on screen at 720p")
-	# Fold control absent at zero steps (pinned open while the tutorial leads).
-	assert_false(form.get_node("FormColumn/FoldForm").is_visible_in_tree(),
-		"no fold control before 5 stamps (documented rule)")
+	# T29 (the user's report is law): the FOLD control is posted from the
+	# very first run — step 0 — labeled and focusable at the strip's edge.
+	var fold0: Button = form.get_node("FormColumn/FormHeader/FoldForm")
+	assert_true(fold0.is_visible_in_tree(), "FOLD posted from step 0 (no minimum stamps)")
+	assert_eq(fold0.text, "FOLD", "the fold control is labeled")
+	assert_true(fold0.focus_mode != Control.FOCUS_NONE, "the fold control is focusable")
 
 
 func _arrow_visible(row: Button) -> bool:
@@ -567,13 +571,14 @@ func _stamp_visible(row: Button) -> bool:
 func test_keyboard_path_rows_and_fold() -> void:
 	var tm: Variant = await _boot_concourse()
 	var form := _form()
-	# All seven rows are keyboard-reachable in one tab cycle from boot focus.
+	# All seven rows AND the FOLD control are keyboard-reachable in one tab
+	# cycle from boot focus (T29: fold from step 0).
 	var form_focus: Array[Control] = []
 	_visible_focusables_in(form, form_focus)
-	assert_eq(form_focus.size(), 7, "seven focusable rows (no fold at 0 steps)")
+	assert_eq(form_focus.size(), 8, "seven focusable rows + FOLD at 0 steps")
 	var focusables: Array[Control] = []
 	_visible_focusables_in(_concourse, focusables)
-	assert_true(focusables.size() >= 7 + 8 + 4,
+	assert_true(focusables.size() >= 8 + 8 + 4,
 		"rows join the concourse tab cycle (%d focusables)" % focusables.size())
 	var visited := {}
 	var cur: Control = _vp.gui_get_focus_owner()
@@ -596,22 +601,93 @@ func test_keyboard_path_rows_and_fold() -> void:
 			and focus_ring.border_width_top > 0 and focus_ring.expand_margin_left > 0.0,
 		"row focus ring is the theme's amber contract")
 
-	# At five stamps the fold control posts; keyboard folds and re-opens.
+	# Keyboard fold works FROM STEP 0 (T29): ui_accept on the focused FOLD.
+	var fold: Button = form.get_node("FormColumn/FormHeader/FoldForm")
+	fold.grab_focus()
+	await wait_frames(1)
+	_push_accept()
+	await wait_frames(2)
+	assert_false(form.is_expanded(), "keyboard FOLD collapses to the slip from step 0")
+	assert_lte(form.word_count(), WORD_BUDGET, "slip within the word budget")
+	assert_false((form.get_node("FormColumn/FormBody/StepRows") as Control).is_visible_in_tree(),
+		"the slip hides the checklist rows (T26 pin, held)")
+	var open: Button = form.get_node("FormColumn/FormHeader/OpenForm")
+	assert_true(open.is_visible_in_tree(), "the slip carries OPEN (re-view control)")
+	open.grab_focus()
+	await wait_frames(1)
+	_push_accept()
+	await wait_frames(2)
+	assert_true(form.is_expanded(), "keyboard OPEN re-expands the form")
+
+	# At five stamps the auto-fold convenience fires exactly once; a manual
+	# OPEN afterwards sticks through further stamps (no re-fold).
 	_stamp_all_but(tm, ["clear_nuisance", "deputize_resident"])
 	_flush(tm)
 	await wait_frames(2)
-	var fold: Button = form.get_node("FormColumn/FoldForm")
-	assert_true(fold.is_visible_in_tree(), "fold posts at >= 5 stamps")
-	fold.grab_focus()
-	fold.pressed.emit()
-	await wait_frames(1)
-	assert_false(form.is_expanded(), "keyboard fold collapses to the slip")
-	assert_lte(form.word_count(), WORD_BUDGET, "slip within the word budget")
-	var open: Button = form.get_node("FormColumn/OpenForm")
-	assert_true(open.is_visible_in_tree(), "the slip carries OPEN (re-view control)")
+	assert_eq(int(tm.orientation_progress()["count"]), 5, "five steps stamped")
+	assert_false(form.is_expanded(), "the 5th stamp auto-folds the form (convenience)")
+	open.grab_focus()
 	open.pressed.emit()
 	await wait_frames(1)
-	assert_true(form.is_expanded(), "keyboard OPEN re-expands the form")
+	assert_true(form.is_expanded(), "manual OPEN sticks at 5/7")
+	tm.state.add_item("scrap_metal", 5)
+	tm.depot_sell("scrap_metal")  # no new orientation step — a plain refresh
+	_flush(tm)
+	await wait_frames(2)
+	assert_true(form.is_expanded(), "a later refresh does not re-fold (once per tutorial)")
+
+
+## Real input events through the SubViewport pipeline (the a11y contract):
+## a focused FOLD answers ui_accept, and a real mouse click at the FOLD
+## button's center REACHES it (the run-3 defect: the floating form ate every
+## click inside its rect; docked, the click lands on the button).
+func _push_accept() -> void:
+	var ev := InputEventAction.new()
+	ev.action = "ui_accept"
+	ev.pressed = true
+	_vp.push_input(ev)
+	ev.pressed = false
+	_vp.push_input(ev)
+
+
+func test_real_mouse_click_reaches_fold_from_step_0() -> void:
+	var tm: Variant = await _boot_concourse()
+	var form := _form()
+	var fold: Button = form.get_node("FormColumn/FormHeader/FoldForm")
+	var fired: Array = []
+	fold.pressed.connect(func() -> void: fired.append(1))
+	var at: Vector2 = fold.get_global_rect().get_center()
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.position = at
+	ev.global_position = at
+	ev.pressed = true
+	_vp.push_input(ev)
+	await wait_frames(1)
+	var rel := ev.duplicate() as InputEventMouseButton
+	rel.pressed = false
+	_vp.push_input(rel)
+	await wait_frames(2)
+	assert_eq(fired.size(), 1, "a real click at FOLD's center reaches the button (no input blockade)")
+	assert_false(form.is_expanded(), "the click folds the form from step 0")
+	# And the slip's OPEN answers a real click too.
+	var open: Button = form.get_node("FormColumn/FormHeader/OpenForm")
+	var fired2: Array = []
+	open.pressed.connect(func() -> void: fired2.append(1))
+	at = open.get_global_rect().get_center()
+	ev = InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.position = at
+	ev.global_position = at
+	ev.pressed = true
+	_vp.push_input(ev)
+	await wait_frames(1)
+	rel = ev.duplicate() as InputEventMouseButton
+	rel.pressed = false
+	_vp.push_input(rel)
+	await wait_frames(2)
+	assert_eq(fired2.size(), 1, "a real click at OPEN's center reaches the button")
+	assert_true(form.is_expanded(), "the click re-opens the form")
 
 
 func test_completion_celebrates_then_slips_low_text_every_state() -> void:
@@ -625,9 +701,9 @@ func test_completion_celebrates_then_slips_low_text_every_state() -> void:
 	assert_true(form.is_expanded(), "completion holds the record open for its beat")
 	assert_lte(form.word_count(), WORD_BUDGET,
 		"completed record <= 40 words (got %d)" % form.word_count())
-	var stamp_line: Label = form.get_node("FormColumn/CompletionRecord/StampRow/StampLine")
+	var stamp_line: Label = form.get_node("FormColumn/FormBody/CompletionRecord/StampRow/StampLine")
 	assert_eq(stamp_line.text, "DULY ORIENTED · FORM O-1", "the stamp posts verbatim")
-	var stipend_line: Label = form.get_node("FormColumn/CompletionRecord/StipendRow/StipendLine")
+	var stipend_line: Label = form.get_node("FormColumn/FormBody/CompletionRecord/StipendRow/StipendLine")
 	assert_eq(stipend_line.text,
 		"ORIENTATION STIPEND — 150 CROWNS · THANK YOU FOR YOUR PROMPT COMPLIANCE.",
 		"the stipend line posts the naming-bible reward wording")
@@ -638,7 +714,7 @@ func test_completion_celebrates_then_slips_low_text_every_state() -> void:
 	assert_false(form.is_expanded(), "the form settles into its posted slip")
 	assert_lte(form.word_count(), WORD_BUDGET, "slip <= 40 words")
 	# Re-view: OPEN expands the completed record again.
-	form.get_node("FormColumn/OpenForm").pressed.emit()
+	form.get_node("FormColumn/FormHeader/OpenForm").pressed.emit()
 	await wait_frames(1)
 	assert_true(form.is_expanded(), "the completed record re-views")
 	assert_lte(form.word_count(), WORD_BUDGET, "re-viewed record <= 40 words")
@@ -661,16 +737,27 @@ func test_form_respects_font_scale_200() -> void:
 		if l.is_visible_in_tree() and l.autowrap_mode != TextServer.AUTOWRAP_OFF:
 			assert_gt(l.get_global_rect().size.x, 40.0,
 				"wrapped label %s renders horizontally at 200%%" % l.name)
-	# Collapse works at 200% and pins the slip on screen.
+	# Collapse works at 200% and pins the slip on screen. (The staging passes
+	# through the 5-stamp auto-fold; completion re-expands the record for its
+	# beat — FOLD is posted the whole way, T29.)
 	_stamp_all_but(tm, [])
 	_flush(tm)
 	await wait_frames(1)
-	var fold: Button = form.get_node("FormColumn/FoldForm")
-	assert_true(fold.is_visible_in_tree(), "fold posts at completion-expansion")
+	var fold: Button = form.get_node("FormColumn/FormHeader/FoldForm")
+	assert_true(fold.is_visible_in_tree(), "fold posted at completion-expansion")
 	fold.pressed.emit()
 	await wait_frames(2)
 	assert_false(form.is_expanded(), "fold works at 200%")
 	assert_lte(form.get_global_rect().end.y, 720.0 + 1.0, "slip pinned on screen at 200%%")
+	# T29 layout law at 200%: the docked strip never intersects the docket
+	# viewport, and the docket keeps its header plate (usable, not squeezed).
+	var dscroll := _concourse.find_child("DocketScroll", true, false) as Control
+	assert_false(form.get_global_rect().intersects(dscroll.get_global_rect()),
+		"strip and docket viewport never intersect at 200%")
+	var plate := _concourse.docket_for(_concourse.active_department()) \
+		.find_child("DocketHeader", true, false) as Control
+	assert_true(dscroll.get_global_rect().encloses(plate.get_global_rect()),
+		"docket header plate fully inside the viewport at 200% with the form posted")
 
 
 func _labels_in(node: Node, out: Array = []) -> Array:

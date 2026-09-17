@@ -77,9 +77,11 @@ func _run() -> void:
 	await _frames(2)
 	_check(_concourse.bound_tick_manager() != null, "engine bound (production autoload)")
 	await _contrast_audit()
+	await _t29_fold_focus_path_sweep(0.0, "100%")
 	await _t26_dossier_expanded_sweep(0.0, "100%")
 	await _font_scale_200_sweep()
 	await _t26_dossier_expanded_sweep(2.0, "200%")
+	await _t29_fold_focus_path_sweep(2.0, "200%")
 	_concourse.font_slider.value = 0.0
 	await _frames(2)
 	await _motion_audit()
@@ -89,6 +91,66 @@ func _run() -> void:
 			_done = true
 			return
 	_report_and_quit()
+
+
+## T29 — the fold/unfold path is a first-class a11y journey from step 0, at
+## both font scales: FOLD is posted, focusable, reachable in the engine's
+## tab chain, answers a real ui_accept through the input pipeline, and its
+## focus ring is the theme's amber contract; the slip's OPEN likewise.
+func _t29_fold_focus_path_sweep(scale_value: float, scale_name: String) -> void:
+	_tm().new_game(20260929)
+	_concourse.set_first_run(true)
+	_concourse.orientation().expand()
+	_concourse.font_slider.value = scale_value
+	await _frames(3)
+	var form := _concourse.orientation()
+	var fold: Button = form.get_node("FormColumn/FormHeader/FoldForm")
+	var open: Button = form.get_node("FormColumn/FormHeader/OpenForm")
+	_check(fold.is_visible_in_tree() and fold.text == "FOLD",
+		"T29 a11y %s: FOLD posted + labeled from step 0" % scale_name)
+	_check(fold.focus_mode != Control.FOCUS_NONE,
+		"T29 a11y %s: FOLD is keyboard-focusable" % scale_name)
+	# Reachable from the engine's tab chain (walk from the current focus; if
+	# an earlier audit left nothing focused, start from the shell's focus).
+	var cur: Control = _vp.gui_get_focus_owner()
+	if cur == null:
+		_concourse.initial_focus().grab_focus()
+		await _frames(1)
+		cur = _vp.gui_get_focus_owner()
+	var visited := {}
+	var guard := 0
+	while guard < 160 and cur != null and not visited.has(cur):
+		visited[cur] = true
+		cur = cur.find_next_valid_focus()
+		guard += 1
+	_check(visited.has(fold), "T29 a11y %s: FOLD sits in the tab cycle" % scale_name)
+	# Real input: ui_accept on the focused FOLD folds; the ring is amber.
+	fold.grab_focus()
+	await _frames(1)
+	var ring: StyleBoxFlat = fold.get_theme_stylebox("focus") as StyleBoxFlat
+	_check(ring != null and ring.border_color.is_equal_approx(SignageTokens.SIGNAL_AMBER),
+		"T29 a11y %s: FOLD carries the amber focus ring" % scale_name)
+	var ev := InputEventAction.new()
+	ev.action = "ui_accept"
+	ev.pressed = true
+	_vp.push_input(ev)
+	ev.pressed = false
+	_vp.push_input(ev)
+	await _frames(2)
+	_check(not form.is_expanded() and open.is_visible_in_tree(),
+		"T29 a11y %s: real ui_accept folds to the slip (OPEN posted)" % scale_name)
+	open.grab_focus()
+	await _frames(1)
+	ev = InputEventAction.new()
+	ev.action = "ui_accept"
+	ev.pressed = true
+	_vp.push_input(ev)
+	ev.pressed = false
+	_vp.push_input(ev)
+	await _frames(2)
+	_check(form.is_expanded(), "T29 a11y %s: real ui_accept on OPEN re-expands" % scale_name)
+	form.fold()
+	await _frames(1)
 
 # ------------------------------------------------------------------ setup
 func _setup() -> bool:

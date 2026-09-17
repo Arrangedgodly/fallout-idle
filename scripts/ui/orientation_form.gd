@@ -1,28 +1,38 @@
 class_name OrientationForm
 extends PanelContainer
 ## OrientationForm — T18 the posted ORIENTATION FORM O-1 (naming-bible §10/§14
-## verbatim copy; design-brief addendum "Orientation — the posted paper form").
+## verbatim copy; design-brief addendum "Orientation — the posted paper form"),
+## T29 re-docked after the user's blockade report.
 ##
-## A posted paper notice taped to the docket frame's top-right corner (the
-## concourse mounts + positions this control), NOT a modal: the tutorial is
-## always on the wall. Two states —
-##   EXPANDED (incomplete): title + intake serial + the seven stencil lines
-##     (step mark + verbatim title + the stamp slot). The current step row
-##     carries the orient_arrow glyph pointing at the plate wall and jumps to
-##     its department on press; stamped rows show the red stamp_check and dim
-##     to the registered NAVY_DIM-on-paper pair; future rows show the empty
-##     box. Foldable to the slip only once >= 5 steps are stamped (early on
-##     the tutorial IS the priority — the fold control appears once the
-##     resident knows the shelter).
-##   SLIP (completed, or folded): the posted-record chip — title + seven mini
-##     stamp boxes (+ the red mark at completion) + OPEN. Posted records
-##     never vanish; the slip is the re-view control.
-## Completion swaps the checklist for the record: the DULY ORIENTED · FORM O-1
-## stamp + the ORIENTATION STIPEND line (amount from data/staffing.json,
-## never hardcoded), holds for one bounded beat, then settles into the slip.
+## A DOCKED posted-paper strip at the top of the docket region (the concourse
+## mounts it inside the docket column's layout, above the docket scroll), NOT a
+## modal and — since T29 — NEVER an overlay: the strip takes layout space and
+## the docket viewport resizes around it, so no control can ever sit under the
+## paper (the run-3 defect: the form floated at z 4 over the docket's top-right
+## corner, had no fold control below 5 stamps, and ate every click inside its
+## rect — see production-log T29). Two states —
+##   EXPANDED (incomplete or re-viewed): the paper header row (title + intake
+##     serial + the FOLD control at the strip's right edge — posted from the
+##     very first run, step 0) over an internally-scrolling checklist body:
+##     the seven stencil lines (step mark + verbatim title + the stamp slot),
+##     capped so the docket viewport always keeps the majority of the region.
+##     The current step row carries the orient_arrow glyph pointing at the
+##     plate wall and jumps to its department on press; stamped rows show the
+##     red stamp_check and dim to the registered NAVY_DIM-on-paper pair;
+##     future rows show the empty box.
+##   SLIP (folded, or completed): the one-line posted-record chip — title +
+##     seven mini stamp boxes (+ the red mark at completion) + OPEN in the
+##     same right-edge slot. Posted records never vanish; the slip is the
+##     re-view control.
+## Auto-fold at >= 5 stamped steps stays as a convenience (fires once, the
+## moment the fifth line stamps; a manual OPEN afterwards sticks for the rest
+## of the tutorial). Completion swaps the checklist for the record: the DULY
+## ORIENTED · FORM O-1 stamp + the ORIENTATION STIPEND line (amount from
+## data/staffing.json, never hardcoded), holds for one bounded beat, then
+## settles into the slip.
 ##
 ## LOW-TEXT PIN (the user's complaint is law): every visible word on the form
-## is budgeted — 33 expanded-incomplete, 18 expanded-complete, 5 on the slip
+## is budgeted — 33 expanded-incomplete, 18 expanded-complete, 4 on the slip
 ## (word_count() walks it; tests/test_orientation.gd pins <= 40 per state).
 ##
 ## Update discipline: the Docket contract — rows are built once and restyled
@@ -39,7 +49,16 @@ const FOLD_LABEL := "FOLD"
 const OPEN_LABEL := "OPEN"
 const STAMP_LINE := "DULY ORIENTED · FORM O-1"
 const STIPEND_LINE := "ORIENTATION STIPEND — %s CROWNS · THANK YOU FOR YOUR PROMPT COMPLIANCE."
-const COLLAPSE_AT_STEPS := 5  ## the fold control posts at >= 5 stamped steps
+const COLLAPSE_AT_STEPS := 5  ## the auto-fold convenience fires at >= 5 stamped steps
+## The docked strip's checklist body is budgeted so the docket viewport below
+## keeps AT LEAST DOCKET_VIEWPORT_FLOOR of the docket region at every scale —
+## the strip takes layout space (T29: never an overlay) but never starves the
+## docket; whatever does not fit the budget scrolls INSIDE the strip.
+const DOCKET_VIEWPORT_FLOOR := 168.0
+const BODY_MAX := 402.0
+const BODY_MIN := 24.0
+const FORM_CHROME_Y := 30.0  ## paper stylebox margins + column separation
+const BUDGET_SAFETY := 6.0   ## never plan to the last pixel
 
 ## Display metadata per step (titles are naming-bible §10 VERBATIM; the mark
 ## glyphs are the T19 grammar pair stamp_check/orient_arrow). Step targets
@@ -65,15 +84,16 @@ const STEP_ICONS := {
 
 const ICON_DIR := "res://assets/icons/"
 const MINI_SIZE := 12
-const FORM_MIN_WIDTH := 296.0
 const CELEBRATE_S := 2.6  ## the completion record's bounded beat before the slip
 
 var tm: Node = null  # TickManager instance (soft-typed: compiles under --check-only)
 
 var _col: VBoxContainer
+var _header_row: HBoxContainer
 var _serial_label: Label
 var _slip_marks: HBoxContainer
 var _mini_marks: Dictionary = {}  # step_id -> MiniMark
+var _body_scroll: ScrollContainer
 var _rows_box: VBoxContainer
 var _done_box: VBoxContainer
 var _stipend_line: Label
@@ -84,6 +104,8 @@ var _rows: Dictionary = {}  # step_id -> StepRow
 var _row_order: Array[String] = []
 var _expanded := true
 var _celebrating := false
+var _auto_folded := false  ## the >= 5 convenience fires once per tutorial
+var _complete_flag := false  ## last-read completion (drives the serial tier)
 ## Concourse callback (dept_id -> "SCAVENGING · 1"-style hint for tooltips).
 var dept_label: Callable = Callable()
 
@@ -91,30 +113,52 @@ var dept_label: Callable = Callable()
 func _init() -> void:
 	name = "OrientationForm"
 	theme_type_variation = "PaperNotice"
-	custom_minimum_size = Vector2(FORM_MIN_WIDTH, 0.0)
+	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_build()
+
+
+func _notification(what: int) -> void:
+	# The docket region's height sets the checklist body's budget (the strip
+	# keeps the docket the majority at every window size) — re-apply on every
+	# layout pass that changes our own rect.
+	if what == NOTIFICATION_RESIZED and is_inside_tree():
+		_apply_body_budget.call_deferred()
 
 
 # ------------------------------------------------------------------ build --
 func _build() -> void:
 	_col = VBoxContainer.new()
 	_col.name = "FormColumn"
-	_col.add_theme_constant_override("separation", 7)
+	_col.add_theme_constant_override("separation", 6)
 	add_child(_col)
 
+	# The strip's header row — the one line that is ALWAYS posted: title (+
+	# intake serial while the checklist leads), the slip's progress marks,
+	# and the edge control: FOLD while expanded, OPEN while slipped. T29: the
+	# FOLD control posts from the very first run (step 0) — the run-3 build
+	# withheld it below 5 stamps and the resident had no way to fold.
+	_header_row = HBoxContainer.new()
+	_header_row.name = "FormHeader"
+	_header_row.add_theme_constant_override("separation", 12)
+	_col.add_child(_header_row)
+
+	var title_col := VBoxContainer.new()
+	title_col.name = "TitleCol"
+	title_col.add_theme_constant_override("separation", 1)
 	var title_label := _label("PaperTitle", TITLE)
 	title_label.name = "FormTitle"
-	_col.add_child(title_label)
-
+	title_col.add_child(title_label)
 	_serial_label = _label("PlateSerialNavy", INTAKE_SERIAL)
 	_serial_label.name = "IntakeSerial"
-	_col.add_child(_serial_label)
+	title_col.add_child(_serial_label)
+	_header_row.add_child(title_col)
 
 	# Slip progress: seven mini stamp boxes (the fill is the state) — icon-only
-	# by design, zero words.
+	# by design, zero words. Rides the header line so the slip is ONE line.
 	_slip_marks = HBoxContainer.new()
 	_slip_marks.name = "SlipMarks"
 	_slip_marks.add_theme_constant_override("separation", 5)
+	_slip_marks.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	for step_id: String in OrientationTracker.STEPS:
 		var mark := MiniMark.new()
 		mark.name = "SlipMark_" + step_id
@@ -122,12 +166,42 @@ func _build() -> void:
 		_slip_marks.add_child(mark)
 		_mini_marks[step_id] = mark
 	_slip_marks.add_child(_glyph("stamp_check", MINI_SIZE + 8, "SlipStamp"))
-	_col.add_child(_slip_marks)
+	_header_row.add_child(_slip_marks)
+
+	var spacer := Control.new()
+	spacer.name = "HeaderSpacer"
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_header_row.add_child(spacer)
+
+	_fold_button = Button.new()
+	_fold_button.name = "FoldForm"
+	_fold_button.text = FOLD_LABEL
+	_fold_button.tooltip_text = "Fold Form O-1 to its posted slip (stamped steps stay stamped)"
+	_fold_button.pressed.connect(fold)
+	_header_row.add_child(_fold_button)
+
+	_open_button = Button.new()
+	_open_button.name = "OpenForm"
+	_open_button.text = OPEN_LABEL
+	_open_button.tooltip_text = "Re-view Orientation Form O-1"
+	_open_button.pressed.connect(expand)
+	_header_row.add_child(_open_button)
+
+	# The checklist body — docked layout space, internally scrolled so the
+	# strip can never push the docket's interactive controls off-screen (the
+	# body budget keeps the docket viewport the majority of the region).
+	_body_scroll = ScrollContainer.new()
+	_body_scroll.name = "FormBody"
+	_body_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_body_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_col.add_child(_body_scroll)
 
 	_rows_box = VBoxContainer.new()
 	_rows_box.name = "StepRows"
+	_rows_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_rows_box.add_theme_constant_override("separation", 3)
-	_col.add_child(_rows_box)
+	_body_scroll.add_child(_rows_box)
 	for step_id: String in OrientationTracker.STEPS:
 		var row := StepRow.new(step_id, String(STEP_TITLES[step_id]),
 			String(STEP_ICONS[step_id]))
@@ -139,6 +213,7 @@ func _build() -> void:
 	# The completion record (replaces the checklist once DULY ORIENTED posts).
 	_done_box = VBoxContainer.new()
 	_done_box.name = "CompletionRecord"
+	_done_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_done_box.add_theme_constant_override("separation", 6)
 	var stamp_row := HBoxContainer.new()
 	stamp_row.name = "StampRow"
@@ -158,21 +233,7 @@ func _build() -> void:
 	_stipend_line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	stipend_row.add_child(_stipend_line)
 	_done_box.add_child(stipend_row)
-	_col.add_child(_done_box)
-
-	_fold_button = Button.new()
-	_fold_button.name = "FoldForm"
-	_fold_button.text = FOLD_LABEL
-	_fold_button.tooltip_text = "Fold Form O-1 to its posted slip (stamped steps stay stamped)"
-	_fold_button.pressed.connect(fold)
-	_col.add_child(_fold_button)
-
-	_open_button = Button.new()
-	_open_button.name = "OpenForm"
-	_open_button.text = OPEN_LABEL
-	_open_button.tooltip_text = "Re-view Orientation Form O-1"
-	_open_button.pressed.connect(expand)
-	_col.add_child(_open_button)
+	_body_scroll.add_child(_done_box)
 
 
 # --------------------------------------------------------- bind + refresh --
@@ -286,18 +347,22 @@ func refresh() -> void:
 	var count: int = int(p["count"])
 	var done: Dictionary = p["done"]
 	var current := String(p["current"])
+	_complete_flag = complete
+	# A fresh tutorial (new game) re-arms the auto-fold convenience.
+	if count < COLLAPSE_AT_STEPS and not complete:
+		_auto_folded = false
+	# The >= 5 convenience: the moment the fifth line stamps, the form folds
+	# itself to the slip — once (a later manual OPEN sticks for the rest of
+	# the tutorial; completion re-expands for its own bounded beat).
+	if not complete and not _celebrating and _expanded and not _auto_folded \
+			and count >= COLLAPSE_AT_STEPS:
+		_auto_folded = true
+		_expanded = false
 	_done_box.visible = complete
-	# T26 fix (one line, cause recorded): the SLIP state is the posted-record
-	# chip — title + mini marks + OPEN (the docstring's contract) — but the
-	# rows gate read `not complete`, so an INCOMPLETE fold kept the whole
-	# checklist posted (only the completed record ever truly slipped; the
-	# word-count pin is a ceiling and could not catch an over-posted form).
-	# Found by the T26 dossier captures (the form corners the register in
-	# every docket; folding it changed nothing). Fold now slips the rows.
-	_rows_box.visible = not complete and _expanded
-	_serial_label.visible = not complete and _expanded
+	_rows_box.visible = not complete
+	_body_scroll.visible = _expanded
 	_slip_marks.visible = complete or not _expanded
-	_fold_button.visible = _expanded and (complete or count >= COLLAPSE_AT_STEPS)
+	_fold_button.visible = _expanded
 	_open_button.visible = not _expanded
 	if complete:
 		_set_stipend(int(p["stipend"]))
@@ -306,12 +371,63 @@ func refresh() -> void:
 			bool(done.get(step_id, false)), step_id == current,
 			_dept_hint(OrientationTracker.step_target(step_id)))
 		(_mini_marks[step_id] as MiniMark).set_stamped(bool(done.get(step_id, false)))
+	_apply_body_budget()
 
 
 func _set_stipend(amount: int) -> void:
 	var text := STIPEND_LINE % SignageFmt.num(amount)
 	if _stipend_line.text != text:
 		_stipend_line.text = text
+
+
+## Budget the checklist body from the REAL layout: the docket region's other
+## rows (save-notice strip when posted, the docket scroll's own floor) get
+## their minimums first, then the strip's header, then whatever remains is
+## the checklist body (scrolling internally). At tight budgets the intake
+## serial line stands down FIRST (the responsive tier — the title, the marks,
+## the FOLD control and at least BODY_MIN of checklist always stay posted),
+## so no scale can push the docket below its floor. Standalone mounts (unit
+## tests) are unconstrained.
+func _apply_body_budget() -> void:
+	if _body_scroll == null or not is_inside_tree():
+		return
+	var budget := BODY_MAX
+	var serial_roomy := true
+	var region := get_parent()
+	if region != null and region is Control and (region as Control).size.y > 0.0:
+		var reserved := 0.0
+		var visible_siblings := 0
+		for sibling in (region as Control).get_children():
+			if not (sibling is Control) or sibling == self:
+				continue
+			if not (sibling as Control).is_visible_in_tree():
+				continue
+			if sibling is ScrollContainer:
+				# The docket viewport's bar is the FLOOR the audit pins (its
+				# structural backstop is lower) — reserve the bar, not the
+				# backstop, so the pin holds by construction.
+				reserved += maxf((sibling as Control).get_combined_minimum_size().y,
+					DOCKET_VIEWPORT_FLOOR)
+			else:
+				reserved += (sibling as Control).get_combined_minimum_size().y
+			visible_siblings += 1
+		var sep: float = (region as VBoxContainer).get_theme_constant("separation") \
+			if region is VBoxContainer else 0.0
+		reserved += sep * float(visible_siblings)
+		var header_h: float = _header_row.get_combined_minimum_size().y
+		var base: float = (region as Control).size.y - reserved - FORM_CHROME_Y \
+			- header_h - BUDGET_SAFETY
+		var serial_h: float = _serial_label.get_combined_minimum_size().y
+		serial_roomy = base - serial_h >= BODY_MIN
+		budget = clampf(base - (serial_h if serial_roomy else 0.0), BODY_MIN, BODY_MAX)
+	# The serial tier (budget-driven, never loses the title or the FOLD).
+	_serial_label.visible = _complete_flag == false and _expanded and serial_roomy
+	if _expanded:
+		var need: float = _rows_box.get_combined_minimum_size().y \
+			if _rows_box.visible else _done_box.get_combined_minimum_size().y
+		_body_scroll.custom_minimum_size.y = minf(need, budget)
+	else:
+		_body_scroll.custom_minimum_size.y = 0.0
 
 
 func _progress() -> Dictionary:
@@ -455,8 +571,8 @@ class StepRow:
 
 		arrow = _glyph("orient_arrow", 18)
 		arrow.name = "ArrowGlyph"
-		# The form posts at the docket's right edge; the plate wall is LEFT —
-		# the row's arrow points that way (the plate cue points back at it).
+		# The form posts in the docket region; the plate wall is LEFT — the
+		# row's arrow points that way (the plate cue points back at it).
 		arrow.rotation = PI
 		arrow.pivot_offset = Vector2(9.0, 9.0)
 		row.add_child(arrow)
