@@ -559,7 +559,7 @@ func _check_t10a_dockets() -> void:
 	var gather := _concourse.docket_controller("scavenging") as DocketGathering
 	_check(gather != null, "scavenging docket is live content")
 	var cards: Dictionary = gather.get("_cards")
-	_check(cards.size() == 4, "four tier cards posted from data (got %d)" % cards.size())
+	_check(cards.size() == 9, "nine tier cards posted from data (T24 depth: gates 1-70; got %d)" % cards.size())
 	var locked_card: DocketSkill.Card = cards.get("strip_wreck")
 	_check(locked_card != null and locked_card.gate_plate.visible \
 			and "CLEARANCE 5 REQUIRED" in locked_card.gate_text.text,
@@ -767,8 +767,8 @@ func _check_t10a_dockets() -> void:
 	_concourse.select_department("foraging", true)
 	await _frames(2)
 	var forage := _concourse.docket_controller("foraging") as DocketGathering
-	_check(forage != null and forage.get("_cards").size() == 4,
-		"foraging docket posts its four tier cards")
+	_check(forage != null and forage.get("_cards").size() == 9,
+		"foraging docket posts its nine tier cards (T24 depth)")
 
 	# -- Layout guard: no docket may demand horizontal scrolling at 1280x720
 	#    (long lines stack full-width; side-by-side rows stay narrow). --
@@ -824,7 +824,7 @@ func _check_t10b_patrol() -> void:
 	if patrol == null:
 		return
 	var cards: Dictionary = patrol.get("_cards")
-	_check(cards.size() == 5, "five fauna postings (4 monsters + boss)")
+	_check(cards.size() == 11, "eleven fauna postings (5 Sunny Exclusion Zone + 6 Gift Court incl. boss; T24 depth)")
 	var litter: DocketPatrol.FaunaCard = cards.get("junkyard_roach")
 	_check(litter != null and "HP 18" in litter.stats_text()
 			and "ACC 15" in litter.stats_text() and "EVERY 2.8 S" in litter.stats_text(),

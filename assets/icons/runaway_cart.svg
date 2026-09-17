@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Runaway Cart: tipping shopping cart, one wheel gone feral. Original stencil-line signage icon (T24). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M34 40 L92 40 L84 74 L42 74 Z" fill="#F2EDE3" stroke-width="6"/>
+    <path d="M34 40 L28 28 M56 40 L52 28 M74 40 L72 28" stroke-width="4.5"/>
+    <circle cx="50" cy="86" r="7" stroke-width="5"/>
+    <path d="M74 74 L84 86" stroke-width="5"/>
+    <circle cx="86" cy="90" r="7" stroke-width="5" fill="#FFB000"/>
+    <path d="M96 44 L104 36" stroke-width="5"/>
+    <path d="M100 40 L104 44 M104 36 L108 40" stroke-width="3.5"/>
+  </g>
+</svg>

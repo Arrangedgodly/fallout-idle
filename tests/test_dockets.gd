@@ -95,7 +95,7 @@ func test_gathering_docket_matches_engine_state() -> void:
 	var docket := c.docket_controller("scavenging") as DocketGathering
 	assert_not_null(docket, "scavenging controller mounted")
 	var cards := _cards(docket)
-	assert_eq(cards.size(), 4, "four tier cards from data")
+	assert_eq(cards.size(), 9, "nine tier cards from data (T24 depth: gates 1-70)")
 
 	# Honest rates: the tier card prints the table's exact fractions.
 	var first: DocketSkill.Card = cards["sort_scrap_pile"]
@@ -182,7 +182,7 @@ func test_processing_craft_consumes_and_stamps() -> void:
 	await wait_frames(1)
 	var docket := c.docket_controller("junksmithing") as DocketProcessing
 	var cards := _cards(docket)
-	assert_eq(cards.size(), 7, "seven recipe cards from data")
+	assert_eq(cards.size(), 20, "twenty recipe cards from data (T24 depth ladder)")
 
 	tm.state.add_item("scrap_metal", 9)
 	_flush(tm)

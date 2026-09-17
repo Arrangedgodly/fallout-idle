@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Pry the Mezzanine Lockers: pry bar opening a locker door. Original stencil-line signage icon (T24). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="34" y="34" width="60" height="62" rx="4" fill="#F2EDE3" stroke-width="6"/>
+    <line x1="64" y1="34" x2="64" y2="96" stroke-width="5"/>
+    <circle cx="54" cy="66" r="3.5" stroke-width="4"/>
+    <circle cx="74" cy="66" r="3.5" stroke-width="4"/>
+    <path d="M26 100 Q54 96 70 78 L62 72 Q44 88 24 92 Z" fill="#F2EDE3" stroke-width="6"/>
+  </g>
+</svg>

@@ -24,9 +24,10 @@ extends SceneTree
 ##      no <text> (stencil glyphs only);
 ##   5. ASSETS.md no-row-no-ship gate for icons: every icon file has exactly
 ##      one row; every icon row resolves to a real file and sources original;
-##   6. the set covers the commissioned surface: 5 skills, 21 items, 5
-##      monsters, 8 activities, plus the Crowns currency mark, the food
-##      category mark and the 12 T19 grammar glyphs (53 SVGs);
+##   6. the set covers the commissioned surface: 5 skills, 47 items, 11
+##      monsters, 18 activities, plus the Crowns currency mark, the food
+##      category mark, the 12 T19 grammar glyphs and the 42 T24 depth icons
+##      (96 SVGs);
 ##   6b. the T19 icon-grammar contract (naming-bible §14 + design-brief
 ##      addendum): all 12 reserved ids ship, class ink rules hold (navy
 ##      stat/clearance linework, amber verb/cue ink, red stamp ink, the
@@ -71,7 +72,22 @@ const T19_RESERVED: Array = []
 # T17: the badge's outline sibling (AVAILABLE state — the posting board's
 # empty rows). Authored this task per the grammar's state-pair rule.
 const T17_IDS := ["deputy_badge_outline"]
-const EXPECTED_COUNT := 54
+# T24: the run-3 depth set — 42 new content icons (materials, flora, alloys,
+# gear ladder, food tiers, tier-5-9 activities, Gift Court fauna + second
+# boss), all on the shipped signage grammar.
+const T24_IDS := ["directive_cord", "survey_lens", "heritage_hardware", "counterweight",
+	"quarantine_quince", "notary_nettle", "fountain_mint", "skylight_bloom",
+	"bagged_ice", "foodcourt_tray", "quorum_alloy", "unanimous_steel",
+	"grade_d_fritters", "quarantine_compote", "cornmeal", "notary_tea",
+	"fountain_sherbet", "court_feast", "filibuster", "quorum_gavel",
+	"line_item_veto", "cloture", "crosswalk_cage", "loading_dock_shell",
+	"motorcade_mantle", "turnpike_aegis", "sweep_service_corridors",
+	"pry_mezzanine_lockers", "deconstruct_signal_tower", "excavate_foundation_grid",
+	"audit_archive_vault", "prune_atrium_thicket", "reap_relay_garden",
+	"tend_hydroponics_bay", "gather_greenhouse_span", "work_canopy_rows",
+	"runaway_cart", "directory_kiosk", "wet_floor_sentinel", "restless_escalator",
+	"hanger_flock", "regional_manager"]
+const EXPECTED_COUNT := 96  # T11 41 + T19 12 + T17 1 + T24 depth 42
 
 var checks := 0
 var failures: Array[String] = []
@@ -296,13 +312,18 @@ func _check_commissioned_surface() -> void:
 	for kind in surface:
 		for icon in surface[kind]:
 			check(_icon_files.has(icon), "%s '%s' ships in the set" % [kind, icon])
-	# 21 items / 5 monsters / 8 activities come from content (check 1); assert
-	# their counts against the loader's hydrated library.
+	# 47 items / 11 monsters / 18 activities come from content (check 1); assert
+	# their counts against the loader's hydrated library (T24 depth set).
 	var lib := ContentLoader.load_all().library
 	if lib != null:
-		check(lib.items.size() == 21, "21 item icons commissioned (library items: %d)" % lib.items.size())
-		check(lib.monsters.size() == 5, "5 monster icons commissioned (library monsters: %d)" % lib.monsters.size())
-		check(lib.activities.size() == 8, "8 activity icons commissioned (library activities: %d)" % lib.activities.size())
+		check(lib.items.size() == 47, "47 item icons commissioned (library items: %d)" % lib.items.size())
+		check(lib.monsters.size() == 11, "11 monster icons commissioned (library monsters: %d)" % lib.monsters.size())
+		check(lib.activities.size() == 18, "18 activity icons commissioned (library activities: %d)" % lib.activities.size())
+		var missing := []
+		for icon in T24_IDS:
+			if not _icon_files.has(icon):
+				missing.append(icon)
+		check(missing.is_empty(), "all 42 T24 depth icons ship (missing: %s)" % str(missing))
 
 
 # ------------------------------------------- 6b. T19 icon-grammar surface
@@ -438,7 +459,11 @@ func _build_gallery() -> bool:
 		grid.add_child(cell)
 
 	var vp := SubViewport.new()
-	vp.size = Vector2i(1280, 720)
+	# T24: the set grew past one 720p canvas (96 icons / 8 columns = 12 rows);
+	# the viewport height now fits the set so nothing clips — the completeness
+	# check below derives the expected row count from the set the same way.
+	var gallery_rows := ceili(float(_icon_files.size()) / 8.0)
+	vp.size = Vector2i(1280, maxi(720, gallery_rows * 92 + 140))
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	root.add_child(vp)
 	vp.add_child(root_ctrl)
@@ -475,7 +500,8 @@ func _validate_saved_png() -> void:
 	check(img != null, "%s is a loadable image" % CAPTURE_PNG)
 	if img == null:
 		return
-	check(Vector2i(img.get_width(), img.get_height()) == Vector2i(1280, 720),
+	var gallery_rows0 := ceili(float(_icon_files.size()) / 8.0)
+	check(Vector2i(img.get_width(), img.get_height()) == Vector2i(1280, maxi(720, gallery_rows0 * 92 + 140)),
 		"%s dimensions %dx%d" % [CAPTURE_PNG, img.get_width(), img.get_height()])
 	var colors := {}
 	for x in range(0, img.get_width(), 8):
@@ -504,8 +530,9 @@ func _validate_saved_png() -> void:
 				run_start = i
 		runs.append([bone_rows[run_start], bone_rows[bone_rows.size() - 1]])
 		var grid_rows := runs.size() - 1  # minus the title text band
-		check(grid_rows == 7, "%s shows 7 complete badge rows (got %d bands incl. title)" % [
-			CAPTURE_PNG, runs.size()])
+		var expected_rows := ceili(float(_icon_files.size()) / 8.0)
+		check(grid_rows == expected_rows, "%s shows %d complete badge rows (got %d bands incl. title)" % [
+			CAPTURE_PNG, expected_rows, runs.size()])
 		var last_end: int = runs[runs.size() - 1][1]
 		check(last_end <= img.get_height() - 8,
 			"%s last badge row ends %dpx from the bottom edge — nothing clipped" % [

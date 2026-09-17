@@ -54,6 +54,121 @@
 			"item": "carpool_carapace",
 			"buy_price": 1500,
 			"gate": { "skill": "wasteland_combat", "level": 16 }
+		},
+		{
+			"item": "bagged_ice",
+			"buy_price": 16,
+			"gate": { "skill": "wasteland_combat", "level": 18 }
+		},
+		{
+			"item": "quarantine_quince",
+			"buy_price": 18,
+			"gate": { "skill": "foraging", "level": 22 }
+		},
+		{
+			"item": "directive_cord",
+			"buy_price": 24,
+			"gate": { "skill": "scavenging", "level": 22 }
+		},
+		{
+			"item": "notary_nettle",
+			"buy_price": 27,
+			"gate": { "skill": "foraging", "level": 30 }
+		},
+		{
+			"item": "survey_lens",
+			"buy_price": 28,
+			"gate": { "skill": "scavenging", "level": 30 }
+		},
+		{
+			"item": "heritage_hardware",
+			"buy_price": 36,
+			"gate": { "skill": "scavenging", "level": 41 }
+		},
+		{
+			"item": "fountain_mint",
+			"buy_price": 40,
+			"gate": { "skill": "foraging", "level": 41 }
+		},
+		{
+			"item": "counterweight",
+			"buy_price": 44,
+			"gate": { "skill": "scavenging", "level": 54 }
+		},
+		{
+			"item": "quorum_alloy",
+			"buy_price": 110,
+			"gate": { "skill": "junksmithing", "level": 12 }
+		},
+		{
+			"item": "cornmeal",
+			"buy_price": 20,
+			"gate": { "skill": "cooking", "level": 21 }
+		},
+		{
+			"item": "grade_d_fritters",
+			"buy_price": 120,
+			"gate": { "skill": "cooking", "level": 13 }
+		},
+		{
+			"item": "quarantine_compote",
+			"buy_price": 220,
+			"gate": { "skill": "cooking", "level": 18 }
+		},
+		{
+			"item": "notary_tea",
+			"buy_price": 350,
+			"gate": { "skill": "cooking", "level": 24 }
+		},
+		{
+			"item": "fountain_sherbet",
+			"buy_price": 500,
+			"gate": { "skill": "cooking", "level": 28 }
+		},
+		{
+			"item": "court_feast",
+			"buy_price": 800,
+			"gate": { "skill": "cooking", "level": 32 }
+		},
+		{
+			"item": "filibuster",
+			"buy_price": 3000,
+			"gate": { "skill": "wasteland_combat", "level": 22 }
+		},
+		{
+			"item": "crosswalk_cage",
+			"buy_price": 3000,
+			"gate": { "skill": "wasteland_combat", "level": 22 }
+		},
+		{
+			"item": "quorum_gavel",
+			"buy_price": 3200,
+			"gate": { "skill": "wasteland_combat", "level": 24 }
+		},
+		{
+			"item": "loading_dock_shell",
+			"buy_price": 3200,
+			"gate": { "skill": "wasteland_combat", "level": 24 }
+		},
+		{
+			"item": "line_item_veto",
+			"buy_price": 9000,
+			"gate": { "skill": "wasteland_combat", "level": 34 }
+		},
+		{
+			"item": "motorcade_mantle",
+			"buy_price": 9000,
+			"gate": { "skill": "wasteland_combat", "level": 34 }
+		},
+		{
+			"item": "cloture",
+			"buy_price": 9500,
+			"gate": { "skill": "wasteland_combat", "level": 36 }
+		},
+		{
+			"item": "turnpike_aegis",
+			"buy_price": 9500,
+			"gate": { "skill": "wasteland_combat", "level": 36 }
 		}
 	]
 }

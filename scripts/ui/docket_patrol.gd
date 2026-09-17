@@ -113,6 +113,14 @@ class FaunaCard:
 	var drops_line: HFlowContainer
 	var gate_plate: PanelContainer
 	var gate_text: Label
+	# T24 perf guard (the T19 no-change-signature precedent): _refresh_cards
+	# re-applies every card's state on every combat event (kills, level-ups,
+	# inventory flushes at 4 Hz); with the run-3 fauna count the redundant
+	# text/tooltip writes re-shaped text every pass and pushed the worst
+	# frame past the T13 hard ceiling. The signature below records what was
+	# last APPLIED; identical state writes nothing (behavior-identical —
+	# same renders, same focus/a11y surface, zero redundant layout).
+	var _applied := {}
 
 	func stats_text() -> String:
 		return Docket.flow_text(stats_line)
@@ -650,12 +658,27 @@ func _refresh_cards(phase: String, monster_id: String) -> void:
 		var locked := mdef != null and level < mdef.level_gate
 		_apply_card_state(card, mdef, energized, locked)
 		if mdef != null:
-			card.button.tooltip_text = "Designate this fauna for patrol — %s%s" % [
+			var tooltip := "Designate this fauna for patrol — %s%s" % [
 				mdef.name, " (engaged)" if energized and fighting else ""]
+			if str(card._applied.get("tooltip", "")) != tooltip:
+				card.button.tooltip_text = tooltip
+				card._applied["tooltip"] = tooltip
 
 
 func _apply_card_state(card: FaunaCard, mdef: MonsterDef, energized: bool, locked: bool) -> void:
 	var display := mdef.name.to_upper() if mdef != null else card.id.to_upper()
+	var gate_line := "CLEARANCE %d REQUIRED · EARNED BY PATROLLING THIS ZONE" % (
+		mdef.level_gate if mdef != null else 0)
+	# T24 perf guard: identical state writes nothing (see FaunaCard._applied).
+	if str(card._applied.get("display", "")) == display \
+			and str(card._applied.get("gate", "")) == gate_line \
+			and bool(card._applied.get("energized", false)) == energized \
+			and bool(card._applied.get("locked", false)) == locked:
+		return
+	card._applied["display"] = display
+	card._applied["gate"] = gate_line
+	card._applied["energized"] = energized
+	card._applied["locked"] = locked
 	if energized:
 		card.button.theme_type_variation = "Energized"
 		card.title.theme_type_variation = "FormTitleEnergized"
@@ -674,8 +697,7 @@ func _apply_card_state(card: FaunaCard, mdef: MonsterDef, energized: bool, locke
 	# Wasteland Combat clearance rises on kills while patrolling this zone
 	# (victory XP rides the shared pipeline). Same plate idiom as the workshop
 	# dockets' "EARNED BY WORKING THIS DEPARTMENT'S POSTED SHIFTS".
-	card.gate_text.text = "CLEARANCE %d REQUIRED · EARNED BY PATROLLING THIS ZONE" % (
-		mdef.level_gate if mdef != null else 0)
+	card.gate_text.text = gate_line
 	card.gate_plate.visible = locked
 
 

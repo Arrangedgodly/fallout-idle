@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Skylight Bloom: six-petal bloom under a roof skylight with light rays. Original stencil-line signage icon (T24). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M34 28 L54 28 M42 20 L46 28" stroke-width="5"/>
+    <path d="M30 28 L58 28" stroke-width="6"/>
+    <path d="M44 34 L54 48 M60 30 L62 44" stroke-width="3.5"/>
+    <circle cx="66" cy="72" r="7" fill="#F2EDE3" stroke-width="5"/>
+    <path d="M66 51 L71 62 L83 62 L73 70 L77 82 L66 74 L55 82 L59 70 L49 62 L61 62 Z" fill="#F2EDE3" stroke-width="5"/>
+    <path d="M66 88 L66 100" stroke-width="5"/>
+  </g>
+</svg>

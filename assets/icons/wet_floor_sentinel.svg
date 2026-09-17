@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Wet Floor Sentinel: ever-vigilant caution cone with droplets. Original stencil-line signage icon (T24). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M52 30 L76 30 L88 92 L40 92 Z" fill="#F2EDE3" stroke-width="7"/>
+    <path d="M56 48 L72 48" stroke-width="4.5"/>
+    <path d="M42 92 L88 92" stroke-width="6"/>
+    <path d="M34 44 Q30 52 34 58 M96 44 Q100 52 96 58" stroke-width="4"/>
+    <circle cx="30" cy="34" r="3" stroke-width="3.5"/>
+    <circle cx="98" cy="34" r="3" stroke-width="3.5"/>
+  </g>
+</svg>

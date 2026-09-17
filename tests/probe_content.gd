@@ -21,11 +21,12 @@ const DOMAIN_FILES := [
 	"drop_tables.json", "monsters.json", "equipment.json", "shop_stock.json",
 	"xp_curves.json", "staffing.json", "zones.json", "objectives.json",
 ]
-# 21 items + 5 skills + 8 activities + 11 recipes + 13 drop tables + 5 monsters
-# + 4 equipment + 11 shop lines + 1 curve + 4 deputy rungs (T5 set + T17
-# staffing) + 2 zones (T23) + 0 objectives (T23 ships the schema + engine;
-# T25 authors >= 20/skill and bumps this count with the set).
-const GOLDEN_RECORD_COUNT := 85
+# 47 items + 5 skills + 18 activities + 40 recipes + 29 drop tables + 11 monsters
+# + 12 equipment + 34 shop lines + 1 curve + 4 deputy rungs (T5 set + T17
+# staffing, extended by T24 run-3 depth) + 2 zones (T23) + 0 objectives (T23
+# ships the schema + engine; T25 authors >= 20/skill and bumps this count
+# with the set).
+const GOLDEN_RECORD_COUNT := 203
 
 var checks := 0
 var failures: Array[String] = []
@@ -114,9 +115,10 @@ func _check_golden_set() -> void:
 	_check(vest != null and vest.slot == "armor" and vest.evasion_bonus == 12 and vest.attack_speed_ms == -1,
 		"armor bonuses round-trip; no attack_speed_ms override (-1)")
 
-	# Shop stock — order, gates, ungated default.
+	# Shop stock — order, gates, ungated default (T24 extends the catalog to
+	# 34 lines; the first 11 keep their T5 order, new lines append gated).
 	var stock := lib.shop_entries()
-	_check(stock.size() == 11 and stock[0].item == "glowshroom" and stock[0].buy_price == 6,
+	_check(stock.size() == 34 and stock[0].item == "glowshroom" and stock[0].buy_price == 6,
 		"shop stock order + buy_price round-trip")
 	_check(stock[0] != null and not stock[0].is_gated(), "ungated shop line defaults")
 	_check(stock[2] != null and stock[2].item == "copper_wiring" and stock[2].buy_price == 12,

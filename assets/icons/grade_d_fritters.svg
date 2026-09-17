@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Grade-D Fritters: three fritter patties under a grade stamp. Original stencil-line signage icon (T24). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="48" cy="72" r="14" stroke-width="6" fill="#F2EDE3"/>
+    <circle cx="78" cy="76" r="12" stroke-width="6" fill="#F2EDE3"/>
+    <circle cx="64" cy="50" r="11" stroke-width="6" fill="#F2EDE3"/>
+    <path d="M40 92 L88 92" stroke-width="4"/>
+    <rect x="84" y="26" width="22" height="16" rx="3" fill="#F2EDE3" stroke-width="5"/>
+    <line x1="89" y1="34" x2="101" y2="34" stroke-width="4"/>
+  </g>
+</svg>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - The Regional Manager (regional_manager): formally dressed display mannequin on an eternal walkthrough, visitor badge pinned; red = boss/danger. Original stencil-line signage icon (T24). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M44 34 Q44 20 64 20 Q84 20 84 34 L84 52 L44 52 Z" fill="#B3261E"/>
+    <path d="M40 52 L88 52 L92 96 L36 96 Z" fill="#F2EDE3" stroke-width="6"/>
+    <line x1="64" y1="52" x2="64" y2="96" stroke-width="4"/>
+    <line x1="44" y1="68" x2="84" y2="68" stroke-width="4"/>
+    <line x1="46" y1="84" x2="82" y2="84" stroke-width="4"/>
+    <circle cx="54" cy="30" r="2.8" fill="#F2EDE3" stroke="none"/>
+    <rect x="74" y="56" width="14" height="18" rx="3" fill="#F2EDE3" stroke-width="4.5"/>
+    <line x1="79" y1="56" x2="79" y2="50" stroke-width="4"/>
+    <path d="M22 40 Q30 40 32 34 M106 40 Q98 40 96 34" stroke-width="4.5"/>
+    <path d="M92 26 L102 20 M98 30 L106 24" stroke-width="4"/>
+  </g>
+</svg>

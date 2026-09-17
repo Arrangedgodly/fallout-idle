@@ -134,7 +134,7 @@ func test_patrol_cards_match_content() -> void:
 	var packed := await _make_patrol(tm)
 	var docket: DocketPatrol = packed[1]
 	var cards := _cards(docket)
-	assert_eq(cards.size(), 5, "five fauna cards from data (4 monsters + boss)")
+	assert_eq(cards.size(), 11, "eleven fauna cards from data (5 Sunny + 6 Gift Court incl. boss; T24 depth)")
 
 	# Stats visible and exact: the engine's own numbers, in mono.
 	var litter: DocketPatrol.FaunaCard = cards["junkyard_roach"]

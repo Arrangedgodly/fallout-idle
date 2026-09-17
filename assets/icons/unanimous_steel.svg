@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Unanimous Steel: stacked ingots with all five tally votes raised. Original stencil-line signage icon (T24). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M28 66 L92 66 L84 96 L36 96 Z" fill="#F2EDE3" stroke-width="7"/>
+    <path d="M36 46 L100 46 L94 66 L30 66 Z" fill="#F2EDE3" stroke-width="6"/>
+    <path d="M34 26 L44 26 M50 26 L60 26 M66 26 L76 26 M82 26 L92 26" stroke-width="5"/>
+    <path d="M34 26 L34 16 M50 26 L50 16 M66 26 L66 16 M82 26 L82 16 M92 26 L92 16" stroke-width="5"/>
+  </g>
+</svg>

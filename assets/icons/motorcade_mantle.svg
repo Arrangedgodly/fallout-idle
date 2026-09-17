@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Motorcade Mantle (armor): draped mantle with motorcade chevrons. Original stencil-line signage icon (T24). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M42 26 Q64 38 86 26 L96 74 Q64 92 32 74 Z" fill="#F2EDE3" stroke-width="7"/>
+    <path d="M40 44 L52 50 M64 46 L64 54 M88 44 L76 50" stroke-width="4"/>
+    <path d="M38 62 L52 68 M64 64 L64 72 M90 62 L76 68" stroke-width="4"/>
+  </g>
+</svg>

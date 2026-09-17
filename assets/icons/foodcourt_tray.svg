@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Foodcourt Tray: compartment cafeteria tray with a dome lid. Original stencil-line signage icon (T24). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="30" y="54" width="68" height="40" rx="5" fill="#F2EDE3" stroke-width="6"/>
+    <line x1="30" y1="70" x2="98" y2="70" stroke-width="4"/>
+    <line x1="64" y1="70" x2="64" y2="94" stroke-width="4"/>
+    <circle cx="47" cy="62" r="5" stroke-width="4"/>
+    <circle cx="81" cy="62" r="5" stroke-width="4"/>
+    <path d="M36 54 Q64 26 92 54" stroke-width="6"/>
+  </g>
+</svg>

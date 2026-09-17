@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Excavate the Foundation Grid: spade digging a rebar grid trench. Original stencil-line signage icon (T24). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M40 40 L40 24 M88 40 L88 24" stroke-width="5"/>
+    <path d="M32 40 L96 40" stroke-width="6"/>
+    <path d="M40 40 L40 56 M88 40 L88 56" stroke-width="4"/>
+    <line x1="76" y1="30" x2="46" y2="72" stroke-width="6"/>
+    <path d="M40 66 L54 80 L38 88 L28 74 Z" fill="#F2EDE3" stroke-width="6"/>
+    <path d="M36 54 Q30 48 34 42" stroke-width="4.5"/>
+  </g>
+</svg>

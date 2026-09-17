@@ -1,7 +1,7 @@
-# Valued Resident Naming Bible — T4 (+ T16 run-2, T22 run-3 extensions)
+# Valued Resident Naming Bible — T4 (+ T16 run-2, T22/T24 run-3 extensions)
 
-Status: awaiting approval (T22 extension; T4 body previously verified PASS,
-T16 extension verified PASS).
+Status: awaiting approval (T24 content-name extension; T4 body, T16 and T22
+extensions previously verified PASS).
 Owner: Data lane (Mr. Fantastic) carrying Doctor Strange's risk gate. Scope:
 every proper noun in the vertical slice, the flavor-copy voice rules, and the
 per-name trademark-proximity verdicts. **Run 2 (2026-09-16): T16 extends this
@@ -11,6 +11,8 @@ vocabulary. **Run 3 (2026-09-16): T22 extends this bible to the objectives
 system, the second combat zone + boss, and the T24/T25 registration
 protocol** (town-hall.md Scope Amendment 2) — §3 second-zone subsection,
 §10 T22 rows, §13.1 registration protocol, §15 systems vocabulary.
+**T24 (2026-09-15) applies §13.1: ~90 content display names registered as
+Class A rows (§10 T24 table) + the Gift Court's final zone copy (§3).**
 Inputs: `docs/ultron/town-hall.md` (protected-terms contract),
 `docs/ultron/design-brief.md` (Shelter Signage System voice),
 `docs/content-schema.md` (fields the names fill), `PRODUCT.md` (brand
@@ -153,14 +155,32 @@ zone 1.
 
 | # | Name | Machine id | Concept | Tier intent (T24) |
 |---|---|---|---|---|
-| Boss | **The Regional Manager** | `regional_manager` (§15) | Senior Fauna, Retail Division. A formally dressed display mannequin — visitor badge, name tag, a headset answering no one — conducting an eternal walkthrough of the sales floor. Approves nothing, eventually | Boss, gates the Gift Court clear; the lateral authority counterpart to The Superintendent (Exterior Division) |
+| 1 | **Runaway Cart** | `runaway_cart` (T24) | A shopping cart that slipped its corral in the evacuation; one wheel has since gone feral | T2 rung, gate 18 — first Gift Court lesson: slice-max gear or better |
+| 2 | **Directory Kiosk** | `directory_kiosk` (T24) | The directory board that never stopped pointing at YOU ARE HERE; the here has moved | T2 tank rung, gate 22 |
+| 3 | **Wet Floor Sentinel** | `wet_floor_sentinel` (T24) | The caution cone that has enforced its own directive, unrelieved, for 200 years | T3 rung, gate 26 — wants Quorum-class gear + tea |
+| 4 | **Restless Escalator** | `restless_escalator` (T24) | The escalator that never stopped climbing; the top floor did not survive | T3 rung, gate 30 — fast attacker |
+| 5 | **Hanger Flock** | `hanger_flock` (T24) | A migrating flock of wire coat hangers; they seasonally desert the stockroom | T3 rung, gate 34 — the pre-boss gauntlet |
+| Boss | **The Regional Manager** | `regional_manager` (§15) | Senior Fauna, Retail Division. A formally dressed display mannequin — visitor badge, name tag, a headset answering no one — conducting an eternal walkthrough of the sales floor. Approves nothing, eventually | Boss, gates the Gift Court clear (clearance 40); the lateral authority counterpart to The Superintendent (Exterior Division); beatable with the T4 gear ladder + Court Feast, NOT with T3 (sweep-proven) |
 
 The new boss plate keeps the classification idiom, not character copy:
 "REGIONAL AUTHORITY DETECTED. APPROVAL IS NOT FORTHCOMING. NEITHER ARE
 REFUNDS." — mirroring The Superintendent's "SENIOR FAUNA DETECTED. ESCORT IS
-NOT PROVIDED. REFUNDS ARE NOT EITHER." The Gift Court's ordinary fauna
-(~4, level-gated above the Sunny set) are T24's to coin under §13.1 —
-mundane retail objects misclassified by bureaucracy, per the §9 fauna rule.
+NOT PROVIDED. REFUNDS ARE NOT EITHER."
+
+**T24 final zone copy (authored per §8, registered here for whichever task
+mounts the zone tabs — T26):**
+
+- Zone plate: "GIFT COURT — DESIGNATED RETAIL AMENITY AREA" (parallel to the
+  Sunny Exclusion Zone's "DESIGNATED OUTDOOR AMENITY AREA").
+- Posted lines: "PLEASE PRESENT RECEIPTS. RECEIPTS ARE NO LONGER ISSUED." /
+  "WET FLOOR. THE FLOOR HAS ALWAYS BEEN WET." (the Sentinel's directive) /
+  "PLEASE ENJOY THE FOOD COURT RESPONSIBLY. THE FOOD COURT IS ALSO ENJOYING
+  YOU."
+- Zone-secured certificate: re-rides FORM Z-9 with the sector line
+  "POSTED — SECTOR G" (§15; G = Gift Court, Z = the Sunny Exclusion Zone's
+  own sector letter).
+- Fauna classification direction: zone-2 plates classify retail nuisances
+  ("FAUNA CLASS: PEST (UNSHELVED)"-family), never characters.
 
 ## 4. Item catalog (~21 display names across the chains)
 
@@ -454,6 +474,101 @@ precedent):
 | **The Gift Court** (second combat zone; machine id `gift_court`) | zone | Retail-architecture "court" (the food-court word) + gift — the mall-as-amenity misclassification. Web-verified scan (2026-09-16): no game, boss, zone, or registered mark; wild use is generic department-store English (a 1979 department-store "gift court" section; a university donor "gift court") plus an event-usher business in Nigeria — different channels entirely, no famous-mark overlap; mundane retail provenance is the parody. No Fallout location shares the construction (nearest Fallout retail is Super-Duper Mart — different words, no brand echo); no Melvor zone by any root | **PASS** |
 | **The Regional Manager** (second boss; machine id `regional_manager`) | boss | Ordinary job title, deliberately the lateral authority counterpart to The Superintendent (generic-title precedent row) and the opposite of the banned "Overseer" — a mid-level civilian manager. Web-verified scan (2026-09-16): no registered mark; no notable game boss by the name (nearest hits: a fan-made non-commercial office-sim doc on Scribd; the TV-comedy role usage — generic dictionary title, unprotectable, and parody-favorable); no Fallout/Melvor creature shares the name or construction | **PASS** |
 
+### T24-authored content names (Run 3, applied 2026-09-15 under the §13.1 protocol — all Class A)
+
+The run-3 depth expansion added ~90 display names. Per §13.1 every one
+registers below as a **Class A row** (generic-word institutional phrases,
+`<verb> + <bible item name>` recipes, `<cleared name> Yields` drop headers) —
+**zero new proper nouns of Scrapnel/Fizzard rank and zero new Class B rows**
+(the only new proper nouns of rank are the pre-cleared zone + boss, T22 rows
+above). Codebase grepped before assignment (scripts/, scenes/, data/, tests/):
+no display name below collides with any shipped string; all §9 patterns walked
+clean (no vault/nuka/rad-/caps/overseer/dweller/letter-dash-number-on-gear/
+smash-brand/mascot constructs; every name is generic dictionary vocabulary or
+an institutional compound of it).
+
+**Activities (10)** — signage-task voice, the T5 pattern:
+
+| Name | Kind | Construction / proximity | Verdict |
+|---|---|---|---|
+| Sweep the Service Corridors | activity | Generic maintenance verb + generic architecture; signage-task voice | **PASS** |
+| Pry the Mezzanine Lockers | activity | Generic verb + generic architecture pair | **PASS** |
+| Deconstruct the Signal Tower | activity | Bureaucratic inversion (deconstruct) + generic structure | **PASS** |
+| Excavate the Foundation Grid | activity | Generic civil-engineering words | **PASS** |
+| Audit the Archive Vault | activity | Bureau verb + generic recordkeeping noun | **PASS** |
+| Prune the Atrium Thicket | activity | Generic groundskeeping words | **PASS** |
+| Reap the Relay Garden | activity | Generic harvest verb + generic garden noun | **PASS** |
+| Tend the Hydroponics Bay | activity | Generic horticulture words | **PASS** |
+| Gather the Greenhouse Span | activity | Skill-verb family + generic structure | **PASS** |
+| Work the Canopy Rows | activity | Generic verb + row-crop phrase (Glow Rows precedent) | **PASS** |
+
+**Drop headers (16)** — the established "X Yields" pattern:
+
+| Name | Kind | Construction / proximity | Verdict |
+|---|---|---|---|
+| Corridor Cache Yields · Mezzanine Locker Yields · Signal Tower Yields · Foundation Grid Yields · Archive Vault Yields | drop header ×5 | Generic-location + "Yields", the T5 header pattern; each follows its activity's cleared name | **PASS** |
+| Atrium Thicket Yields · Relay Garden Yields · Hydroponics Bay Yields · Greenhouse Span Yields · Canopy Rows Yields | drop header ×5 | Same pattern, foraging side | **PASS** |
+| Cart Cargo Yields · Kiosk Directory Yields · Wet Floor Yields · Escalator Yields · Hanger Flock Yields | drop header ×5 | Follow their fauna's cleared names minus modifiers (Snack Dispenser precedent) | **PASS** |
+| Manager's Memoranda | drop header (boss) | Possessive of the pre-cleared boss (T22) + generic office noun — the Superintendent's Receipts construction | **PASS** |
+
+**Recipes (29)** — `<institutional verb> + <cleared item name>`, the T4/T5 pattern:
+
+| Name | Kind | Construction / proximity | Verdict |
+|---|---|---|---|
+| Smelt Quorum Alloy · Smelt Unanimous Steel | recipe ×2 | Verb + new alloy names (cleared below) | **PASS** |
+| Braid Cord Lashing | recipe | Verb + generic cordage noun (the Braid Patchwork Bolt sibling) | **PASS** |
+| Forge Filibuster · Weave Crosswalk Cage · Raise Quorum Gavel · Press Loading Dock Shell | recipe ×4 | Verb + cleared gear names; "Raise" is the verb a quorum gets | **PASS** |
+| Enact Line-Item Veto · Drape Motorcade Mantle · Move Cloture · Bolt Turnpike Aegis | recipe ×4 | Verb + cleared gear names; "Enact"/"Move" are the parliamentary verbs a veto/cloture motion gets | **PASS** |
+| Batch Smelt Quorum Alloy · Batch Smelt Unanimous Steel | recipe ×2 | "Batch" + existing recipe names (efficiency lines) | **PASS** |
+| Fry Grade-D Fritters · Jar Quarantine Compote · Mill Mandated Cornmeal · Steep Notary Tea · Churn Fountain Sherbet · Plate the Court Feast | recipe ×6 | Cooking verbs + cleared food/flora names | **PASS** |
+| Reissue Court Feast · Stretch the Court Feast | recipe ×2 | The Reheat Chef's Regret precedent at the apex (TODAY'S MENU IS YESTERDAY'S MENU, forever) | **PASS** |
+| Double Batch Grits · Double Batch Casserole · Double Batch Regret | recipe ×3 | Institutional batch prefix + cleared food names | **PASS** |
+| Concentrate Quarantine Compote · Bulk Steep Notary Tea · Cater the Court Feast · Institutional Batch Fritters · Mass-Produce Regret | recipe ×5 | Institutional scale verbs + cleared food names | **PASS** |
+
+**Items (26)** — generic-word institutional constructions (Scrapnel-rank
+coinages were deliberately avoided; every name below is dictionary vocabulary
+or a generic compound):
+
+| Name | Kind | Construction / proximity | Verdict |
+|---|---|---|---|
+| Directive Cord | material | Institutional adjective + generic cordage; the voice system's own "directive" | **PASS** |
+| Survey Lens | material | Generic surveying words (optical bits) | **PASS** |
+| Heritage Hardware | material | Alliterative generic compound; "heritage" = the bureau's word for pre-war | **PASS** |
+| Counterweight | material | Dictionary word (dense metal chunk — the heavier-alloy feed) | **PASS** |
+| Quarantine Quince | flora | Alliterative generic fruit + civil-defense word | **PASS** |
+| Notary Nettle | flora | Alliterative generic plant + office role (it stings = it seals) | **PASS** |
+| Fountain Mint | flora | Generic herb + the Gift Court's dry fountain | **PASS** |
+| Skylight Bloom | flora | Generic flower + retail architecture | **PASS** |
+| Bagged Ice | food-court drop | Generic grocery words | **PASS** |
+| Foodcourt Tray | food-court drop | Generic compound describing the mundane object | **PASS** |
+| Quorum Alloy | alloy | Parliamentary generic word + generic metal word (the Point of Order family) | **PASS** |
+| Unanimous Steel | alloy | Parliamentary generic word + generic metal word | **PASS** |
+| Grade-D Fritters | food | The bible's own Grade-D grading pun (Grade-D Bugmeat precedent) + generic dish | **PASS** |
+| Quarantine Compote | food | Flora's cleared adjective + generic dish | **PASS** |
+| Mandated Cornmeal | food | Institutional adjective (Mandatory precedent) + generic staple | **PASS** |
+| Notary Tea | food | Flora's cleared noun + generic beverage | **PASS** |
+| Fountain Sherbet | food | Flora's cleared adjective + generic dessert | **PASS** |
+| Court Feast | food | The pre-cleared zone's own noun + generic meal | **PASS** |
+| Filibuster | weapon | Dictionary parliamentary word; a weapon that simply will not stop | **PASS** |
+| Quorum Gavel | weapon | Parliamentary generic word + generic tool | **PASS** |
+| Line-Item Veto | weapon | Generic legislative term; no model-designation pattern (no letter-dash-number) | **PASS** |
+| Cloture | weapon | Dictionary parliamentary word — the motion that ends a filibuster, the natural ladder pair | **PASS** |
+| Crosswalk Cage | armor | Traffic-signage register (Pedestrian Plating family) + generic enclosure | **PASS** |
+| Loading Dock Shell | armor | Generic industrial words | **PASS** |
+| Motorcade Mantle | armor | Traffic-ceremony word + generic garment | **PASS** |
+| Turnpike Aegis | armor | Generic toll-road word + classical generic armor word | **PASS** |
+
+**Fauna (5)** — mundane retail objects misclassified by bureaucracy (§9 rule;
+the Gift Court set; the boss was pre-cleared in T22):
+
+| Name | Kind | Construction / proximity | Verdict |
+|---|---|---|---|
+| Runaway Cart | fauna | Generic compound describing the mundane object (a shopping cart with one feral wheel) | **PASS** |
+| Directory Kiosk | fauna | Generic retail-architecture words (it only ever says YOU ARE HERE) | **PASS** |
+| Wet Floor Sentinel | fauna | Generic signage words (the T22 copy "WET FLOOR. THE FLOOR HAS ALWAYS BEEN WET." made fauna) + generic guard noun | **PASS** |
+| Restless Escalator | fauna | Generic adjective + generic retail fixture | **PASS** |
+| Hanger Flock | fauna | Generic household object + bird-collective noun | **PASS** |
+
 ## 11. Carried-over descriptive names — re-verified (all PASS)
 
 These pre-existing approved/generic names were re-run through the same
@@ -634,7 +749,7 @@ for save fields and content ids (`save_version`, `staffing.deputies`,
 |---|---|---|
 | The Gift Court (zone 2) | `gift_court` | follows the `dusty_flats` precedent (descriptive snake_case); monsters.json `zone` field + the zone tab's content swap |
 | The Regional Manager (boss 2) | `regional_manager` | title-style id matching its display name (the `sewer_landlord` id predates a rename; a fresh id may match from day one); `is_boss: true`, gates the zone clear |
-| Gift Court sector line | `SECTOR G` | the Z-9 certificate's sector-letter idiom ("POSTED — SECTOR Z"); the Gift Court's ZONE SECURED certificate re-rides FORM Z-9 with its own sector line — final serial T24, registered via §13.1 |
+| Gift Court sector line | `SECTOR G` | the Z-9 certificate's sector-letter idiom ("POSTED — SECTOR Z"); the Gift Court's ZONE SECURED certificate re-rides FORM Z-9 with its own sector line — **finalized by T24: "POSTED — SECTOR G"** (G = Gift Court; registered in §3's final zone copy) |
 
 O-1 orientation stays a separate system per plan T23 — shared idioms (the
 check-stamp family, rubber-stamp completions, the "· N CROWNS POSTED"

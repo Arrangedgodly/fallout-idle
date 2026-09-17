@@ -130,6 +130,180 @@
 				{ "item": "vintage_snack_cake", "weight": 20, "qty_min": 2, "qty_max": 3 },
 				{ "item": "iodine_root", "weight": 20, "qty_min": 1, "qty_max": 2 }
 			]
+		},
+		{
+			"id": "corridor_cache",
+			"name": "Corridor Cache Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "directive_cord", "weight": 45, "qty_min": 1, "qty_max": 3 },
+				{ "item": "copper_wiring", "weight": 20, "qty_min": 1, "qty_max": 2 },
+				{ "item": "scrap_metal", "weight": 15, "qty_min": 3, "qty_max": 5 },
+				{ "item": "survey_lens", "weight": 15, "qty_min": 1, "qty_max": 1 },
+				{ "item": "girderling", "weight": 5, "qty_min": 1, "qty_max": 1 }
+			]
+		},
+		{
+			"id": "mezzanine_lockers",
+			"name": "Mezzanine Locker Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "heritage_hardware", "weight": 35, "qty_min": 1, "qty_max": 2 },
+				{ "item": "survey_lens", "weight": 25, "qty_min": 1, "qty_max": 2 },
+				{ "item": "directive_cord", "weight": 20, "qty_min": 2, "qty_max": 3 },
+				{ "item": "counterweight", "weight": 15, "qty_min": 1, "qty_max": 1 },
+				{ "item": "scrap_metal", "weight": 5, "qty_min": 3, "qty_max": 5 }
+			]
+		},
+		{
+			"id": "signal_tower_span",
+			"name": "Signal Tower Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "counterweight", "weight": 40, "qty_min": 2, "qty_max": 3 },
+				{ "item": "survey_lens", "weight": 25, "qty_min": 1, "qty_max": 2 },
+				{ "item": "heritage_hardware", "weight": 25, "qty_min": 1, "qty_max": 2 },
+				{ "item": "girderling", "weight": 10, "qty_min": 1, "qty_max": 2 }
+			]
+		},
+		{
+			"id": "foundation_grid",
+			"name": "Foundation Grid Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "counterweight", "weight": 40, "qty_min": 2, "qty_max": 3 },
+				{ "item": "heritage_hardware", "weight": 30, "qty_min": 2, "qty_max": 3 },
+				{ "item": "girderling", "weight": 20, "qty_min": 2, "qty_max": 3 },
+				{ "item": "survey_lens", "weight": 10, "qty_min": 2, "qty_max": 2 }
+			]
+		},
+		{
+			"id": "archive_vault",
+			"name": "Archive Vault Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "counterweight", "weight": 35, "qty_min": 3, "qty_max": 4 },
+				{ "item": "heritage_hardware", "weight": 25, "qty_min": 3, "qty_max": 4 },
+				{ "item": "survey_lens", "weight": 20, "qty_min": 2, "qty_max": 3 },
+				{ "item": "directive_cord", "weight": 20, "qty_min": 3, "qty_max": 4 }
+			]
+		},
+		{
+			"id": "atrium_thicket",
+			"name": "Atrium Thicket Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "quarantine_quince", "weight": 55, "qty_min": 1, "qty_max": 3 },
+				{ "item": "iodine_root", "weight": 15, "qty_min": 1, "qty_max": 2 },
+				{ "item": "duskcorn", "weight": 20, "qty_min": 2, "qty_max": 4 },
+				{ "item": "notary_nettle", "weight": 10, "qty_min": 1, "qty_max": 2 }
+			]
+		},
+		{
+			"id": "relay_garden",
+			"name": "Relay Garden Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "notary_nettle", "weight": 40, "qty_min": 2, "qty_max": 3 },
+				{ "item": "quarantine_quince", "weight": 20, "qty_min": 1, "qty_max": 3 },
+				{ "item": "iodine_root", "weight": 20, "qty_min": 1, "qty_max": 2 },
+				{ "item": "fountain_mint", "weight": 20, "qty_min": 1, "qty_max": 2 }
+			]
+		},
+		{
+			"id": "hydroponics_bay",
+			"name": "Hydroponics Bay Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "fountain_mint", "weight": 45, "qty_min": 2, "qty_max": 3 },
+				{ "item": "notary_nettle", "weight": 25, "qty_min": 1, "qty_max": 2 },
+				{ "item": "skylight_bloom", "weight": 15, "qty_min": 1, "qty_max": 1 },
+				{ "item": "quarantine_quince", "weight": 15, "qty_min": 1, "qty_max": 2 }
+			]
+		},
+		{
+			"id": "greenhouse_span",
+			"name": "Greenhouse Span Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "fountain_mint", "weight": 35, "qty_min": 2, "qty_max": 3 },
+				{ "item": "skylight_bloom", "weight": 30, "qty_min": 1, "qty_max": 2 },
+				{ "item": "notary_nettle", "weight": 20, "qty_min": 2, "qty_max": 3 },
+				{ "item": "iodine_root", "weight": 15, "qty_min": 2, "qty_max": 4 }
+			]
+		},
+		{
+			"id": "canopy_rows",
+			"name": "Canopy Rows Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "skylight_bloom", "weight": 50, "qty_min": 2, "qty_max": 3 },
+				{ "item": "fountain_mint", "weight": 30, "qty_min": 2, "qty_max": 4 },
+				{ "item": "notary_nettle", "weight": 20, "qty_min": 2, "qty_max": 3 }
+			]
+		},
+		{
+			"id": "cart_loose_cargo",
+			"name": "Cart Cargo Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "bagged_ice", "weight": 55, "qty_min": 1, "qty_max": 2 },
+				{ "item": "scrap_metal", "weight": 30, "qty_min": 2, "qty_max": 4 },
+				{ "item": "copper_wiring", "weight": 15, "qty_min": 1, "qty_max": 2 }
+			]
+		},
+		{
+			"id": "kiosk_directory",
+			"name": "Kiosk Directory Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "heritage_hardware", "weight": 40, "qty_min": 1, "qty_max": 2 },
+				{ "item": "survey_lens", "weight": 25, "qty_min": 1, "qty_max": 2 },
+				{ "item": "directive_cord", "weight": 20, "qty_min": 1, "qty_max": 2 },
+				{ "item": "scrap_metal", "weight": 15, "qty_min": 2, "qty_max": 4 }
+			]
+		},
+		{
+			"id": "wet_floor_yields",
+			"name": "Wet Floor Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "foodcourt_tray", "weight": 60, "qty_min": 1, "qty_max": 2 },
+				{ "item": "bagged_ice", "weight": 25, "qty_min": 1, "qty_max": 2 },
+				{ "item": "duskcorn", "weight": 15, "qty_min": 2, "qty_max": 3 }
+			]
+		},
+		{
+			"id": "escalator_yields",
+			"name": "Escalator Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "counterweight", "weight": 45, "qty_min": 1, "qty_max": 2 },
+				{ "item": "girderling", "weight": 30, "qty_min": 1, "qty_max": 2 },
+				{ "item": "heritage_hardware", "weight": 25, "qty_min": 1, "qty_max": 2 }
+			]
+		},
+		{
+			"id": "hanger_flock_yields",
+			"name": "Hanger Flock Yields",
+			"rolls": 1,
+			"entries": [
+				{ "item": "lint_pelt", "weight": 40, "qty_min": 1, "qty_max": 3 },
+				{ "item": "survey_lens", "weight": 30, "qty_min": 1, "qty_max": 2 },
+				{ "item": "directive_cord", "weight": 30, "qty_min": 1, "qty_max": 2 }
+			]
+		},
+		{
+			"id": "managers_memoranda",
+			"name": "Manager's Memoranda",
+			"rolls": 2,
+			"entries": [
+				{ "item": "counterweight", "weight": 25, "qty_min": 2, "qty_max": 3 },
+				{ "item": "heritage_hardware", "weight": 25, "qty_min": 2, "qty_max": 3 },
+				{ "item": "skylight_bloom", "weight": 20, "qty_min": 1, "qty_max": 2 },
+				{ "item": "fountain_mint", "weight": 15, "qty_min": 2, "qty_max": 3 },
+				{ "item": "foodcourt_tray", "weight": 15, "qty_min": 1, "qty_max": 3 }
+			]
 		}
 	]
 }

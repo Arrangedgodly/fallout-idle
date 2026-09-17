@@ -2,11 +2,12 @@
 
 Authored by T5 (Data lane, Mr. Fantastic; carrying Professor X's
 genre-conventions claims); §5.1–§5.3 (personnel economy) authored by T20
-(same lane, same lens, 2026-09-17). Source of truth for every number lives in
-`data/*.json`; this file records the *reasoning*, the **combat spec T7 must
-implement**, the intended progression timeline to the slice's win moment
-(boss clear), and the economy rules the numbers obey. Balance is tunable
-data (town-hall disposition) — change `data/`, then re-run
+(same lane, same lens, 2026-09-17). **Run-3 depth (§2.1, §3.1 and the §6
+economy extension) authored by T24 (2026-09-15).** Source of truth for every
+number lives in `data/*.json`; this file records the *reasoning*, the
+**combat spec T7 must implement**, the intended progression timeline to the
+slice's win moment (boss clear), and the economy rules the numbers obey.
+Balance is tunable data (town-hall disposition) — change `data/`, then re-run
 `tests/probe_balance.gd`; update this file when a design *intent* changes,
 not when a number twiddles.
 
@@ -169,6 +170,60 @@ minutes), not trivially with mid gear — mid gear without food always dies,
 and even out-fooding the boss on mid gear costs 20 best-tier meals and six
 minutes. You cannot out-eat the Superintendent naked: accuracy is the gate.
 
+### 2.1 The Gift Court ladder and the second boss gate (T24)
+
+The second zone (naming-bible §3) gates ABOVE the Sunny set — it opens after
+the Superintendent falls. The rungs teach the tier-3/4 gear ladder (§1.3.1):
+
+| Monster | Gate | HP | Spd | Acc | Eva | Dmg | XP | The lesson |
+|---|---|---|---|---|---|---|---|---|
+| Runaway Cart | 18 | 210 | 2600 | 50 | 24 | 2–9 | 380 | slice-max (T2) gear clears it dry; T1 loses — zone 2 means business |
+| Directory Kiosk | 22 | 300 | 3200 | 62 | 26 | 4–14 | 560 | a T2 tank fight (stews carry it) |
+| Wet Floor Sentinel | 26 | 470 | 3000 | 90 | 30 | 14–34 | 820 | wants Quorum-class (T3) gear + Notary Tea; T2 + slice food mostly fails |
+| Restless Escalator | 30 | 620 | 2200 | 92 | 38 | 11–27 | 1150 | fast attacker — T3 heavy pair + a thermos |
+| Hanger Flock | 34 | 700 | 2400 | 95 | 44 | 14–32 | 1600 | the pre-boss gauntlet: full T3 + plenty of tea |
+| **The Regional Manager** (boss) | 40 | 1100 | 2200 | 112 | 70 | 45–99 | 3500 | wants the T4 ladder + Court Feast |
+
+**Boss intent (simulated, 25 seeds each, §1 spec — probe_balance pins all of
+these):**
+
+| Loadout | Result | Median |
+|---|---|---|
+| T4 fast (Line-Item Veto + Motorcade Mantle) + 16 Court Feast | **24 W / 1 L** | 106 s, eats 12 |
+| T4 heavy (Cloture + Turnpike Aegis) + 16 Court Feast | **25 W / 0 L** | 110 s, eats 12 |
+| T4 fast, no food | 0 W / 25 L | dies 15 s |
+| T3 heavy + **20** Court Feast | **0 W / 25 L** | food exhausts 134 s |
+| T3 light + 20 Court Feast | **0 W / 25 L** | burst down 136 s |
+| T2 max (slice set) + 20 Court Feast | 0 W / 25 L | dies 22 s — burst |
+
+The Regional Manager is a **burst ladder**: his 45–99 swings can remove half
+a light-armor HP pool in one blow (a single hit from above half to ≤0 kills
+through any food), so the T3 light pair dies to variance and even the burst-
+safe T3 heavy pair loses the food-attrition race (needs ~23 feasts, runs out
+at 20). The T4 armors (250/300 HP) sit above the burst threshold and the T4
+weapons end the fight in under two minutes. Like the Superintendent, the
+gate is honest gear, not grindable Crowns — the Depot's 9,000–9,500
+impatience lines are clearance-gated shortcuts, never the intended path.
+
+Zone-1 note: the Sunny Exclusion Zone and The Superintendent are unchanged
+(byte-intent) — the §2 sims re-run identical on the same seeds.
+
+### 2.2 Gear ladder loadouts (T24, derived from §1.3 application)
+
+| Tier (craft gate) | Weapon (fast) | Weapon (heavy) | Armor (light) | Armor (heavy) |
+|---|---|---|---|---|
+| T1 (Junksmith 8) | Point of Order | — | Pedestrian Plating | — |
+| T2 (Junksmith 15) | Majority Whip | — | Carpool Carapace | — |
+| T3 (Junksmith 22/24) | Filibuster 1900 ms · +60 acc · +18 hit | Quorum Gavel 2400 ms · +80 · +34 | Crosswalk Cage +45 eva · +90 HP | Loading Dock Shell +25 · +130 |
+| T4 (Junksmith 34/36) | Line-Item Veto 1600 ms · +136 · +44 | Cloture 2000 ms · +140 · +52 | Motorcade Mantle +70 · +150 | Turnpike Aegis +45 · +200 |
+
+Each bracket carries a fast/light pair (strict upgrade on every axis over
+the previous bracket's apex) and a heavy pair (trades swing speed / evasion
+for max hit / max HP). The ingot chain extends: Almost Bullion → **Quorum
+Alloy** (Junksmith 12) → **Unanimous Steel** (26) — the deep scavenging haul
+(Counterweight, Heritage Hardware, Survey Lens, Directive Cord) and Gift
+Court salvage feed both, with batch lines at 45/60 for the long grind.
+
 ## 3. XP curve and the first-five-minutes hook (Professor X)
 
 All five skills share `standard_99` (98 hand-tunable steps, total
@@ -222,6 +277,53 @@ Food ladder vs monster damage (heal / boss avg hit 8.5 / boss max hit 13):
 | Mandatory Grits | 15 | Cooking tier 1 |
 | Compliant Casserole | 35 | Cooking tier 2 |
 | Chef's Regret | 80 | Cooking tiers 3–4 (≈53% of max-gear HP; ~10 boss hits) |
+
+### 3.1 Depth tiers (T24) — gathering 9, processing 20/20, food to 230
+
+**Gathering (both skills share the gate ladder 1/5/10/16/22/30/41/54/70;
+XP rate escalates strictly; L71–99 is the long-tail cap grind):**
+
+| Tier | Gate | Interval | XP/action | XP/min | Scavenging | Foraging | Blend cr/min |
+|---|---|---|---|---|---|---|---|
+| 5 | 22 | 8500 ms | 128 | 904 | Sweep the Service Corridors | Prune the Atrium Thicket | 99.9 |
+| 6 | 30 | 10000 ms | 190 | 1140 | Pry the Mezzanine Lockers | Reap the Relay Garden | 136.7 |
+| 7 | 41 | 11500 ms | 275 | 1435 | Deconstruct the Signal Tower | Tend the Hydroponics Bay | 171.6 |
+| 8 | 54 | 13000 ms | 400 | 1846 | Excavate the Foundation Grid | Gather the Greenhouse Span | 184.2 |
+| 9 | 70 | 15000 ms | 580 | 2320 | Audit the Archive Vault | Work the Canopy Rows | 223.3 |
+
+New materials: Scavenging yields **Directive Cord** (cordage, T5+),
+**Survey Lens** (optical bits, T5+), **Heritage Hardware** (pre-war
+hardware, T6+), **Counterweight** (the heavier-alloy feed, T6+); Foraging
+yields **Quarantine Quince** (T5), **Notary Nettle** (T5 trickle/T6),
+**Fountain Mint** (T6 trickle/T7+), **Skylight Bloom** (T7 trickle/T8+) —
+each tier's table trickles the next tier's flora (the established peek-ahead
+pattern). All tables total weight 100, one roll per action.
+
+**Processing (20 recipes each; the best XP rate a band offers never falls as
+gates rise — probe-pinned):**
+
+- Junksmithing: the ingot chain (Smelt Almost Bullion → Smelt Quorum Alloy
+  @12 → Smelt Unanimous Steel @26, batch lines @45/@60), one utility cord
+  sink (Braid Cord Lashing @16), and the eight gear recipes (§2.2).
+- Cooking: the food ladder below plus the pantry line (Mill Mandated
+  Cornmeal @21) and batch/reissue lines to clearance 92 (Double Batch Grits
+  @45 … Mass-Produce Regret @92 — the O-1 "processing is paperwork" spirit,
+  at scale).
+
+**Food ladder (auto-eat best-first climbs a strictly increasing ladder;
+heals scale with ingredient rarity — new flora + Gift Court drops):**
+
+| Food | Heal | Gate | Ingredients |
+|---|---|---|---|
+| Grade-D Fritters | 55 | 13 | Bugmeat + Duskcorn |
+| Chef's Regret (tiers 3–4, unchanged) | 80 | 10/15 | — |
+| Quarantine Compote | 120 | 18 | Quarantine Quince + Duskcorn |
+| Notary Tea | 160 | 24 | Notary Nettle + Iodine Root + Bagged Ice (Gift Court drop) |
+| Fountain Sherbet | 190 | 28 | Fountain Mint + Bagged Ice |
+| Court Feast | 230 | 32 | Skylight Bloom + Fountain Mint + Foodcourt Tray (Gift Court drop) |
+
+Court Feast ≈ 92% of the T4 light-armor HP pool — out-eating the Regional
+Manager stays plausible but never free (the winning sweeps eat ~12).
 
 ## 4. Intended progression timeline (win moment = boss clear)
 
@@ -379,8 +481,48 @@ minute-12 earnings ALONE.
 
 Every item has a source **and** a sink (probe-enforced): sources = drop
 tables, recipe outputs, Depot stock; sinks = recipe inputs, edibility
-(all 4 foods), equippability (all 4 equipment). Notable wiring: Lint Pelt
+(all 9 foods), equippability (all 12 equipment). Notable wiring: Lint Pelt
 → Carpool Carapace (combat feeds crafting), Fizz Gland → Reheat Chef's
 Regret, Vintage Snack Cake → edible without Cooking (pre-cooking combat
 sustain), Girderling → both tier-4 gear pieces, the boss's table feeds
 tier-4 crafting after clear.
+
+### 6.1 Depth economy extension (T24) — earning curve per new phase
+
+The T20 model (§5.1) stands untouched for phases A–D (minutes 0–480): its
+tier blends 1–4 are recomputed from unchanged data and the deputy-ladder
+windows hold on the same pins. The depth tiers unlock past those windows on
+the conservative model, so they extend the curve with new phases (same
+factors: retention 0.75, streams 3.2–3.5 — five postings never means five
+full gathering streams):
+
+| Phase | Minutes (approx.) | Postings | Tier blend | Disposable cr/min |
+|---|---|---|---|---|
+| A1/A2/B/C/D | 0–480 | 1–4 | T1→T4 (58.5→91.0) | 20.48 → 204.75 (unchanged, §5.1) |
+| E | 480–1440 (8–24 h) | 4–5 | T5–T6 (99.9–136.7) | 0.75 × 3.2 × 136.7 ≈ **328** |
+| F | 1440–4320 (1–3 d) | 5 | T7–T8 (171.6–184.2) | 0.75 × 3.5 × 184.2 ≈ **484** |
+| G | 4320+ (3 d+) | 5 | T9 (223.3) | 0.75 × 3.5 × 223.3 ≈ **586** |
+
+Gate-crossing sanity (curve costs): T5's 22 (29,316 XP) and T6's 30 (68,881)
+land inside phase D–E for a focused resident; T7's 41 (~163 k), T8's 54
+(~290 k) and T9's 70 (696,642) pace phases E–G. Gift Court combat pays real
+Crowns for the first time (per-kill EV: Kiosk 19.3 · Escalator 26.0 ·
+Regional Manager **84.6** with the double-roll table) — the apex boss is the
+idle farm of the deep game, exactly as the Superintendent is of the slice.
+New Crown sinks ride the Depot: T3/T4 gear impatience lines (3,000–9,500,
+combat-gated), apex food lines (120–800), and gated material lines for the
+alloy/food chains. **T27 owns retuning the windows with objective income
+folded in** (plan T27; deputy prices move only with documented cause).
+
+### 6.2 Depth no-orphan wiring (T24 additions)
+
+Counterweight / Heritage Hardware / Survey Lens / Directive Cord → Quorum
+Alloy + Unanimous Steel + the T3/T4 gear ladder (deep scavenging + Gift
+Court salvage feed smithing); Quarantine Quince / Notary Nettle / Fountain
+Mint / Skylight Bloom → the Compote/Tea/Sherbet/Feast ladder (new flora has
+a Mess sink); Bagged Ice (cart + sentinel drops) and Foodcourt Tray
+(sentinel + Regional Manager drops) → Tea/Sherbet/Feast (the Gift Court
+food court feeds Cooking); Cornmeal → the batch lines (a pantry with
+clearance-21+ sinks); every new gear piece is craftable AND Depot-stocked
+(buy>sell everywhere; no fully-stockable recipe buys its output's value —
+probe-pinned).

@@ -26,6 +26,58 @@
 			"slot": "armor",
 			"evasion_bonus": 30,
 			"max_hp_bonus": 50
+		},
+		{
+			"item": "filibuster",
+			"slot": "weapon",
+			"attack_speed_ms": 1900,
+			"accuracy_bonus": 60,
+			"max_hit_bonus": 18
+		},
+		{
+			"item": "quorum_gavel",
+			"slot": "weapon",
+			"attack_speed_ms": 2400,
+			"accuracy_bonus": 80,
+			"max_hit_bonus": 34
+		},
+		{
+			"item": "line_item_veto",
+			"slot": "weapon",
+			"attack_speed_ms": 1600,
+			"accuracy_bonus": 136,
+			"max_hit_bonus": 44
+		},
+		{
+			"item": "cloture",
+			"slot": "weapon",
+			"attack_speed_ms": 2000,
+			"accuracy_bonus": 140,
+			"max_hit_bonus": 52
+		},
+		{
+			"item": "crosswalk_cage",
+			"slot": "armor",
+			"evasion_bonus": 45,
+			"max_hp_bonus": 90
+		},
+		{
+			"item": "loading_dock_shell",
+			"slot": "armor",
+			"evasion_bonus": 25,
+			"max_hp_bonus": 130
+		},
+		{
+			"item": "motorcade_mantle",
+			"slot": "armor",
+			"evasion_bonus": 70,
+			"max_hp_bonus": 150
+		},
+		{
+			"item": "turnpike_aegis",
+			"slot": "armor",
+			"evasion_bonus": 45,
+			"max_hp_bonus": 200
 		}
 	]
 }

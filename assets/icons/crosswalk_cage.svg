@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Crosswalk Cage (armor): torso cage woven of zebra-stripe bars. Original stencil-line signage icon (T24). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M40 30 Q64 22 88 30 L92 92 Q64 102 36 92 Z" fill="#F2EDE3" stroke-width="7"/>
+    <line x1="52" y1="30" x2="50" y2="94" stroke-width="5"/>
+    <line x1="64" y1="27" x2="64" y2="98" stroke-width="5"/>
+    <line x1="76" y1="30" x2="78" y2="94" stroke-width="5"/>
+    <path d="M38 46 L90 42 M38 62 L90 60 M38 78 L90 76" stroke-width="4"/>
+  </g>
+</svg>

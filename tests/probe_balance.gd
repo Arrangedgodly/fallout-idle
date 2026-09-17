@@ -17,9 +17,9 @@ extends SceneTree
 ##      (drop table | recipe output | shop line) and a SINK (recipe input |
 ##      edible | equippable);
 ##   5. every activity/recipe/monster/shop/equipment reference resolves;
-##   6. structure: 4 escalating tiers per gathering skill, 4 tier bands per
-##      processing chain (consuming gathering outputs + monster drops),
-##      5-monster ladder with exactly one boss, 2 weapons + 2 armors;
+##   6. structure: 9 escalating tiers per gathering skill (T24 depth: gates
+##      1-70), 20 recipes per processing chain (gear ladder + food tiers +
+##      batch lines), a 5+boss ladder in EACH zone, 6 weapons + 6 armors;
 ##   7. shop integrity: buy > sell everywhere, gates resolvable, no
 ##      buy-craft-sell arbitrage on fully stockable recipes;
 ##   8. SEEDED simulated boss fights using the combat spec arithmetic of
@@ -27,6 +27,9 @@ extends SceneTree
 ##      roll, bounded damage, first swing after one full interval, auto-eat
 ##      at half HP): The Superintendent is beatable with max slice gear +
 ##      best food and NOT with mid gear — and not by out-eating it naked.
+##      T24 adds the Gift Court: The Regional Manager (the new apex) is
+##      beatable with the tier-4 ladder + Court Feast, NOT with tier-3 gear
+##      (even out-fed) — and the zone-2 rungs teach their lessons;
 ##   9. T20 PERSONNEL ECONOMY — the deputy ladder + orientation stipend in
 ##      data/staffing.json are priced against an earning curve RECOMPUTED
 ##      here from the authored content (per-table EV = Σ P x avg_qty x
@@ -36,6 +39,12 @@ extends SceneTree
 ##      opens), the stipend's sizing rules hold, and the boss sims above
 ##      still pass unchanged (deputies buy postings, not power).
 ##      Derivation + assumptions: docs/balance-notes.md §5.1-§5.3.
+##  10. T24 DEPTH INTEGRITY — XP-curve coverage (every skill trains from
+##      clearance 1 with a next unlock never further than 16 grades away,
+##      ladders reaching 40-92; 93-99 is the documented long-tail cap
+##      grind), processing XP discipline (per-band best rate never falls as
+##      gates rise), every craftable gear piece has a recipe, and the new
+##      materials flow both ways (gathering/drop source -> recipe sink).
 
 const SEEDS := 25
 const SIM_CAP_MS := 3_600_000
@@ -76,9 +85,36 @@ const BIBLE_NAMES := {
 	"majority_whip": "Majority Whip",
 	"hubcap_vest": "Pedestrian Plating",
 	"carpool_carapace": "Carpool Carapace",
+	# T24 depth set (naming-bible §10 T24 table — Class A rows).
+	"directive_cord": "Directive Cord",
+	"survey_lens": "Survey Lens",
+	"heritage_hardware": "Heritage Hardware",
+	"counterweight": "Counterweight",
+	"quarantine_quince": "Quarantine Quince",
+	"notary_nettle": "Notary Nettle",
+	"fountain_mint": "Fountain Mint",
+	"skylight_bloom": "Skylight Bloom",
+	"bagged_ice": "Bagged Ice",
+	"foodcourt_tray": "Foodcourt Tray",
+	"quorum_alloy": "Quorum Alloy",
+	"unanimous_steel": "Unanimous Steel",
+	"grade_d_fritters": "Grade-D Fritters",
+	"quarantine_compote": "Quarantine Compote",
+	"cornmeal": "Mandated Cornmeal",
+	"notary_tea": "Notary Tea",
+	"fountain_sherbet": "Fountain Sherbet",
+	"court_feast": "Court Feast",
+	"filibuster": "Filibuster",
+	"quorum_gavel": "Quorum Gavel",
+	"line_item_veto": "Line-Item Veto",
+	"cloture": "Cloture",
+	"crosswalk_cage": "Crosswalk Cage",
+	"loading_dock_shell": "Loading Dock Shell",
+	"motorcade_mantle": "Motorcade Mantle",
+	"turnpike_aegis": "Turnpike Aegis",
 }
 
-const EXPECTED_RECORD_COUNT := 85  # 21 items + 5 skills + 8 activities + 11 recipes + 13 tables + 5 monsters + 4 equipment + 11 shop lines + 1 curve + 4 T17 deputy rungs + 2 T23 zones (objectives ship EMPTY until T25)
+const EXPECTED_RECORD_COUNT := 203  # 47 items + 5 skills + 18 activities + 40 recipes + 29 tables + 11 monsters + 12 equipment + 34 shop lines + 1 curve + 4 T17 deputy rungs + 2 T23 zones (objectives ship EMPTY until T25)
 
 var lib: ContentLibrary
 var checks := 0
@@ -109,6 +145,7 @@ func _initialize() -> void:
 	_check_shop_integrity()
 	_check_combat_sims()
 	_check_personnel_economy()
+	_check_xp_coverage()
 
 
 func _process(_delta: float) -> bool:
@@ -182,7 +219,7 @@ func _check_gathering_tiers() -> void:
 		for activity in lib.activities.values():
 			if activity.skill == skill_id:
 				tiers.append(activity)
-		_check(tiers.size() == 4, "%s has exactly 4 activity tiers (got %d)" % [skill_id, tiers.size()])
+		_check(tiers.size() == 9, "%s has exactly 9 activity tiers (T24 depth; got %d)" % [skill_id, tiers.size()])
 		if tiers.is_empty():
 			continue
 		tiers.sort_custom(func(a: ActivityDef, b: ActivityDef) -> bool: return a.level_gate < b.level_gate)
@@ -194,6 +231,8 @@ func _check_gathering_tiers() -> void:
 				"%s tier %d gate escalates (%d > %d)" % [skill_id, i + 1, tiers[i].level_gate, tiers[i - 1].level_gate])
 			_check(rate > prev_rate,
 				"%s tier %d XP rate escalates (%.0f > %.0f XP/min)" % [skill_id, i + 1, rate, prev_rate])
+		_check(tiers[tiers.size() - 1].level_gate == 70,
+			"%s ladder reaches clearance 70 (the L71-99 long-tail is the cap grind)" % skill_id)
 
 
 # ----------------------------------------------------------- processing chains
@@ -223,6 +262,7 @@ func _check_processing_chains() -> void:
 
 	for chain in ["junksmithing", "cooking"]:
 		var recipes := _recipes_for(chain)
+		_check(recipes.size() == 20, "%s chain grows to 20 recipes (T24 depth; got %d)" % [chain, recipes.size()])
 		var gates: Array[int] = []
 		for recipe in recipes:
 			gates.append(recipe.level_gate)
@@ -231,7 +271,20 @@ func _check_processing_chains() -> void:
 		for gate in gates:
 			if not bands.has(gate):
 				bands.append(gate)
-		_check(bands.size() == 4, "%s chain spans exactly 4 clearance tiers (gates %s)" % [chain, str(bands)])
+		_check(bands.size() >= 10, "%s chain spans >= 10 clearance bands (got %d: %s)" % [chain, bands.size(), str(bands)])
+		_check(bands[0] == 1, "%s chain trains from clearance 1" % chain)
+		_check(bands[bands.size() - 1] >= 45, "%s chain keeps unlocking deep (%d)" % [chain, bands[bands.size() - 1]])
+		# T24 discipline: the best XP rate a band offers never FALLS as the
+		# gate rises (batch/reissue lines may trail within a band, never below
+		# every cheaper band's best).
+		var best_so_far := 0.0
+		for gate in bands:
+			var best := 0.0
+			for recipe in recipes:
+				if recipe.level_gate == gate:
+					best = maxf(best, 60000.0 * recipe.xp_per_action / recipe.interval_ms)
+			_check(best >= best_so_far, "%s band %d best XP rate %.0f never falls below a cheaper band's %.0f" % [chain, gate, best, best_so_far])
+			best_so_far = best
 		var consumes_gathering := false
 		var consumes_monster := false
 		for recipe in recipes:
@@ -247,39 +300,100 @@ func _check_processing_chains() -> void:
 		and lib.recipe("press_carpool_carapace").inputs.any(func(s: ItemQty) -> bool: return s.item == "lint_pelt"),
 		"Junksmithing consumes the Dust Bunny's Lint Pelt (combat feeds crafting)")
 
+	# T24: the new materials flow both ways — Junksmithing eats the deep
+	# scavenging haul + Gift Court salvage, Cooking eats the new flora and
+	# the Gift Court food-court drops.
+	for material in ["counterweight", "directive_cord", "survey_lens", "heritage_hardware"]:
+		_check(_recipe_consumes("junksmithing", material), "Junksmithing consumes '%s' (the deep haul has a smithing sink)" % material)
+	for flora in ["quarantine_quince", "notary_nettle", "fountain_mint", "skylight_bloom"]:
+		_check(_recipe_consumes("cooking", flora), "Cooking consumes '%s' (the new flora has a Mess sink)" % flora)
+	_check(_recipe_consumes("cooking", "bagged_ice") and _recipe_consumes("cooking", "foodcourt_tray"),
+		"Cooking consumes the Gift Court drops (Bagged Ice + Foodcourt Tray)")
+	_check(_recipe_consumes("junksmithing", "quorum_alloy") and _recipe_consumes("junksmithing", "unanimous_steel"),
+		"Junksmithing consumes both new alloys (the ingot chain extension has gear sinks)")
+
+	# Every equipment item is CRAFTABLE (a recipe outputs it) — the Depot
+	# impatience lines are a shortcut, never the only source.
+	for equip in lib.equipment.values():
+		var craftable := false
+		for recipe in lib.recipes.values():
+			if recipe.output.item == equip.item:
+				craftable = true
+				break
+		_check(craftable, "equipment '%s' is craftable (a recipe outputs it)" % equip.item)
+
 	# Every recipe's inputs must be producible by SOMETHING (source side).
 	for recipe in lib.recipes.values():
 		for input in recipe.inputs:
 			_check(_has_source(input.item), "recipe input '%s' (%s) has a source" % [input.item, recipe.id])
 
 
+func _recipe_consumes(skill_id: String, item_id: String) -> bool:
+	for recipe in _recipes_for(skill_id):
+		for input in recipe.inputs:
+			if input.item == item_id:
+				return true
+	return false
+
+
 # ------------------------------------------------------------- monster ladder
 
-func _check_monster_ladder() -> void:
-	var monsters: Array[MonsterDef] = []
+func _zone_monsters(zone_id: String) -> Array[MonsterDef]:
+	var out: Array[MonsterDef] = []
 	for monster in lib.monsters.values():
-		monsters.append(monster)
-	monsters.sort_custom(func(a: MonsterDef, b: MonsterDef) -> bool: return a.level_gate < b.level_gate)
-	_check(monsters.size() == 5, "the Sunny Exclusion Zone has 5 fauna (4 + boss; got %d)" % monsters.size())
-	if monsters.size() < 5:
-		return
-	var bosses := monsters.filter(func(m: MonsterDef) -> bool: return m.is_boss)
-	if bosses.is_empty():
-		_check(false, "a boss exists (The Superintendent)")
-		return
-	_check(bosses.size() == 1 and bosses[0].id == "sewer_landlord" and bosses[0].name == "The Superintendent",
-		"exactly one boss: The Superintendent (sewer_landlord)")
-	for i in monsters.size():
-		var m := monsters[i]
-		_check(m.zone == "dusty_flats", "monster '%s' lives in the slice zone dusty_flats" % m.id)
-		_check(m.min_hit <= m.max_hit, "monster '%s' hit bounds ordered" % m.id)
-		if i > 0:
-			var prev := monsters[i - 1]
-			_check(m.level_gate > prev.level_gate, "monster gate escalates (%s %d > %s %d)" % [m.id, m.level_gate, prev.id, prev.level_gate])
-			_check(m.max_hp > prev.max_hp, "monster HP escalates (%s %d > %s %d)" % [m.id, m.max_hp, prev.id, prev.max_hp])
-			_check(m.xp_reward > prev.xp_reward, "monster XP escalates (%s %d > %s %d)" % [m.id, m.xp_reward, prev.id, prev.xp_reward])
-	_check(monsters[0].level_gate == 1, "first rung (Litterbug) is ungated")
-	_check(monsters[4].is_boss and monsters[4].level_gate == 14, "boss holds the strictest gate (clearance 14)")
+		if monster.zone == zone_id:
+			out.append(monster)
+	out.sort_custom(func(a: MonsterDef, b: MonsterDef) -> bool: return a.level_gate < b.level_gate)
+	return out
+
+
+func _check_monster_ladder() -> void:
+	# -- The Sunny Exclusion Zone: the T5 ladder, unchanged (byte-intent) --
+	var sunny := _zone_monsters("dusty_flats")
+	_check(sunny.size() == 5, "the Sunny Exclusion Zone has 5 fauna (4 + boss; got %d)" % sunny.size())
+	if sunny.size() >= 5:
+		var bosses := sunny.filter(func(m: MonsterDef) -> bool: return m.is_boss)
+		if bosses.is_empty():
+			_check(false, "a boss exists (The Superintendent)")
+		else:
+			_check(bosses.size() == 1 and bosses[0].id == "sewer_landlord" and bosses[0].name == "The Superintendent",
+				"exactly one Sunny boss: The Superintendent (sewer_landlord)")
+		for i in sunny.size():
+			var m := sunny[i]
+			_check(m.zone == "dusty_flats", "monster '%s' lives in the slice zone dusty_flats" % m.id)
+			_check(m.min_hit <= m.max_hit, "monster '%s' hit bounds ordered" % m.id)
+			if i > 0:
+				var prev := sunny[i - 1]
+				_check(m.level_gate > prev.level_gate, "monster gate escalates (%s %d > %s %d)" % [m.id, m.level_gate, prev.id, prev.level_gate])
+				_check(m.max_hp > prev.max_hp, "monster HP escalates (%s %d > %s %d)" % [m.id, m.max_hp, prev.id, prev.max_hp])
+				_check(m.xp_reward > prev.xp_reward, "monster XP escalates (%s %d > %s %d)" % [m.id, m.xp_reward, prev.id, prev.xp_reward])
+		_check(sunny[0].level_gate == 1, "first rung (Litterbug) is ungated")
+		_check(sunny[4].is_boss and sunny[4].level_gate == 14, "boss holds the strictest gate (clearance 14)")
+
+	# -- The Gift Court (T24): the second zone, gated above the Sunny set --
+	var court := _zone_monsters("gift_court")
+	_check(court.size() == 6, "the Gift Court has 6 fauna (5 + boss; got %d)" % court.size())
+	if court.size() >= 6:
+		var bosses := court.filter(func(m: MonsterDef) -> bool: return m.is_boss)
+		if bosses.is_empty():
+			_check(false, "a Gift Court boss exists (The Regional Manager)")
+		else:
+			_check(bosses.size() == 1 and bosses[0].id == "regional_manager" and bosses[0].name == "The Regional Manager",
+				"exactly one Gift Court boss: The Regional Manager (regional_manager)")
+		for i in court.size():
+			var m := court[i]
+			_check(m.min_hit <= m.max_hit, "monster '%s' hit bounds ordered" % m.id)
+			if i > 0:
+				var prev := court[i - 1]
+				_check(m.level_gate > prev.level_gate, "court gate escalates (%s %d > %s %d)" % [m.id, m.level_gate, prev.id, prev.level_gate])
+				_check(m.max_hp > prev.max_hp, "court HP escalates (%s %d > %s %d)" % [m.id, m.max_hp, prev.id, prev.max_hp])
+				_check(m.xp_reward > prev.xp_reward, "court XP escalates (%s %d > %s %d)" % [m.id, m.xp_reward, prev.id, prev.xp_reward])
+		_check(court[0].level_gate > 14, "the Gift Court opens ABOVE the Sunny boss (first rung gate %d > 14)" % court[0].level_gate)
+		_check(court[5].is_boss and court[5].level_gate == 40, "the Regional Manager holds the strictest gate (clearance 40)")
+		_check(court[5].xp_reward == 3500, "the Regional Manager pays apex XP (3500)")
+	# Zone references resolve for every monster (the loader also enforces).
+	for monster in lib.monsters.values():
+		_check(lib.zone(monster.zone) != null, "monster '%s' zone '%s' resolves" % [monster.id, monster.zone])
 
 
 # ----------------------------------------------------------------- equipment
@@ -292,8 +406,8 @@ func _check_equipment() -> void:
 			weapons.append(equip)
 		else:
 			armors.append(equip)
-	_check(weapons.size() == 2, "exactly 2 weapons (Point of Order, Majority Whip)")
-	_check(armors.size() == 2, "exactly 2 armors (Pedestrian Plating, Carpool Carapace)")
+	_check(weapons.size() == 6, "exactly 6 weapons (2 per tier bracket, T1-T4; got %d)" % weapons.size())
+	_check(armors.size() == 6, "exactly 6 armors (2 per tier bracket, T1-T4; got %d)" % armors.size())
 	var whip := lib.equipment_for("majority_whip")
 	var shiv := lib.equipment_for("scrap_shiv")
 	_check(shiv != null and shiv.attack_speed_ms > 0, "Point of Order overrides attack speed")
@@ -304,7 +418,44 @@ func _check_equipment() -> void:
 	var carapace := lib.equipment_for("carpool_carapace")
 	var vest := lib.equipment_for("hubcap_vest")
 	_check(vest != null and carapace != null and carapace.evasion_bonus > vest.evasion_bonus
-		and carapace.max_hp_bonus > vest.max_hp_bonus, "Carpool Carapace strictly upgrades Pedestrian Plating")
+			and carapace.max_hp_bonus > vest.max_hp_bonus, "Carpool Carapace strictly upgrades Pedestrian Plating")
+
+	# -- T24 gear ladder above the slice set (tier brackets by recipe gate):
+	#    T3 (clearance 22-24) and T4 (34-36), each a fast/light pair and a
+	#    heavy pair; the fast weapon strictly upgrades on every axis, the
+	#    heavy pair trades swing speed for accuracy + max hit.
+	var filibuster := lib.equipment_for("filibuster")
+	var gavel := lib.equipment_for("quorum_gavel")
+	var veto := lib.equipment_for("line_item_veto")
+	var cloture := lib.equipment_for("cloture")
+	_check(filibuster != null and filibuster.attack_speed_ms < whip.attack_speed_ms
+			and filibuster.accuracy_bonus > whip.accuracy_bonus and filibuster.max_hit_bonus > whip.max_hit_bonus,
+		"Filibuster strictly upgrades the Majority Whip (faster, truer, harder)")
+	_check(gavel != null and gavel.accuracy_bonus > whip.accuracy_bonus and gavel.max_hit_bonus > whip.max_hit_bonus,
+		"Quorum Gavel out-hits the Majority Whip (the heavy T3 trade)")
+	_check(veto != null and veto.attack_speed_ms < filibuster.attack_speed_ms
+			and veto.accuracy_bonus > filibuster.accuracy_bonus and veto.max_hit_bonus > filibuster.max_hit_bonus,
+		"Line-Item Veto strictly upgrades the Filibuster")
+	_check(cloture != null and cloture.accuracy_bonus > gavel.accuracy_bonus and cloture.max_hit_bonus > gavel.max_hit_bonus,
+		"Cloture out-hits the Quorum Gavel (the heavy T4 trade)")
+	var crosswalk := lib.equipment_for("crosswalk_cage")
+	var dock := lib.equipment_for("loading_dock_shell")
+	var mantle := lib.equipment_for("motorcade_mantle")
+	var aegis := lib.equipment_for("turnpike_aegis")
+	_check(crosswalk != null and dock != null and crosswalk.evasion_bonus > carapace.evasion_bonus
+			and crosswalk.max_hp_bonus > carapace.max_hp_bonus,
+		"Crosswalk Cage strictly upgrades the Carpool Carapace")
+	_check(dock != null and dock.max_hp_bonus > carapace.max_hp_bonus,
+		"Loading Dock Shell out-tanks the Carpool Carapace (heavy T3)")
+	_check(crosswalk.evasion_bonus >= dock.evasion_bonus and dock.max_hp_bonus >= crosswalk.max_hp_bonus,
+		"T3 armor pair splits roles (light evades, heavy tanks)")
+	_check(mantle != null and aegis != null and mantle.evasion_bonus > crosswalk.evasion_bonus
+			and mantle.max_hp_bonus > crosswalk.max_hp_bonus,
+		"Motorcade Mantle strictly upgrades the Crosswalk Cage")
+	_check(aegis.max_hp_bonus > dock.max_hp_bonus,
+		"Turnpike Aegis out-tanks the Loading Dock Shell (heavy T4)")
+	_check(mantle.evasion_bonus >= aegis.evasion_bonus and aegis.max_hp_bonus >= mantle.max_hp_bonus,
+		"T4 armor pair splits roles (light evades, heavy tanks)")
 
 
 # ----------------------------------------------------------------- food chain
@@ -326,6 +477,37 @@ func _check_food_ladder() -> void:
 	var dispenser := lib.monster("feral_snack_dispenser")
 	_check(lib.drop_table(dispenser.drop_table).entry_for_item("vintage_snack_cake") != null,
 		"Vintage Snack Cake drops from the Feral Snack Dispenser (pre-cooking combat sustain)")
+
+	# -- T24 food tiers: the heal ladder scales with ingredient rarity, and
+	#    the auto-eat best-first rule climbs a strictly increasing ladder.
+	var fritters := lib.item("grade_d_fritters")
+	var compote := lib.item("quarantine_compote")
+	var tea := lib.item("notary_tea")
+	var sherbet := lib.item("fountain_sherbet")
+	var feast := lib.item("court_feast")
+	for pair in [[fritters, 55], [compote, 120], [tea, 160], [sherbet, 190], [feast, 230]]:
+		_check(pair[0] != null and pair[0].is_food() and pair[0].heal == pair[1],
+			"T24 food '%s' heals %d (scaled to the Gift Court damage ladder)" % [pair[0].id if pair[0] else "?", pair[1]])
+	_check(casserole.heal < fritters.heal and fritters.heal < stew.heal and stew.heal < compote.heal
+			and compote.heal < tea.heal and tea.heal < sherbet.heal and sherbet.heal < feast.heal,
+		"the heal ladder is strictly increasing in unlock order (10 < 15 < 35 < 55 < 80 < 120 < 160 < 190 < 230)")
+	var rm := lib.monster("regional_manager")
+	_check(feast.heal >= 2 * rm.max_hit,
+		"the apex food (%d) heals at least 2 Regional Manager max hits (%d) — real chunks vs the burst ladder" % [feast.heal, rm.max_hit])
+	var mantle := lib.equipment_for("motorcade_mantle")
+	_check(feast.heal * 100 >= 90 * (100 + mantle.max_hp_bonus),
+		"the apex food (%d) heals >= 90%% of the T4 light-armor HP pool (%d) — out-eating stays plausible" % [feast.heal, 100 + mantle.max_hp_bonus])
+	# Every food tier is the OUTPUT of at least one recipe (edibility is the
+	# sink; crafting is the honest source — the snack cake stays the lone
+	# monster-drop exception).
+	var food_outputs := {}
+	for recipe in lib.recipes.values():
+		var item := lib.item(recipe.output.item)
+		if item != null and item.is_food():
+			food_outputs[item.id] = true
+	for food_id in ["mandatory_grits", "compliant_casserole", "radstag_stew", "grade_d_fritters",
+			"quarantine_compote", "notary_tea", "fountain_sherbet", "court_feast"]:
+		_check(food_outputs.has(food_id), "food '%s' is craftable (a recipe outputs it)" % food_id)
 
 
 # ---------------------------------------------------------------- references
@@ -547,6 +729,55 @@ func _check_combat_sims() -> void:
 	_check(_run_fights("dispenser vs MID + 4 cass", "scrap_shiv", "hubcap_vest", "feral_snack_dispenser", {"compliant_casserole": 4})["wins"] >= SEEDS - 2,
 		"Dispenser wants armor + food (mid gear + casseroles wins)")
 
+	# -- The Gift Court (T24; balance-notes §2.1). The Regional Manager is
+	#    the slice's new apex: tier-4 ladder + apex food wins, tier-3 gear
+	#    does not (even out-fed 20 deep), and no food is no chance.
+	var rm := lib.monster("regional_manager")
+	_check(rm != null and rm.is_boss, "Regional Manager record loaded for simulation")
+
+	var rm_t4_fast := _run_fights("reg.manager vs T4 fast + 16 feast", "line_item_veto", "motorcade_mantle", "regional_manager", {"court_feast": 16})
+	_check(rm_t4_fast["wins"] >= SEEDS - 2,
+		"NEW APEX BEATABLE: T4 fast pair + Court Feast wins >= %d/%d (got %d)" % [SEEDS - 2, SEEDS, rm_t4_fast["wins"]])
+	var rm_t4_heavy := _run_fights("reg.manager vs T4 heavy + 16 feast", "cloture", "turnpike_aegis", "regional_manager", {"court_feast": 16})
+	_check(rm_t4_heavy["wins"] >= SEEDS - 2,
+		"T4 heavy pair + Court Feast also wins (>= %d/%d, got %d)" % [SEEDS - 2, SEEDS, rm_t4_heavy["wins"]])
+	_check(rm_t4_heavy["median_ms"] < 180_000, "the apex fight stays a fight (< 3 min median, got %d ms)" % rm_t4_heavy["median_ms"])
+	_check(rm_t4_heavy["median_eaten"] >= 1, "food matters in the winning loadout (median %d eaten)" % rm_t4_heavy["median_eaten"])
+
+	var rm_t3_heavy := _run_fights("reg.manager vs T3 heavy + 20 feast", "quorum_gavel", "loading_dock_shell", "regional_manager", {"court_feast": 20})
+	_check(rm_t3_heavy["wins"] == 0,
+		"NOT WITH T3: even out-fed 20 deep the heavy T3 pair never wins (0/%d, got %d)" % [SEEDS, rm_t3_heavy["wins"]])
+	var rm_t3_light := _run_fights("reg.manager vs T3 light + 20 feast", "filibuster", "crosswalk_cage", "regional_manager", {"court_feast": 20})
+	_check(rm_t3_light["wins"] == 0,
+		"NOT WITH T3: the light T3 pair bursts down under 45-99 swings (0/%d, got %d)" % [SEEDS, rm_t3_light["wins"]])
+	var rm_t4_nofood := _run_fights("reg.manager vs T4 fast, no food", "line_item_veto", "motorcade_mantle", "regional_manager", {})
+	_check(rm_t4_nofood["wins"] == 0,
+		"T4 without food never wins (0/%d, got %d) — provisioning is a real lesson" % [SEEDS, rm_t4_nofood["wins"]])
+	var rm_t2 := _run_fights("reg.manager vs T2 max + 20 feast", "majority_whip", "carpool_carapace", "regional_manager", {"court_feast": 20})
+	_check(rm_t2["wins"] == 0,
+		"slice-max gear cannot out-eat the Regional Manager (0/%d, got %d) — burst damage is the gate" % [SEEDS, rm_t2["wins"]])
+
+	# Gift Court rung lessons — the zone-2 ladder teaches in order: T2
+	# clears the cart + kiosk, T3 + tea clears the sentinel/escalator/flock.
+	_check(_run_fights("cart vs T2, no food", "majority_whip", "carpool_carapace", "runaway_cart", {})["wins"] >= SEEDS - 2,
+		"Runaway Cart wants slice-max gear (T2 clears it dry)")
+	_check(_run_fights("cart vs T1, no food", "scrap_shiv", "hubcap_vest", "runaway_cart", {})["wins"] == 0,
+		"T1 gear loses to the Runaway Cart (zone 2 means business)")
+	_check(_run_fights("kiosk vs T2 + 4 regret", "majority_whip", "carpool_carapace", "directory_kiosk", {"radstag_stew": 4})["wins"] >= SEEDS - 2,
+		"Directory Kiosk is a T2 tank fight (stews carry it)")
+	_check(_run_fights("sentinel vs T3 heavy + 3 tea", "quorum_gavel", "loading_dock_shell", "wet_floor_sentinel", {"notary_tea": 3})["wins"] >= SEEDS - 2,
+		"Wet Floor Sentinel wants T3 + tea")
+	_check(_run_fights("sentinel vs T2 + 6 regret", "majority_whip", "carpool_carapace", "wet_floor_sentinel", {"radstag_stew": 6})["wins"] <= 5,
+		"T2 + slice food mostly FAILS the sentinel (wins <= 5/%d)" % SEEDS)
+	_check(_run_fights("escalator vs T3 heavy + 5 tea", "quorum_gavel", "loading_dock_shell", "restless_escalator", {"notary_tea": 5})["wins"] >= SEEDS - 2,
+		"Restless Escalator wants T3 + a thermos")
+	_check(_run_fights("escalator vs T2 + 10 regret", "majority_whip", "carpool_carapace", "restless_escalator", {"radstag_stew": 10})["wins"] <= 3,
+		"T2 + a boatload of stews still fails the escalator (wins <= 3/%d)" % SEEDS)
+	_check(_run_fights("flock vs T3 heavy + 7 tea", "quorum_gavel", "loading_dock_shell", "hanger_flock", {"notary_tea": 7})["wins"] >= SEEDS - 2,
+		"Hanger Flock wants full T3 + plenty of tea")
+	_check(_run_fights("flock vs T2 + 10 regret", "majority_whip", "carpool_carapace", "hanger_flock", {"radstag_stew": 10})["wins"] <= 3,
+		"T2 + stews fails the flock (wins <= 3/%d)" % SEEDS)
+
 
 # -------------------------------------------------------- personnel economy
 # T20: the deputy ladder + orientation stipend (data/staffing.json) are
@@ -613,13 +844,22 @@ func _modeled_cumulative(t: float, phases: Array) -> float:
 
 
 func _check_personnel_economy() -> void:
-	# -- curve checkpoints: the bands the ladder was priced on (§5.1) --
-	var bands := [[45.0, 70.0], [55.0, 90.0], [60.0, 100.0], [75.0, 110.0]]
+	# -- curve checkpoints: the bands the ladder was priced on (§5.1 + T24
+	#    §6 extension — tiers 5-9 are the depth bands; phases A-D below stay
+	#    priced on tiers 1-4 because the new gates (22+) unlock past those
+	#    windows on the conservative model) --
+	var bands := [[45.0, 70.0], [55.0, 90.0], [60.0, 100.0], [75.0, 110.0],
+		[95.0, 135.0], [115.0, 155.0], [140.0, 185.0], [170.0, 220.0], [205.0, 265.0]]
 	var gross := {}
 	for pair in [["sort_scrap_pile", 0], ["walk_the_glow_rows", 0],
 			["strip_wreck", 1], ["harvest_the_614_plot", 1],
 			["drain_the_sump", 2], ["dig_the_iodine_beds", 2],
-			["unbuild_the_overpass", 3], ["forage_the_far_fence", 3]]:
+			["unbuild_the_overpass", 3], ["forage_the_far_fence", 3],
+			["sweep_service_corridors", 4], ["prune_atrium_thicket", 4],
+			["pry_mezzanine_lockers", 5], ["reap_relay_garden", 5],
+			["deconstruct_signal_tower", 6], ["tend_hydroponics_bay", 6],
+			["excavate_foundation_grid", 7], ["gather_greenhouse_span", 7],
+			["audit_archive_vault", 8], ["work_canopy_rows", 8]]:
 		var rate := _gross_cr_per_min(pair[0])
 		gross[pair[0]] = rate
 		_check(rate >= bands[pair[1]][0] and rate <= bands[pair[1]][1],
@@ -693,8 +933,52 @@ func _check_personnel_economy() -> void:
 	_check(cum240 - float(p1) - float(p2) - float(p3) < float(p4), "deputy 4 NOT owned at the window open (min-240 spendable %.1f < %d)" % [cum240 - p1 - p2 - p3, p4])
 	_check(cum480 - float(p1) - float(p2) - float(p3) >= 1.15 * float(p4), "deputy 4 affordable by minute 480 with margin (%.1f >= 1.15 x %d)" % [cum480 - p1 - p2 - p3, p4])
 	# Boss-gate integrity rides the SAME probe run: _check_combat_sims above
-	# re-proves §2 with content untouched by this ladder (deputies buy
+	# re-proves §2/§2.1 with content untouched by this ladder (deputies buy
 	# postings, not power — §5.3).
+
+
+# ------------------------------------------------------ T24 XP-curve coverage
+## Every level 1-99 has something to train toward: each skill trains from
+## clearance 1, its own ladder never leaves a dead band wider than 16 grades
+## between rungs (the Professor X pacing discipline), every ladder reaches
+## deep (gathering 70, smithing 60, cooking 92, combat 40), and the UNION of
+## all posted gates keeps a next unlock within 16 grades of every level up
+## to 92. L93-99 is the documented long-tail cap grind (balance-notes §3.1)
+## — the curve tops at 99 by design and every level stays reachable.
+func _check_xp_coverage() -> void:
+	var ladders := {
+		"scavenging": [], "foraging": [], "junksmithing": [], "cooking": [], "wasteland_combat": []}
+	for activity in lib.activities.values():
+		ladders[activity.skill].append(activity.level_gate)
+	for recipe in lib.recipes.values():
+		ladders[recipe.skill].append(recipe.level_gate)
+	for monster in lib.monsters.values():
+		ladders["wasteland_combat"].append(monster.level_gate)
+	var minimums := {"scavenging": 40, "foraging": 40, "junksmithing": 45, "cooking": 60, "wasteland_combat": 40}
+	var all_gates: Array[int] = []
+	for skill_id in ladders:
+		var gates: Array = ladders[skill_id]
+		gates.sort()
+		all_gates.append_array(gates)
+		_check(gates.size() >= 9, "%s ladder has >= 9 rungs (got %d)" % [skill_id, gates.size()])
+		_check(int(gates[0]) == 1, "%s trains from clearance 1 (first gate %d)" % [skill_id, gates[0]])
+		var max_gap := 0
+		for i in range(1, gates.size()):
+			max_gap = maxi(max_gap, int(gates[i]) - int(gates[i - 1]))
+		_check(max_gap <= 16, "%s ladder leaves no dead band wider than 16 grades between rungs (worst %d)" % [skill_id, max_gap])
+		_check(int(gates[gates.size() - 1]) >= int(minimums[skill_id]),
+			"%s ladder reaches at least clearance %d (tops at %d)" % [skill_id, minimums[skill_id], gates[gates.size() - 1]])
+	all_gates.sort()
+	var union_top := all_gates[all_gates.size() - 1]
+	_check(union_top == 92, "the union of posted gates reaches clearance 92 (cooking's last batch line; got %d)" % union_top)
+	var worst_wait := 0
+	for level in range(1, 92):
+		var next_gate := 99
+		for gate in all_gates:
+			if gate > level and gate < next_gate:
+				next_gate = gate
+		worst_wait = maxi(worst_wait, next_gate - level)
+	_check(worst_wait <= 16, "every level 1-91 sees a next unlock within 16 grades (worst wait %d; 92-99 is the documented cap grind)" % worst_wait)
 
 
 # ---------------------------------------------------------------- reporting

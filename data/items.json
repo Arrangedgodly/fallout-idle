@@ -151,6 +151,193 @@
 			"category": "equipment",
 			"value": 180,
 			"icon": "carpool_carapace"
+		},
+		{
+			"id": "directive_cord",
+			"name": "Directive Cord",
+			"category": "resource",
+			"value": 11,
+			"icon": "directive_cord"
+		},
+		{
+			"id": "survey_lens",
+			"name": "Survey Lens",
+			"category": "resource",
+			"value": 13,
+			"icon": "survey_lens"
+		},
+		{
+			"id": "heritage_hardware",
+			"name": "Heritage Hardware",
+			"category": "resource",
+			"value": 17,
+			"icon": "heritage_hardware"
+		},
+		{
+			"id": "counterweight",
+			"name": "Counterweight",
+			"category": "resource",
+			"value": 21,
+			"icon": "counterweight"
+		},
+		{
+			"id": "quarantine_quince",
+			"name": "Quarantine Quince",
+			"category": "resource",
+			"value": 8,
+			"icon": "quarantine_quince"
+		},
+		{
+			"id": "notary_nettle",
+			"name": "Notary Nettle",
+			"category": "resource",
+			"value": 12,
+			"icon": "notary_nettle"
+		},
+		{
+			"id": "fountain_mint",
+			"name": "Fountain Mint",
+			"category": "resource",
+			"value": 19,
+			"icon": "fountain_mint"
+		},
+		{
+			"id": "skylight_bloom",
+			"name": "Skylight Bloom",
+			"category": "resource",
+			"value": 27,
+			"icon": "skylight_bloom"
+		},
+		{
+			"id": "bagged_ice",
+			"name": "Bagged Ice",
+			"category": "resource",
+			"value": 7,
+			"icon": "bagged_ice"
+		},
+		{
+			"id": "foodcourt_tray",
+			"name": "Foodcourt Tray",
+			"category": "resource",
+			"value": 11,
+			"icon": "foodcourt_tray"
+		},
+		{
+			"id": "quorum_alloy",
+			"name": "Quorum Alloy",
+			"category": "material",
+			"value": 42,
+			"icon": "quorum_alloy"
+		},
+		{
+			"id": "unanimous_steel",
+			"name": "Unanimous Steel",
+			"category": "material",
+			"value": 95,
+			"icon": "unanimous_steel"
+		},
+		{
+			"id": "grade_d_fritters",
+			"name": "Grade-D Fritters",
+			"category": "food",
+			"value": 20,
+			"heal": 55,
+			"icon": "grade_d_fritters"
+		},
+		{
+			"id": "quarantine_compote",
+			"name": "Quarantine Compote",
+			"category": "food",
+			"value": 40,
+			"heal": 120,
+			"icon": "quarantine_compote"
+		},
+		{
+			"id": "cornmeal",
+			"name": "Mandated Cornmeal",
+			"category": "material",
+			"value": 8,
+			"icon": "cornmeal"
+		},
+		{
+			"id": "notary_tea",
+			"name": "Notary Tea",
+			"category": "food",
+			"value": 65,
+			"heal": 160,
+			"icon": "notary_tea"
+		},
+		{
+			"id": "fountain_sherbet",
+			"name": "Fountain Sherbet",
+			"category": "food",
+			"value": 100,
+			"heal": 190,
+			"icon": "fountain_sherbet"
+		},
+		{
+			"id": "court_feast",
+			"name": "Court Feast",
+			"category": "food",
+			"value": 110,
+			"heal": 230,
+			"icon": "court_feast"
+		},
+		{
+			"id": "filibuster",
+			"name": "Filibuster",
+			"category": "equipment",
+			"value": 380,
+			"icon": "filibuster"
+		},
+		{
+			"id": "quorum_gavel",
+			"name": "Quorum Gavel",
+			"category": "equipment",
+			"value": 420,
+			"icon": "quorum_gavel"
+		},
+		{
+			"id": "line_item_veto",
+			"name": "Line-Item Veto",
+			"category": "equipment",
+			"value": 1400,
+			"icon": "line_item_veto"
+		},
+		{
+			"id": "cloture",
+			"name": "Cloture",
+			"category": "equipment",
+			"value": 1500,
+			"icon": "cloture"
+		},
+		{
+			"id": "crosswalk_cage",
+			"name": "Crosswalk Cage",
+			"category": "equipment",
+			"value": 380,
+			"icon": "crosswalk_cage"
+		},
+		{
+			"id": "loading_dock_shell",
+			"name": "Loading Dock Shell",
+			"category": "equipment",
+			"value": 420,
+			"icon": "loading_dock_shell"
+		},
+		{
+			"id": "motorcade_mantle",
+			"name": "Motorcade Mantle",
+			"category": "equipment",
+			"value": 1400,
+			"icon": "motorcade_mantle"
+		},
+		{
+			"id": "turnpike_aegis",
+			"name": "Turnpike Aegis",
+			"category": "equipment",
+			"value": 1500,
+			"icon": "turnpike_aegis"
 		}
 	]
 }

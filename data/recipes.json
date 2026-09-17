@@ -143,6 +143,396 @@
 				{ "item": "iodine_root", "qty": 1 }
 			],
 			"output": { "item": "radstag_stew", "qty": 1 }
+		},
+		{
+			"id": "smelt_quorum_alloy",
+			"name": "Smelt Quorum Alloy",
+			"skill": "junksmithing",
+			"level_gate": 12,
+			"interval_ms": 6500,
+			"xp_per_action": 120,
+			"inputs": [
+				{ "item": "scrap_ingot", "qty": 2 },
+				{ "item": "girderling", "qty": 1 }
+			],
+			"output": { "item": "quorum_alloy", "qty": 1 }
+		},
+		{
+			"id": "braid_cord_lashing",
+			"name": "Braid Cord Lashing",
+			"skill": "junksmithing",
+			"level_gate": 16,
+			"interval_ms": 5500,
+			"xp_per_action": 130,
+			"inputs": [
+				{ "item": "directive_cord", "qty": 2 },
+				{ "item": "cloth_scraps", "qty": 1 }
+			],
+			"output": { "item": "patchwork_bolt", "qty": 2 }
+		},
+		{
+			"id": "forge_filibuster",
+			"name": "Forge Filibuster",
+			"skill": "junksmithing",
+			"level_gate": 22,
+			"interval_ms": 8000,
+			"xp_per_action": 220,
+			"inputs": [
+				{ "item": "quorum_alloy", "qty": 2 },
+				{ "item": "compliant_wire", "qty": 2 },
+				{ "item": "directive_cord", "qty": 1 }
+			],
+			"output": { "item": "filibuster", "qty": 1 }
+		},
+		{
+			"id": "weave_crosswalk_cage",
+			"name": "Weave Crosswalk Cage",
+			"skill": "junksmithing",
+			"level_gate": 22,
+			"interval_ms": 9000,
+			"xp_per_action": 260,
+			"inputs": [
+				{ "item": "quorum_alloy", "qty": 2 },
+				{ "item": "patchwork_bolt", "qty": 2 },
+				{ "item": "directive_cord", "qty": 2 }
+			],
+			"output": { "item": "crosswalk_cage", "qty": 1 }
+		},
+		{
+			"id": "raise_quorum_gavel",
+			"name": "Raise Quorum Gavel",
+			"skill": "junksmithing",
+			"level_gate": 24,
+			"interval_ms": 8500,
+			"xp_per_action": 240,
+			"inputs": [
+				{ "item": "quorum_alloy", "qty": 3 },
+				{ "item": "counterweight", "qty": 2 },
+				{ "item": "compliant_wire", "qty": 1 }
+			],
+			"output": { "item": "quorum_gavel", "qty": 1 }
+		},
+		{
+			"id": "press_loading_dock_shell",
+			"name": "Press Loading Dock Shell",
+			"skill": "junksmithing",
+			"level_gate": 24,
+			"interval_ms": 9500,
+			"xp_per_action": 280,
+			"inputs": [
+				{ "item": "quorum_alloy", "qty": 3 },
+				{ "item": "counterweight", "qty": 2 },
+				{ "item": "heritage_hardware", "qty": 2 }
+			],
+			"output": { "item": "loading_dock_shell", "qty": 1 }
+		},
+		{
+			"id": "smelt_unanimous_steel",
+			"name": "Smelt Unanimous Steel",
+			"skill": "junksmithing",
+			"level_gate": 26,
+			"interval_ms": 9000,
+			"xp_per_action": 320,
+			"inputs": [
+				{ "item": "quorum_alloy", "qty": 2 },
+				{ "item": "heritage_hardware", "qty": 2 },
+				{ "item": "counterweight", "qty": 1 }
+			],
+			"output": { "item": "unanimous_steel", "qty": 1 }
+		},
+		{
+			"id": "enact_line_item_veto",
+			"name": "Enact Line-Item Veto",
+			"skill": "junksmithing",
+			"level_gate": 34,
+			"interval_ms": 10000,
+			"xp_per_action": 520,
+			"inputs": [
+				{ "item": "unanimous_steel", "qty": 2 },
+				{ "item": "survey_lens", "qty": 2 },
+				{ "item": "directive_cord", "qty": 1 }
+			],
+			"output": { "item": "line_item_veto", "qty": 1 }
+		},
+		{
+			"id": "drape_motorcade_mantle",
+			"name": "Drape Motorcade Mantle",
+			"skill": "junksmithing",
+			"level_gate": 34,
+			"interval_ms": 11000,
+			"xp_per_action": 560,
+			"inputs": [
+				{ "item": "unanimous_steel", "qty": 2 },
+				{ "item": "lint_pelt", "qty": 3 },
+				{ "item": "directive_cord", "qty": 2 }
+			],
+			"output": { "item": "motorcade_mantle", "qty": 1 }
+		},
+		{
+			"id": "move_cloture",
+			"name": "Move Cloture",
+			"skill": "junksmithing",
+			"level_gate": 36,
+			"interval_ms": 10500,
+			"xp_per_action": 580,
+			"inputs": [
+				{ "item": "unanimous_steel", "qty": 3 },
+				{ "item": "counterweight", "qty": 3 },
+				{ "item": "survey_lens", "qty": 1 }
+			],
+			"output": { "item": "cloture", "qty": 1 }
+		},
+		{
+			"id": "bolt_turnpike_aegis",
+			"name": "Bolt Turnpike Aegis",
+			"skill": "junksmithing",
+			"level_gate": 36,
+			"interval_ms": 12000,
+			"xp_per_action": 620,
+			"inputs": [
+				{ "item": "unanimous_steel", "qty": 3 },
+				{ "item": "heritage_hardware", "qty": 3 },
+				{ "item": "counterweight", "qty": 2 }
+			],
+			"output": { "item": "turnpike_aegis", "qty": 1 }
+		},
+		{
+			"id": "batch_smelt_quorum_alloy",
+			"name": "Batch Smelt Quorum Alloy",
+			"skill": "junksmithing",
+			"level_gate": 45,
+			"interval_ms": 12000,
+			"xp_per_action": 700,
+			"inputs": [
+				{ "item": "scrap_ingot", "qty": 6 },
+				{ "item": "girderling", "qty": 3 }
+			],
+			"output": { "item": "quorum_alloy", "qty": 3 }
+		},
+		{
+			"id": "batch_smelt_unanimous_steel",
+			"name": "Batch Smelt Unanimous Steel",
+			"skill": "junksmithing",
+			"level_gate": 60,
+			"interval_ms": 15000,
+			"xp_per_action": 900,
+			"inputs": [
+				{ "item": "quorum_alloy", "qty": 6 },
+				{ "item": "heritage_hardware", "qty": 5 },
+				{ "item": "counterweight", "qty": 3 }
+			],
+			"output": { "item": "unanimous_steel", "qty": 3 }
+		},
+		{
+			"id": "fry_grade_d_fritters",
+			"name": "Fry Grade-D Fritters",
+			"skill": "cooking",
+			"level_gate": 13,
+			"interval_ms": 5000,
+			"xp_per_action": 50,
+			"inputs": [
+				{ "item": "roach_meat", "qty": 2 },
+				{ "item": "duskcorn", "qty": 1 }
+			],
+			"output": { "item": "grade_d_fritters", "qty": 1 }
+		},
+		{
+			"id": "jar_quarantine_compote",
+			"name": "Jar Quarantine Compote",
+			"skill": "cooking",
+			"level_gate": 18,
+			"interval_ms": 6500,
+			"xp_per_action": 95,
+			"inputs": [
+				{ "item": "quarantine_quince", "qty": 2 },
+				{ "item": "duskcorn", "qty": 1 }
+			],
+			"output": { "item": "quarantine_compote", "qty": 1 }
+		},
+		{
+			"id": "mill_mandated_cornmeal",
+			"name": "Mill Mandated Cornmeal",
+			"skill": "cooking",
+			"level_gate": 21,
+			"interval_ms": 5000,
+			"xp_per_action": 80,
+			"inputs": [
+				{ "item": "duskcorn", "qty": 3 }
+			],
+			"output": { "item": "cornmeal", "qty": 1 }
+		},
+		{
+			"id": "steep_notary_tea",
+			"name": "Steep Notary Tea",
+			"skill": "cooking",
+			"level_gate": 24,
+			"interval_ms": 7000,
+			"xp_per_action": 160,
+			"inputs": [
+				{ "item": "notary_nettle", "qty": 2 },
+				{ "item": "iodine_root", "qty": 1 },
+				{ "item": "bagged_ice", "qty": 1 }
+			],
+			"output": { "item": "notary_tea", "qty": 1 }
+		},
+		{
+			"id": "churn_fountain_sherbet",
+			"name": "Churn Fountain Sherbet",
+			"skill": "cooking",
+			"level_gate": 28,
+			"interval_ms": 8000,
+			"xp_per_action": 200,
+			"inputs": [
+				{ "item": "fountain_mint", "qty": 2 },
+				{ "item": "bagged_ice", "qty": 2 }
+			],
+			"output": { "item": "fountain_sherbet", "qty": 1 }
+		},
+		{
+			"id": "plate_court_feast",
+			"name": "Plate the Court Feast",
+			"skill": "cooking",
+			"level_gate": 32,
+			"interval_ms": 9000,
+			"xp_per_action": 280,
+			"inputs": [
+				{ "item": "skylight_bloom", "qty": 1 },
+				{ "item": "fountain_mint", "qty": 1 },
+				{ "item": "foodcourt_tray", "qty": 1 }
+			],
+			"output": { "item": "court_feast", "qty": 1 }
+		},
+		{
+			"id": "reissue_court_feast",
+			"name": "Reissue Court Feast",
+			"skill": "cooking",
+			"level_gate": 36,
+			"interval_ms": 9500,
+			"xp_per_action": 300,
+			"inputs": [
+				{ "item": "foodcourt_tray", "qty": 2 },
+				{ "item": "skylight_bloom", "qty": 1 }
+			],
+			"output": { "item": "court_feast", "qty": 1 }
+		},
+		{
+			"id": "stretch_court_feast",
+			"name": "Stretch the Court Feast",
+			"skill": "cooking",
+			"level_gate": 40,
+			"interval_ms": 9000,
+			"xp_per_action": 310,
+			"inputs": [
+				{ "item": "skylight_bloom", "qty": 2 },
+				{ "item": "fountain_mint", "qty": 1 }
+			],
+			"output": { "item": "court_feast", "qty": 1 }
+		},
+		{
+			"id": "double_batch_grits",
+			"name": "Double Batch Grits",
+			"skill": "cooking",
+			"level_gate": 45,
+			"interval_ms": 7000,
+			"xp_per_action": 280,
+			"inputs": [
+				{ "item": "duskcorn", "qty": 4 }
+			],
+			"output": { "item": "mandatory_grits", "qty": 3 }
+		},
+		{
+			"id": "double_batch_casserole",
+			"name": "Double Batch Casserole",
+			"skill": "cooking",
+			"level_gate": 50,
+			"interval_ms": 8000,
+			"xp_per_action": 330,
+			"inputs": [
+				{ "item": "glowshroom", "qty": 2 },
+				{ "item": "roach_meat", "qty": 2 }
+			],
+			"output": { "item": "compliant_casserole", "qty": 2 }
+		},
+		{
+			"id": "double_batch_regret",
+			"name": "Double Batch Regret",
+			"skill": "cooking",
+			"level_gate": 55,
+			"interval_ms": 10000,
+			"xp_per_action": 430,
+			"inputs": [
+				{ "item": "roach_meat", "qty": 3 },
+				{ "item": "iodine_root", "qty": 2 },
+				{ "item": "duskcorn", "qty": 2 }
+			],
+			"output": { "item": "radstag_stew", "qty": 2 }
+		},
+		{
+			"id": "concentrate_quarantine_compote",
+			"name": "Concentrate Quarantine Compote",
+			"skill": "cooking",
+			"level_gate": 62,
+			"interval_ms": 9000,
+			"xp_per_action": 400,
+			"inputs": [
+				{ "item": "quarantine_quince", "qty": 3 },
+				{ "item": "cornmeal", "qty": 2 }
+			],
+			"output": { "item": "quarantine_compote", "qty": 2 }
+		},
+		{
+			"id": "bulk_steep_notary_tea",
+			"name": "Bulk Steep Notary Tea",
+			"skill": "cooking",
+			"level_gate": 70,
+			"interval_ms": 11000,
+			"xp_per_action": 520,
+			"inputs": [
+				{ "item": "notary_nettle", "qty": 4 },
+				{ "item": "iodine_root", "qty": 2 }
+			],
+			"output": { "item": "notary_tea", "qty": 2 }
+		},
+		{
+			"id": "cater_court_feast",
+			"name": "Cater the Court Feast",
+			"skill": "cooking",
+			"level_gate": 78,
+			"interval_ms": 12000,
+			"xp_per_action": 600,
+			"inputs": [
+				{ "item": "skylight_bloom", "qty": 2 },
+				{ "item": "fountain_mint", "qty": 2 },
+				{ "item": "foodcourt_tray", "qty": 2 }
+			],
+			"output": { "item": "court_feast", "qty": 3 }
+		},
+		{
+			"id": "institutional_batch_fritters",
+			"name": "Institutional Batch Fritters",
+			"skill": "cooking",
+			"level_gate": 85,
+			"interval_ms": 9000,
+			"xp_per_action": 470,
+			"inputs": [
+				{ "item": "roach_meat", "qty": 4 },
+				{ "item": "cornmeal", "qty": 2 }
+			],
+			"output": { "item": "grade_d_fritters", "qty": 3 }
+		},
+		{
+			"id": "mass_produce_regret",
+			"name": "Mass-Produce Regret",
+			"skill": "cooking",
+			"level_gate": 92,
+			"interval_ms": 13000,
+			"xp_per_action": 700,
+			"inputs": [
+				{ "item": "roach_meat", "qty": 4 },
+				{ "item": "iodine_root", "qty": 3 },
+				{ "item": "cornmeal", "qty": 2 }
+			],
+			"output": { "item": "radstag_stew", "qty": 3 }
 		}
 	]
 }

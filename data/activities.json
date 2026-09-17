@@ -80,6 +80,106 @@
 			"xp_per_action": 70,
 			"drop_table": "far_fence",
 			"icon": "forage_the_far_fence"
+		},
+		{
+			"id": "sweep_service_corridors",
+			"name": "Sweep the Service Corridors",
+			"skill": "scavenging",
+			"level_gate": 22,
+			"interval_ms": 8500,
+			"xp_per_action": 128,
+			"drop_table": "corridor_cache",
+			"icon": "sweep_service_corridors"
+		},
+		{
+			"id": "pry_mezzanine_lockers",
+			"name": "Pry the Mezzanine Lockers",
+			"skill": "scavenging",
+			"level_gate": 30,
+			"interval_ms": 10000,
+			"xp_per_action": 190,
+			"drop_table": "mezzanine_lockers",
+			"icon": "pry_mezzanine_lockers"
+		},
+		{
+			"id": "deconstruct_signal_tower",
+			"name": "Deconstruct the Signal Tower",
+			"skill": "scavenging",
+			"level_gate": 41,
+			"interval_ms": 11500,
+			"xp_per_action": 275,
+			"drop_table": "signal_tower_span",
+			"icon": "deconstruct_signal_tower"
+		},
+		{
+			"id": "excavate_foundation_grid",
+			"name": "Excavate the Foundation Grid",
+			"skill": "scavenging",
+			"level_gate": 54,
+			"interval_ms": 13000,
+			"xp_per_action": 400,
+			"drop_table": "foundation_grid",
+			"icon": "excavate_foundation_grid"
+		},
+		{
+			"id": "audit_archive_vault",
+			"name": "Audit the Archive Vault",
+			"skill": "scavenging",
+			"level_gate": 70,
+			"interval_ms": 15000,
+			"xp_per_action": 580,
+			"drop_table": "archive_vault",
+			"icon": "audit_archive_vault"
+		},
+		{
+			"id": "prune_atrium_thicket",
+			"name": "Prune the Atrium Thicket",
+			"skill": "foraging",
+			"level_gate": 22,
+			"interval_ms": 8500,
+			"xp_per_action": 128,
+			"drop_table": "atrium_thicket",
+			"icon": "prune_atrium_thicket"
+		},
+		{
+			"id": "reap_relay_garden",
+			"name": "Reap the Relay Garden",
+			"skill": "foraging",
+			"level_gate": 30,
+			"interval_ms": 10000,
+			"xp_per_action": 190,
+			"drop_table": "relay_garden",
+			"icon": "reap_relay_garden"
+		},
+		{
+			"id": "tend_hydroponics_bay",
+			"name": "Tend the Hydroponics Bay",
+			"skill": "foraging",
+			"level_gate": 41,
+			"interval_ms": 11500,
+			"xp_per_action": 275,
+			"drop_table": "hydroponics_bay",
+			"icon": "tend_hydroponics_bay"
+		},
+		{
+			"id": "gather_greenhouse_span",
+			"name": "Gather the Greenhouse Span",
+			"skill": "foraging",
+			"level_gate": 54,
+			"interval_ms": 13000,
+			"xp_per_action": 400,
+			"drop_table": "greenhouse_span",
+			"icon": "gather_greenhouse_span"
+		},
+		{
+			"id": "work_canopy_rows",
+			"name": "Work the Canopy Rows",
+			"skill": "foraging",
+			"level_gate": 70,
+			"interval_ms": 15000,
+			"xp_per_action": 580,
+			"drop_table": "canopy_rows",
+			"icon": "work_canopy_rows"
 		}
 	]
 }

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Reap the Relay Garden: scythe among relay dish sprouts. Original stencil-line signage icon (T24). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="40" y1="94" x2="78" y2="46" stroke-width="6"/>
+    <path d="M70 52 Q92 44 96 28 Q76 30 66 44" fill="#F2EDE3" stroke-width="6"/>
+    <line x1="34" y1="98" x2="48" y2="92" stroke-width="5"/>
+    <path d="M56 96 L56 80 M56 80 L44 72 M56 80 L68 72" stroke-width="4.5"/>
+    <path d="M44 72 Q56 66 68 72" stroke-width="4.5"/>
+  </g>
+</svg>

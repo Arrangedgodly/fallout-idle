@@ -4,7 +4,9 @@
      downloads from the official google/fonts repository; theme textures are
      original geometry authored in-repo. T11 appends icon rows here; T19 appends
      the 12 icon-grammar glyph rows (stat/clearance/badge/orientation/button);
-     T17 appends the badge outline sibling (AVAILABLE state, posting board). -->
+     T17 appends the badge outline sibling (AVAILABLE state, posting board);
+     T24 appends the 42 run-3 depth rows (materials, flora, alloys, gear,
+     foods, tier-5-9 activities, Gift Court fauna + second boss). -->
 
 | Path | Kind | Author | Source | License | Verified | Verifier |
 |------|------|--------|--------|---------|----------|----------|
@@ -76,6 +78,48 @@
 | assets/icons/btn_deputize.svg | icon | Valued Resident pipeline (T19, ZCode session) | original | original | 2026-09-16 | T19 agent |
 | assets/icons/deputy_badge_outline.svg | icon | Valued Resident pipeline (T17, ZCode session) | original | original | 2026-09-16 | T17 agent |
 | assets/icons/wasteland_combat.svg | icon | Valued Resident pipeline (T11, ZCode session) | original | original | 2026-09-15 | T11 agent |
+| assets/icons/directive_cord.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/survey_lens.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/heritage_hardware.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/counterweight.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/quarantine_quince.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/notary_nettle.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/fountain_mint.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/skylight_bloom.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/bagged_ice.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/foodcourt_tray.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/quorum_alloy.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/unanimous_steel.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/grade_d_fritters.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/quarantine_compote.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/cornmeal.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/notary_tea.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/fountain_sherbet.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/court_feast.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/filibuster.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/quorum_gavel.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/line_item_veto.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/cloture.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/crosswalk_cage.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/loading_dock_shell.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/motorcade_mantle.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/turnpike_aegis.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/sweep_service_corridors.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/pry_mezzanine_lockers.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/deconstruct_signal_tower.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/excavate_foundation_grid.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/audit_archive_vault.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/prune_atrium_thicket.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/reap_relay_garden.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/tend_hydroponics_bay.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/gather_greenhouse_span.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/work_canopy_rows.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/runaway_cart.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/directory_kiosk.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/wet_floor_sentinel.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/restless_escalator.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/hanger_flock.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/regional_manager.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
 
 ## Dev tooling (exempt from the shipped-asset gate)
 

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Mandated Cornmeal: meal sack with a twist tie and kernel. Original stencil-line signage icon (T24). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M44 44 L84 44 L88 96 L40 96 Z" fill="#F2EDE3" stroke-width="6"/>
+    <path d="M44 44 Q64 32 84 44" stroke-width="5"/>
+    <line x1="56" y1="36" x2="72" y2="36" stroke-width="4"/>
+    <path d="M64 60 Q70 54 76 60 Q76 68 64 74 Q52 68 52 60 Q58 54 64 60 Z" stroke-width="4"/>
+  </g>
+</svg>

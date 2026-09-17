@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Counterweight: flat trapezoid weight on a hook, riveted. Original stencil-line signage icon (T24). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M40 38 L88 38 L96 72 L32 72 Z" fill="#F2EDE3" stroke-width="7"/>
+    <path d="M64 38 V26" stroke-width="6"/>
+    <circle cx="64" cy="22" r="6" stroke-width="5"/>
+    <circle cx="48" cy="55" r="2.8" fill="#20334F" stroke="none"/>
+    <circle cx="64" cy="55" r="2.8" fill="#20334F" stroke="none"/>
+    <circle cx="80" cy="55" r="2.8" fill="#20334F" stroke="none"/>
+  </g>
+</svg>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Deconstruct the Signal Tower: lattice tower with a beam coming loose. Original stencil-line signage icon (T24). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M44 96 L58 30 M84 96 L70 30" stroke-width="6"/>
+    <path d="M48 78 L80 78 M52 60 L76 60 M56 44 L72 44" stroke-width="4.5"/>
+    <path d="M50 82 L78 70" stroke-width="4.5"/>
+    <circle cx="64" cy="24" r="7" stroke-width="5"/>
+    <path d="M64 17 L64 12 M71 24 L76 24 M57 24 L52 24" stroke-width="4"/>
+  </g>
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Court Feast: cloche platter with a serving handle. Original stencil-line signage icon (T24). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="64" cy="92" rx="34" ry="8" fill="#F2EDE3" stroke-width="6"/>
+    <path d="M30 88 Q30 44 64 44 Q98 44 98 88" stroke-width="7"/>
+    <path d="M30 88 L98 88" stroke-width="6"/>
+    <circle cx="64" cy="36" r="6" stroke-width="5"/>
+  </g>
+</svg>
