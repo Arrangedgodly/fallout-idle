@@ -406,3 +406,31 @@ Scan-and-confirm against the shipped build (T17/T18/T19/T20, closed by T21 accep
 - The contracted semantic rules hold as shipped: a stat glyph names exactly its own stat, inline before the mono number, wherever that stat posts; the staircase — never a padlock — marks every gated card beside the required grade; the badge fill is the ASSIGNED/AVAILABLE state pair; the arrow exists only while orientation is incomplete; stamps are red on paper (PaperStamp idiom); a button glyph echoes its verb and never replaces the word.
 - The crowns mark sits beside every price: all Depot stock and disposal lines, the DEPUTIZE RESIDENT price, the O-1 stipend line, and both wallet plates (the T21 acceptance suite sweeps these exhaustively).
 - One recorded note (T19 verifier): the amber verb/cue glyphs draw accent strokes at width 8–9 — the addendum's width clause binds navy interior strokes (4–7 set-wide), and the accent sits within the letter of the contract.
+
+## As-Built Addendum — Run 3: Dossiers, Depth, Second Zone (2026-09-17)
+
+Scan-and-confirm against the shipped build (T22–T27, closed by T28 acceptance). The contract and the run-2 addendum are unchanged and remain binding; this section records what run 3 shipped on top of them. Where a number above is superseded, it is named here.
+
+### DossierRegister — the DEPARTMENTAL DOSSIER (Form R-1) component
+
+- Each of the five skill dockets carries a **DossierRegister section** (`PaperNotice` idiom): a titled posted-paper register — RECLAMATION / GROUNDSKEEPING / FABRICATION / MESS / EXTERIOR DOSSIER — under the serial "D.O.C.S. FORM R-1". It is a section of the docket, never a ninth plate and never an overlay; the plate wall, bulkhead transitions, and the R1 geometry pins are untouched.
+- **Fold discipline (the documented T26 choice, generalizing the O-1 slip):** 23 rows cannot fit a 720p docket beside the working regions, and a dossier is a RECORD, not a tutorial — so the register **mounts folded** to its summary line (title + serial + "N/23 STAMPED", ~10 words) with an OPEN/FOLD toggle. Unlike the O-1 form (which meets the resident expanded because the tutorial IS the priority), the docket's working regions stay first. A completed register folds to "ALL 23 STAMPED · FORM R-1" — the folded slip IS the stamp. Completion also expands the register once for the win moment; stamped rows stay stamped through every fold.
+- **Row idiom** (Addendum 2): the O-1 row at scale — empty drawn checkbox → red `stamp_check` glyph when stamped; objective line in the stencil plate idiom (≤ 6 words, verb-first); mono progress readout "12/40" from engine counters; reward line "MERIT PAY · N CROWNS" and/or "COMMENDATION · N XP" with the crowns mark. Stamped rows dim to the registered navy-dim-on-paper pair and keep their stamps — the glyph is the state, never color alone; unstamped rows carry no state word.
+- **Rewards post themselves.** There is no claim button anywhere in the register; row presses are pinned inert. The standing footer says so once per register: "MERIT PAY POSTS ITSELF. NO CLAIM IS REQUIRED. NONE HAS EVER BEEN." Auto-grant notices ride the existing stamp idiom — a docket log stamp plus a console serial flash, both "FORM R-1 STAMPED · N CROWNS POSTED" shaped — and a completed dossier posts the ALL 23 STAMPED plate with its "DOSSIER DULY STAMPED…" serial.
+- **Update discipline:** rows build at FIRST EXPANSION (5 dockets × 23 rows is a one-time frame that never rides the boot) and restyle only through guarded no-change setters on the 4 Hz batched regions plus the two immediate discrete signals; the register renders only what the mounted docket hands it (it never infers progress). One engine-side note: `dossier_completed` is arm-guarded to emit exactly once even under re-entrant reward cascades (a T26 fix, pinned in test_objectives).
+
+### Zone tabs — the Patrol docket's second board (Addendum 2's recorded direction)
+
+- The Wasteland Patrol docket now posts a **radio tab pair above the fauna board**: ">> THE SUNNY EXCLUSION ZONE" / "THE GIFT COURT". The `>>` prefix is the active-zone cue (non-color); the zone serial swaps per board ("DESIGNATED OUTDOOR AMENITY AREA" vs "GIFT COURT — DESIGNATED RETAIL AMENITY AREA"); exactly one zone's fauna (5 Sunny / 6 Gift Court cards) posts at a time. Tabs are focusable, arrow-wired left/right, and ride the tab chain.
+- Zone certificates stay zone-scoped: the Sunny Z-9 certificate mounts on the persisted `zone_clear` flag, the Gift Court's ("POSTED — SECTOR G · D.O.C.S. FORM Z-9") on the `zone:gift_court` lifetime counter — engine truth, repeat-kill safe, one zone's certificate at a time.
+
+### Cross-lane fixes that shipped with T26
+
+- **The O-1 slip fix:** the run-2 orientation slip's FOLD control did not actually hide its rows (a latent T18 defect — the word-count ceiling could not catch it); T26's one-line fix is pinned by the a11y probe's pre-snap StepRows-hidden check. The slip now folds for real.
+- The dossier completion arm guard (above) was the other cross-lane fix, found by the register's own completion path.
+
+### Content scale, as shipped
+
+- **Icon set: 96 original SVGs** (supersedes the run-2 count of 54 — T24's new materials, fauna, activities, and gear glyphs join the set; ASSETS.md rows match 96 ↔ 96). The grammar contract is unchanged and set-wide (viewBox 128, tile rx 14, navy-8 borders, token-only hexes; navy interior strokes 4–9 with the T19 amber-accent note the lone exception).
+- **Gear T1–T4 never on plates:** the four-tier equipment ladder (T1 shiv/vest → T2 whip/carapace → T3 filibuster-class → T4 veto/cloture/mantle/aegis) renders as Manifest serials, equip rungs, and stat bonuses — tier names stay off the docket plates (the Addendum 2 note; clearance numbers remain the only progression vocabulary on plates).
+- Roughly 2× the run-1 content: 9 activity tiers per gathering skill (from 4), 20 recipes per processing skill (from 7/4), 47 items (from 21), 11 monsters across 2 zones (from 5 across 1), 12 equipment pieces (from 4), and the 115-line dossier set (23 per skill).
