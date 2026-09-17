@@ -428,15 +428,23 @@ func test_a3_icon_coverage_stats_gates_logs_and_prices() -> void:
 	for monster_id in lib.monsters:
 		if (lib.monsters[monster_id] as MonsterDef).level_gate > 1:
 			fauna_expected += 1
-	for monster_id in (patrol.get("_cards") as Dictionary):
-		var fauna: DocketPatrol.FaunaCard = patrol.get("_cards")[monster_id]
-		if not fauna.gate_plate.visible:
-			continue
-		fauna_locked += 1
-		assert_eq(_glyph_count(fauna.gate_plate, "clearance_step"), 1,
-			"%s: the fauna gate carries the staircase" % monster_id)
+	# T26 zone tabs: one zone's board is visible at a time (Addendum 2), so
+	# the icon sweep audits each board on its own tab — every card of both
+	# zones, never both boards at once.
+	for tab in [patrol.zone_tab_sunny, patrol.zone_tab_gift]:
+		tab.pressed.emit()
+		await wait_frames(2)
+		for monster_id in (patrol.get("_cards") as Dictionary):
+			var fauna: DocketPatrol.FaunaCard = patrol.get("_cards")[monster_id]
+			# Only the ACTIVE board posts (one zone at a time, Addendum 2) —
+			# the hidden zone's cards keep their own .visible properties.
+			if not fauna.button.is_visible_in_tree() or not fauna.gate_plate.visible:
+				continue
+			fauna_locked += 1
+			assert_eq(_glyph_count(fauna.gate_plate, "clearance_step"), 1,
+				"%s: the fauna gate carries the staircase" % monster_id)
 	assert_eq(fauna_locked, fauna_expected,
-		"every clearance-gated fauna card posted a gate plate (%d)" % fauna_locked)
+		"every clearance-gated fauna card posted a gate plate across both zone boards (%d)" % fauna_locked)
 
 	# ---- (3) log lines carry their subject marks — a real shift + a real fight.
 	c.select_department("scavenging", true)

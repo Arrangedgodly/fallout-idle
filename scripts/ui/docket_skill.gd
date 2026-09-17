@@ -26,6 +26,7 @@ var gauge_read: Label
 var cards_box: VBoxContainer
 var log: ItemList
 var primary_button: Button  # the shell's BEGIN/END SHIFT plate (shell assigns)
+var register: DossierRegister  # T26 the DEPARTMENTAL DOSSIER section
 
 var selected_id := ""  # content id the resident last posted ("" = none)
 
@@ -112,6 +113,12 @@ func _build_content() -> void:
 	# T17: the POSTING REFUSED directive plate — posted exactly while the
 	# establishment is full (refresh_refusal_plate gates it on engine truth).
 	add_child(build_refusal_plate())
+
+	# T26: the DEPARTMENTAL DOSSIER (FORM R-1) — the per-skill objectives
+	# register, posted below the working regions (a section of this docket,
+	# never a ninth plate; folds to its summary line per the O-1 precedent).
+	register = DossierRegister.new(skill_id)
+	add_child(register)
 
 
 func _list_header() -> String:
@@ -312,6 +319,9 @@ func _nothing_startable_text() -> String:
 func _on_bound() -> void:
 	if cards_box.get_child_count() == 0:
 		_build_cards()
+	# T26: the register's FIRST read rides the bind (the boot flush's regions
+	# predate the gating below; folded registers re-read on stamps only).
+	register.refresh(tm)
 	var slot = state().active.get(skill_id) if state() != null else null
 	_last_completed = int(slot.get("completed")) if slot != null else -1
 	_inv_snapshot = state().inventory.duplicate() if state() != null else {}
@@ -331,6 +341,15 @@ func _refresh(changes: Dictionary) -> void:
 		_stamp_inventory_deltas()
 		_refresh_inventory_dependent()
 	refresh_refusal_plate()
+	# T26: the dossier register re-reads engine truth when its rows can have
+	# moved — ALWAYS on a stamp (the objectives region: summary + dimming),
+	# and while EXPANDED on the live-counter regions (the row readouts read
+	# live while the resident reads them). A FOLDED register shows only
+	# N/23 STAMPED, which no gather/craft flush can change — the 4 Hz façade
+	# call is skipped (the perf-idle discipline; guarded restyle regardless).
+	if changes.has("objectives") or (register.is_expanded()
+			and (changes.has("inventory") or changes.has("xp"))):
+		register.refresh(tm)
 
 
 func _refresh_gauge() -> void:
@@ -455,6 +474,30 @@ func _on_level_up(skill: String, _old_level: int, new_level: int) -> void:
 	stamp(log, "CLEARANCE %02d EARNED · %s" % [
 		new_level, String(lib().skill(skill_id).name).to_upper()],
 		icon_texture(GLYPH_CLEARANCE))
+
+
+# ------------------------------------------------------------- T26 dossier notices
+## One objective of THIS department stamped: the auto-grant notice rides the
+## existing stamp idiom — a docket log stamp in the naming-bible verbatim
+## format (the console flash is the concourse's hook). No claim button ever.
+func _on_objective_stamped(payload: Dictionary) -> void:
+	if str(payload.get("skill", "")) != skill_id:
+		return
+	if log != null:
+		stamp(log, str(payload.get("notice_line", "")), icon_texture(GLYPH_STAMP))
+	register.refresh(tm)
+
+
+## The dossier's full stamp: the register posts the ALL N STAMPED · FORM R-1
+## plate (expanded, so the win moment is on the wall) and the log carries
+## the line once.
+func _on_dossier_completed(payload: Dictionary) -> void:
+	if str(payload.get("skill", "")) != skill_id:
+		return
+	register.expand()
+	register.refresh(tm)
+	if log != null:
+		stamp(log, str(payload.get("stamp_line", "")), icon_texture(GLYPH_STAMP))
 
 
 func _on_activity_stopped(skill: String, _content_id: String, reason: String) -> void:

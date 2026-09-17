@@ -379,9 +379,11 @@ func orientation_step_done_bool(step_id: String) -> bool:
 # -- T23 objectives façade (the T26 dossier registers read these) --
 
 ## One read for a whole dossier: {"skill", "stamped", "total", "rows":
-## [{id, description, stamped, current, target, reward_line}] in posted
-## order, "stamp_line": "ALL N STAMPED · FORM R-1" once complete ("" while
-## open)}. All numbers engine truth — the UI never infers progress.
+## [{id, description, stamped, current, target, reward_line, reward_crowns,
+## reward_xp}] in posted order, "stamp_line": "ALL N STAMPED · FORM R-1"
+## once complete ("" while open)}. All numbers engine truth — the UI never
+## infers progress. T26 added the two reward legs so the register renders
+## MERIT PAY / COMMENDATION segments without parsing the joined line.
 func dossier_summary(skill_id: String) -> Dictionary:
 	var summary := objectives.skill_summary(state, skill_id)
 	var rows: Array[Dictionary] = []
@@ -394,6 +396,8 @@ func dossier_summary(skill_id: String) -> Dictionary:
 			"current": int(prog["current"]),
 			"target": int(prog["target"]),
 			"reward_line": ObjectivesTracker.reward_line(obj),
+			"reward_crowns": obj.reward_crowns,
+			"reward_xp": obj.reward_xp_amount,
 		})
 	summary["rows"] = rows
 	summary["stamp_line"] = "ALL %s STAMPED · FORM R-1" % SignageFmt.num(int(summary["total"])) \

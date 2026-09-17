@@ -287,7 +287,14 @@ func refresh() -> void:
 	var done: Dictionary = p["done"]
 	var current := String(p["current"])
 	_done_box.visible = complete
-	_rows_box.visible = not complete
+	# T26 fix (one line, cause recorded): the SLIP state is the posted-record
+	# chip — title + mini marks + OPEN (the docstring's contract) — but the
+	# rows gate read `not complete`, so an INCOMPLETE fold kept the whole
+	# checklist posted (only the completed record ever truly slipped; the
+	# word-count pin is a ceiling and could not catch an over-posted form).
+	# Found by the T26 dossier captures (the form corners the register in
+	# every docket; folding it changed nothing). Fold now slips the rows.
+	_rows_box.visible = not complete and _expanded
 	_serial_label.visible = not complete and _expanded
 	_slip_marks.visible = complete or not _expanded
 	_fold_button.visible = _expanded and (complete or count >= COLLAPSE_AT_STEPS)

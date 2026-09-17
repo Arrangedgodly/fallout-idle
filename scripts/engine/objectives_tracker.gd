@@ -89,6 +89,18 @@ func _init(p_lib: ContentLibrary, p_batcher: UpdateBatcher = null, p_xp_engine: 
 var _by_counter: Dictionary = {}
 
 
+## T26 fix (documented deviation, engine lane courtesy): dossier_completed
+## is documented to fire ONCE "when a skill's LAST objective stamps" — but a
+## re-entrant cascade (an XP-leg grant re-entering evaluation INSIDE _stamp,
+## whose nested pass lands the true last objective first) let the completing
+## skill emit twice from one completion. The arm guard emits exactly once per
+## completion and re-arms whenever the skill drops below total (the
+## documented "content later adds objectives" case). Found by the T26
+## dossier-UI completion test (force-cascade repro); pinned in
+## tests/test_objectives.gd.
+var _completion_armed: Dictionary = {}
+
+
 func _build_counter_index() -> void:
 	_by_counter = {}
 	var ids: Array = lib.objectives.keys()  # file order == insertion order
@@ -433,14 +445,22 @@ func _stamp(state: PlayerState, obj: ObjectiveDef, emit_levels: bool) -> Diction
 	if batcher != null:
 		batcher.mark("objectives")
 	objective_stamped.emit(payload)
-	# The dossier's full stamp: last objective of the skill, in this pass.
+	# The dossier's full stamp: last objective of the skill, in this pass —
+	# exactly once per completion (the arm guard survives re-entrant
+	# cascades; see _completion_armed).
 	var skill_total := lib.objectives_for_skill(obj.skill).size()
 	if stamped_count_for_skill(state, obj.skill) >= skill_total and skill_total > 0:
-		dossier_completed.emit({
-			"skill": obj.skill,
-			"total": skill_total,
-			"stamp_line": "ALL %s STAMPED · FORM R-1" % SignageFmt.num(skill_total),
-		})
+		if not bool(_completion_armed.get(obj.skill, false)):
+			_completion_armed[obj.skill] = true
+			dossier_completed.emit({
+				"skill": obj.skill,
+				"total": skill_total,
+				"stamp_line": "ALL %s STAMPED · FORM R-1" % SignageFmt.num(skill_total),
+			})
+	else:
+		# Below total again (content added objectives to a completed
+		# dossier): the next completion re-posts.
+		_completion_armed[obj.skill] = false
 	return payload
 
 

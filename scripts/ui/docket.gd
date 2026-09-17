@@ -35,6 +35,10 @@ const GLYPH_CLEARANCE := "clearance_step"
 const GLYPH_BADGE := "deputy_badge"
 const GLYPH_BADGE_OUTLINE := "deputy_badge_outline"
 
+## T26 the DEPARTMENTAL DOSSIER's state mark (the O-1 check-stamp family —
+## a red stamp rides every FORM R-1 notice line).
+const GLYPH_STAMP := "stamp_check"
+
 ## T17 POSTING REFUSED directive (naming-bible §10 — verbatim, binding):
 ## the plate head + the fact-and-both-remedies serial. Refusal, never denial
 ## of service (voice rule R3); a notice, not a modal gate.
@@ -47,7 +51,8 @@ const GLYPH_READ := 20
 
 var tm: Node = null  # TickManager instance (soft-typed: script compiles under --check-only)
 
-const TM_SIGNALS := ["bulk_state_changed", "level_up", "activity_stopped"]
+const TM_SIGNALS := ["bulk_state_changed", "level_up", "activity_stopped",
+	"objective_stamped", "dossier_completed"]
 var _handlers := {}
 
 
@@ -117,6 +122,8 @@ func bind(p_tm: Node) -> void:
 		"bulk_state_changed": _on_bulk_state_changed,
 		"level_up": _on_level_up,
 		"activity_stopped": _on_activity_stopped,
+		"objective_stamped": _on_objective_stamped,
+		"dossier_completed": _on_dossier_completed,
 	}
 	for s in TM_SIGNALS:
 		(tm.get(s) as Signal).connect(_handlers[s])
@@ -401,6 +408,18 @@ func _on_level_up(_skill_id: String, _old_level: int, _new_level: int) -> void:
 
 func _on_activity_stopped(_skill_id: String, _content_id: String, _reason: String) -> void:
 	_refresh({"activity": true})
+
+
+## T23 immediate notices (once per objective ever / once per completion):
+## skill dockets + the patrol override these to stamp their logs and refresh
+## the mounted DossierRegister; the other dockets no-op (every docket hears
+## the contract's signals, only the paper-bearing ones answer).
+func _on_objective_stamped(_payload: Dictionary) -> void:
+	pass
+
+
+func _on_dossier_completed(_payload: Dictionary) -> void:
+	pass
 
 
 func _init() -> void:

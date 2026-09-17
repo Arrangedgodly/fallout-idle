@@ -53,11 +53,57 @@ extends Docket
 ## connect, before the damage roll), and a bloodless window words itself by
 ## its truth: every swing whiffed reads MISS, a swing that CONNECTED and drew
 ## no blood reads NO DAMAGE.
+##
+## T26 ZONE TABS (design-brief Addendum 2, direction recorded): a tab pair at
+## the head of the fauna board — THE SUNNY EXCLUSION ZONE / THE GIFT COURT —
+## swaps the board's content; NOT one extended board listing both zones. One
+## zone's board is visible at a time (the board region keeps its bounded
+## geometry, the keyboard path gains exactly one tab group, and 200% font
+## scale doubles one zone's content, never both). All 11 fauna cards are
+## built once (content order = the global gate ladder); the tab toggles each
+## card's visibility by its zone. Each zone owns its ZONE SECURED certificate
+## where the Sunny Z-9 plate always lived: Sunny reads the PERSISTENT
+## combat.zone_clear (the shipped, veteran-honest truth — set by the first
+## boss clear before run 3 existed); the Gift Court reads the save-v3
+## objectives counter `zone:gift_court` (the per-zone engine truth T23 owns;
+## repeat Regional Manager kills keep it set). Documented edge: a resident
+## who clears the Regional Manager FIRST (skipping the gate-14 boss until
+## gate-40 gear) has zone_clear=true while the Superintendent still stands —
+## the Sunny certificate over-credits until any Superintendent kill; the
+## alternative (gating Sunny on the zone:dusty_flats counter) would HIDE the
+## certificate from every pre-run-3 veteran (counter honestly starts at
+## zero), a worse and visible regression.
+##
+## T26 the EXTERIOR DOSSIER: the FORM R-1 register mounts below the working
+## regions like every skill docket (DossierRegister; folds to its summary).
 
 const ENGAGE_TEXT := "ENGAGE PATROL"
 const WITHDRAW_TEXT := "WITHDRAW PATROL"
 const STAMP_CAP := 160
 const ZONE_NAME := "THE SUNNY EXCLUSION ZONE"
+const ZONE_SUNNY := "dusty_flats"
+const ZONE_GIFT := "gift_court"
+## T24-registered zone copy (naming-bible §3 final zone copy — verbatim).
+const ZONE_COPY := {
+	ZONE_SUNNY: "SUNNY EXCLUSION ZONE — DESIGNATED OUTDOOR AMENITY AREA · PLEASE ENJOY THE WASTELAND RESPONSIBLY.",
+	ZONE_GIFT: "GIFT COURT — DESIGNATED RETAIL AMENITY AREA · PLEASE PRESENT RECEIPTS. RECEIPTS ARE NO LONGER ISSUED.",
+}
+## T24-registered fauna classifications per zone (boss tag lines verbatim;
+## zone-2 pests read the UNSHELVED family, never characters).
+const ZONE_BOSS_TAG := {
+	ZONE_SUNNY: "SENIOR FAUNA — ESCORT NOT PROVIDED. REFUNDS ARE NOT EITHER.",
+	ZONE_GIFT: "REGIONAL AUTHORITY DETECTED. APPROVAL IS NOT FORTHCOMING. NEITHER ARE REFUNDS.",
+}
+const ZONE_PEST_TAG := {
+	ZONE_SUNNY: "FAUNA CLASS: PEST (LITTERING-ADJACENT)",
+	ZONE_GIFT: "FAUNA CLASS: PEST (UNSHELVED)",
+}
+## The Gift Court's ZONE SECURED certificate (FORM Z-9 re-ride, sector G —
+## naming-bible §15; body in the certificate's own voice, registered words
+## only: REGIONAL AUTHORITY from the T24 boss plate, RECEIPTS from the T24
+## posted lines, AMENITY from the zone signage form).
+const GIFT_CERT_SERIAL := "POSTED — SECTOR G · D.O.C.S. FORM Z-9"
+const GIFT_CERT_BODY := "THE REGIONAL AUTHORITY HAS BEEN EVICTED. THE GIFT COURT IS HEREBY DECLARED SAFE-ISH. RECEIPTS REMAIN UNAVAILABLE. THE AMENITY IS NOW YOURS."
 const GLYPH_ENGAGE := "btn_engage"      # T19 verb-echo marks (icon + label
 const GLYPH_WITHDRAW := "btn_withdraw"  # together — never wordless buttons)
 
@@ -73,9 +119,15 @@ func weapon_serial_text() -> String:
 func armor_serial_text() -> String:
 	return flow_text(armor_serial)
 
-var primary_button: Button  # the shell's big stencled plate (shell assigns)
+var primary_button: Button  # the shell's big stenciled plate (shell assigns)
 
 var zone_plate: PanelContainer
+var zone_plate_gift: PanelContainer
+var zone_tabs_row: HBoxContainer
+var zone_serial: Label
+var zone_tab_sunny: Button
+var zone_tab_gift: Button
+var active_zone := ZONE_SUNNY
 var phase_plate: PanelContainer
 var phase_line: Label
 var phase_serial: Label
@@ -96,6 +148,7 @@ var armor_serial: HFlowContainer
 var stats_line: HFlowContainer
 var food_rule: Label
 var food_box: VBoxContainer
+var register: DossierRegister  # T26 the EXTERIOR DOSSIER (FORM R-1)
 
 var _cards := {}  # monster_id -> FaunaCard
 var _content_order: Array[String] = []
@@ -106,6 +159,7 @@ var _snap := {}  # last-flush combat snapshot (swing/eat attribution)
 class FaunaCard:
 	extends RefCounted
 	var id := ""
+	var zone := ""
 	var button: Button
 	var title: Label
 	var tag_line: Label
@@ -146,6 +200,22 @@ func _build_content() -> void:
 	zcol.add_child(zbody)
 	zone_plate.add_child(zcol)
 	add_child(zone_plate)
+
+	# T26: the Gift Court's own ZONE SECURED certificate — the FORM Z-9
+	# re-ride with its sector line (POSTED — SECTOR G), mounted exactly where
+	# the Sunny certificate lives; visible on the Gift Court tab once its
+	# boss falls (the zone:gift_court lifetime counter).
+	zone_plate_gift = panel_box("PaperNotice")
+	zone_plate_gift.name = "ZoneSecuredPlateGift"
+	zone_plate_gift.visible = false
+	var gcol := vbox(6)
+	gcol.add_child(label("PaperStamp", GIFT_CERT_SERIAL))
+	gcol.add_child(label("PaperTitle", "ZONE SECURED"))
+	var gbody := label("PaperText", GIFT_CERT_BODY)
+	gbody.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	gcol.add_child(gbody)
+	zone_plate_gift.add_child(gcol)
+	add_child(zone_plate_gift)
 
 	# Phase plate — one distinct rendering per combat phase (wording carries
 	# the state; the plate color only escorts it). Stacked rows with wrapped
@@ -219,7 +289,26 @@ func _build_content() -> void:
 	# The stamped battle log.
 	log = build_log("PATROL LOG · STAMPS POSTED BY THE ENGINE ROOM", 7)
 
-	# Fauna posting list (the monster picker).
+	# T26 zone tabs — the tab pair at the head of the fauna board (Addendum
+	# 2's recorded direction): two toggle plates in one radio group, one
+	# zone's board visible at a time. The active tab carries BOTH non-color
+	# cues — the ">> " prefix and the Energized variation — so the state
+	# never reads by color alone. Explicit focus neighbors pin the arrow-hop
+	# (the keyboard tab group); Tab/Shift-Tab walks in through either plate.
+	zone_tabs_row = hbox(8)
+	zone_tabs_row.name = "ZoneTabs"
+	add_child(zone_tabs_row)
+	var tab_group := ButtonGroup.new()
+	zone_tab_sunny = _make_zone_tab(ZONE_SUNNY, "THE SUNNY EXCLUSION ZONE", tab_group)
+	zone_tab_gift = _make_zone_tab(ZONE_GIFT, "THE GIFT COURT", tab_group)
+
+	# The active zone's posted signage serial (T24-registered copy).
+	zone_serial = label("PlateSerial", ZONE_COPY[ZONE_SUNNY])
+	zone_serial.name = "ZoneSerial"
+	zone_serial.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	add_child(zone_serial)
+
+	# Fauna posting list (the monster picker — one zone's board at a time).
 	add_child(micro("FAUNA POSTINGS · SELECT A DESIGNATION"))
 	cards_box = vbox(8)
 	add_child(cards_box)
@@ -257,6 +346,76 @@ func _build_content() -> void:
 	add_child(food_rule)
 	food_box = vbox(4)
 	add_child(food_box)
+
+	# T26: the EXTERIOR DOSSIER (FORM R-1) — the combat objectives register,
+	# posted below the working regions like every skill docket.
+	register = DossierRegister.new("", "EXTERIOR DOSSIER")
+	add_child(register)
+
+
+## One zone tab: a toggle plate in the shared radio group. The active state
+## carries the ">> " prefix + the Energized variation (never color alone);
+## the tooltip names the action.
+func _make_zone_tab(zone_id: String, display: String, group: ButtonGroup) -> Button:
+	var tab := Button.new()
+	tab.name = "ZoneTab_" + zone_id
+	tab.text = display
+	tab.toggle_mode = true
+	tab.button_group = group
+	tab.focus_mode = Control.FOCUS_ALL
+	tab.tooltip_text = "Post the %s fauna board" % display.to_lower()
+	tab.pressed.connect(select_zone.bind(zone_id))
+	zone_tabs_row.add_child(tab)
+	return tab
+
+
+# ------------------------------------------------------------- T26 zone swap
+## Post one zone's board: exactly one zone's fauna visible, the zone serial
+## swapped, both certificates re-gated (a certificate shows on ITS zone's
+## tab only). Idempotent + guarded (called from refresh paths).
+func select_zone(zone_id: String) -> void:
+	if zone_id != ZONE_SUNNY and zone_id != ZONE_GIFT:
+		return
+	active_zone = zone_id
+	var sunny := zone_id == ZONE_SUNNY
+	_apply_zone_tab(zone_tab_sunny, "THE SUNNY EXCLUSION ZONE", sunny)
+	_apply_zone_tab(zone_tab_gift, "THE GIFT COURT", not sunny)
+	if zone_serial.text != String(ZONE_COPY[zone_id]):
+		zone_serial.text = String(ZONE_COPY[zone_id])
+	for id in _content_order:
+		var card: FaunaCard = _cards[id]
+		if card.button.visible != (card.zone == zone_id):
+			card.button.visible = card.zone == zone_id
+	_refresh_zone_plates()
+
+
+func _apply_zone_tab(tab: Button, display: String, active: bool) -> void:
+	var text := (">> " + display) if active else display
+	if tab.text != text:
+		tab.text = text
+	var variation := "Energized" if active else ""
+	if tab.theme_type_variation != variation:
+		tab.theme_type_variation = variation
+	tab.button_pressed = active
+
+
+## The per-zone ZONE SECURED certificates: each posts on its own tab, gated
+## on its own engine truth (see the header — Sunny the persistent
+## combat.zone_clear, the Gift Court the zone:gift_court counter).
+func _refresh_zone_plates() -> void:
+	if tm == null or state() == null:
+		return
+	zone_plate.visible = bool(state().combat.get("zone_clear", false)) \
+		and active_zone == ZONE_SUNNY
+	zone_plate_gift.visible = _gift_court_cleared() and active_zone == ZONE_GIFT
+
+
+func _gift_court_cleared() -> bool:
+	if state() == null:
+		return false
+	var counters: Dictionary = state().objectives.get("counters", {}) \
+		if state().objectives is Dictionary else {}
+	return int(counters.get("zone:%s" % ZONE_GIFT, 0)) >= 1
 
 
 func _make_gauge() -> ProgressBar:
@@ -318,6 +477,7 @@ func _build_cards() -> void:
 func _make_card(mdef: MonsterDef) -> FaunaCard:
 	var card := FaunaCard.new()
 	card.id = mdef.id
+	card.zone = mdef.zone
 	# T15: CardButton — the button's minimum size includes its label stack.
 	var b := Docket.CardButton.new()
 	b.name = "Fauna_" + card.id
@@ -336,11 +496,12 @@ func _make_card(mdef: MonsterDef) -> FaunaCard:
 	title_row.add_child(card.title)
 	col.add_child(title_row)
 
-	if mdef.is_boss:
-		card.tag_line = label("PlateSerialNavy",
-			"SENIOR FAUNA — ESCORT NOT PROVIDED. REFUNDS ARE NOT EITHER.")
-	else:
-		card.tag_line = label("PlateSerialNavy", "FAUNA CLASS: PEST (LITTERING-ADJACENT)")
+	# T26: classifications are zone's own (T24-registered copy — the Gift
+	# Court's boss posts the REGIONAL AUTHORITY plate, its pests read the
+	# UNSHELVED family; the Sunny lines stay verbatim as shipped).
+	var tag_text := String(ZONE_BOSS_TAG.get(mdef.zone, ZONE_BOSS_TAG[ZONE_SUNNY])) if mdef.is_boss \
+		else String(ZONE_PEST_TAG.get(mdef.zone, ZONE_PEST_TAG[ZONE_SUNNY]))
+	card.tag_line = label("PlateSerialNavy", tag_text)
 	card.tag_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(card.tag_line)
 
@@ -418,6 +579,20 @@ func _on_bound() -> void:
 			sig.connect(pair[1])
 	if cards_box.get_child_count() == 0:
 		_build_cards()
+	# The tab group's arrow hops (paths exist only in-tree; build-time
+	# _init runs before the docket is mounted).
+	zone_tab_sunny.focus_neighbor_right = zone_tab_gift.get_path()
+	zone_tab_sunny.focus_neighbor_bottom = zone_tab_gift.get_path()
+	zone_tab_gift.focus_neighbor_left = zone_tab_sunny.get_path()
+	zone_tab_gift.focus_neighbor_top = zone_tab_sunny.get_path()
+	# T26: the EXTERIOR DOSSIER binds to the combat skill (content-derived,
+	# never assumed) and the zone tabs post their first board — the ENGAGED
+	# monster's zone when a loaded session resumes mid-fight (the designated
+	# fauna stays visible), else the Sunny Exclusion Zone.
+	register.skill_id = _combat_skill_id()
+	var engaged: MonsterDef = lib().monster(str(state().combat.get("monster_id", "")))
+	select_zone(engaged.zone if engaged != null else ZONE_SUNNY)
+	register.refresh(tm)
 	_take_snapshot()
 	_stamp_resume_lines()
 
@@ -504,6 +679,9 @@ func _gate_ok(monster_id: String) -> bool:
 
 func _first_designatable() -> String:
 	for id in _content_order:
+		# T26: the shell's ENGAGE posts from the ACTIVE zone's board only.
+		if (_cards[id] as FaunaCard).zone != active_zone:
+			continue
 		if _gate_ok(id):
 			return id
 	return ""
@@ -534,6 +712,15 @@ func _refresh(changes: Dictionary) -> void:
 	if changes.has("inventory"):
 		_refresh_food()
 	refresh_refusal_plate()
+	# T26: the EXTERIOR DOSSIER re-reads on stamps (objectives region) and,
+	# while expanded, on the live-counter regions (kill/equip/zone counters
+	# move with combat + inventory + xp flushes) — folded, it shows only
+	# N/23 STAMPED and skips the 4 Hz façade (the perf-idle discipline).
+	if changes.has("objectives") or (register.is_expanded() and (changes.has("inventory") \
+			or changes.has("xp") or changes.has("combat"))):
+		register.refresh(tm)
+	if changes.has("objectives") or changes.has("combat"):
+		_refresh_zone_plates()
 
 
 ## The battle board: swing/eat attribution stamps, gauges, phase plate, cards,
@@ -594,7 +781,9 @@ func _refresh_battle() -> void:
 	_apply_phase_plate(phase, mdef)
 	_refresh_cards(phase, monster_id)
 	_refresh_slots(stats)
-	zone_plate.visible = bool(c.get("zone_clear", false))
+	# T26: per-zone certificates (the Sunny plate's old line, generalized to
+	# both zones' own truths + the active tab).
+	_refresh_zone_plates()
 	if primary_button != null:
 		var fighting := phase == CombatSession.PHASE_FIGHTING
 		primary_button.text = WITHDRAW_TEXT if fighting else ENGAGE_TEXT
@@ -931,10 +1120,15 @@ func _on_combat_ended(result: Dictionary) -> void:
 	_refresh({"combat": true, "inventory": true, "xp": true})
 
 
-func _on_zone_cleared(_monster_id: String) -> void:
+func _on_zone_cleared(monster_id: String) -> void:
 	if log == null:
 		return
-	_stamp("ZONE SECURED · %s HAS BEEN DECLARED SAFE-ISH." % ZONE_NAME)
+	# T26: the clear names the zone that actually cleared (its content
+	# record's display name — first clear can be either zone's boss).
+	var mdef: MonsterDef = lib().monster(monster_id)
+	var zdef: ZoneDef = lib().zone(mdef.zone) if mdef != null else null
+	var zname := zdef.name.to_upper() if zdef != null else ZONE_NAME
+	_stamp("ZONE SECURED · %s HAS BEEN DECLARED SAFE-ISH." % zname)
 	_refresh({"combat": true})
 
 
@@ -945,6 +1139,31 @@ func _on_level_up(skill_id: String, _old_level: int, new_level: int) -> void:
 		new_level, String(lib().skill(skill_id).name).to_upper()],
 		icon_texture(GLYPH_CLEARANCE))
 	_refresh({"xp": true, "combat": true})
+
+
+# ------------------------------------------------------------- T26 dossier notices
+## One EXTERIOR DOSSIER objective stamped: the auto-grant notice rides the
+## existing stamp idiom (log stamp + the concourse console flash). No claim
+## button ever — MERIT PAY posts itself.
+func _on_objective_stamped(payload: Dictionary) -> void:
+	if str(payload.get("skill", "")) != _combat_skill_id():
+		return
+	if log != null:
+		_stamp(str(payload.get("notice_line", "")), icon_texture(GLYPH_STAMP))
+	register.refresh(tm)
+	_refresh_zone_plates()
+
+
+## The EXTERIOR DOSSIER's full stamp: the ALL N STAMPED · FORM R-1 plate
+## posts (expanded — the win moment goes on the wall) and the log carries
+## the line once.
+func _on_dossier_completed(payload: Dictionary) -> void:
+	if str(payload.get("skill", "")) != _combat_skill_id():
+		return
+	register.expand()
+	register.refresh(tm)
+	if log != null:
+		_stamp(str(payload.get("stamp_line", "")), icon_texture(GLYPH_STAMP))
 
 
 func _on_activity_stopped(skill_id: String, _content_id: String, reason: String) -> void:

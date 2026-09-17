@@ -45,6 +45,7 @@ const SOURCE_SCAN := [
 	"res://scripts/ui/docket_skill.gd",
 	"res://scripts/ui/docket_gathering.gd",
 	"res://scripts/ui/docket_processing.gd",
+	"res://scripts/ui/dossier_register.gd",
 	"res://scripts/ui/docket_manifest.gd",
 	"res://scripts/ui/docket_depot.gd",
 	"res://scripts/ui/docket_patrol.gd",
@@ -76,7 +77,11 @@ func _run() -> void:
 	await _frames(2)
 	_check(_concourse.bound_tick_manager() != null, "engine bound (production autoload)")
 	await _contrast_audit()
+	await _t26_dossier_expanded_sweep(0.0, "100%")
 	await _font_scale_200_sweep()
+	await _t26_dossier_expanded_sweep(2.0, "200%")
+	_concourse.font_slider.value = 0.0
+	await _frames(2)
 	await _motion_audit()
 	if _capture_mode:
 		await _capture_set()
@@ -376,6 +381,74 @@ func _collect_text(node: Node, out: Array) -> void:
 	for child in node.get_children():
 		_collect_text(child, out)
 
+# ------------------------------------------------------ T26 dossier + zone tabs
+## The T26 additions audited in their EXPANDED worst case: the FORM R-1
+## registers open (all 23 rows posting, the widest docket state) at both
+## scales, plus the Gift Court tab board. Contrast + collapse guard sweep
+## the expanded subtree; at 200% the docket must still fit its column and
+## every focusable (rows included) stays reachable.
+func _t26_dossier_expanded_sweep(scale_value: float, scale_name: String) -> void:
+	_concourse.font_slider.value = scale_value
+	await _frames(3)
+	var skill_depts := ["scavenging", "foraging", "junksmithing", "cooking",
+		"wasteland_patrol"]
+	for id in skill_depts:
+		_concourse.select_department(id, true)
+		await _frames(2)
+		var register: DossierRegister = _concourse.docket_controller(id).get("register")
+		_check(register != null, "T26 %s %s: dossier register mounted" % [scale_name, id])
+		if register == null:
+			continue
+		register.expand()
+		await _frames(2)
+		_check(register.is_expanded() and register.rows().size() >= 20,
+			"T26 %s %s: register expanded with the full row set (%d rows)" % [
+				scale_name, id, register.rows().size()])
+		_sweep_contrast(register, "T26 %s register %s" % [scale_name, id])
+		_collapse_sweep(register, "T26 %s register %s" % [scale_name, id])
+		if scale_value > 1.0:
+			var scroll: ScrollContainer = _concourse.find_child("DocketScroll", true, false) as ScrollContainer
+			var budget: float = scroll.size.x - 44.0 - 48.0
+			var need: float = _concourse.docket_controller(id).get_combined_minimum_size().x
+			_check(need <= budget, "T26 200%% %s expanded register fits (%.0f <= %.0f)" % [
+				id, need, budget])
+		# Rows are keyboard-reachable with the register open.
+		var focusables := _concourse.focusable_controls()
+		var row_focus := 0
+		for f in focusables:
+			if String(f.name).begins_with("ObjectiveRow_"):
+				row_focus += 1
+		_check(row_focus == register.rows().size(),
+			"T26 %s %s: every expanded row focusable (%d/%d)" % [
+				scale_name, id, row_focus, register.rows().size()])
+		var visited := {}
+		var cur: Control = _concourse.initial_focus()
+		var guard := 0
+		while guard < 256 and not visited.has(cur):
+			visited[cur] = true
+			cur = cur.find_next_valid_focus()
+			guard += 1
+		var unreachable := 0
+		for f in focusables:
+			if not visited.has(f):
+				unreachable += 1
+		_check(unreachable == 0, "T26 %s %s: expanded register keeps every focusable reachable" % [
+			scale_name, id])
+		register.fold()
+		await _frames(1)
+	# The Gift Court board: one zone's fauna at a time, same audits.
+	_concourse.select_department("wasteland_patrol", true)
+	await _frames(2)
+	var patrol := _concourse.docket_controller("wasteland_patrol") as DocketPatrol
+	patrol.zone_tab_gift.pressed.emit()
+	await _frames(2)
+	_check(patrol.active_zone == "gift_court", "T26 %s: Gift Court tab posts its board" % scale_name)
+	_sweep_contrast(_concourse.docket_for("wasteland_patrol"), "T26 %s gift court board" % scale_name)
+	_collapse_sweep(_concourse.docket_for("wasteland_patrol"), "T26 %s gift court board" % scale_name)
+	patrol.zone_tab_sunny.pressed.emit()
+	await _frames(1)
+
+
 # ------------------------------------------------------------------ 2. font 200%
 func _font_scale_200_sweep() -> void:
 	_seed()
@@ -383,7 +456,6 @@ func _font_scale_200_sweep() -> void:
 	await _frames(3)
 	_check(_concourse.theme.get_font_size("font_size", "PlateTitle") == 52,
 		"theme is at 200% for the sweep")
-
 	# The shell column itself fits the 1280 window (nothing off-screen).
 	var layout: Control = _concourse.find_child("Layout", true, false)
 	var col_min: Vector2 = layout.get_combined_minimum_size()

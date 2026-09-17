@@ -118,6 +118,7 @@ func _run() -> void:
 		await _capture_sets()
 		await _capture_t10a_sets()
 		await _capture_t10b_sets()
+		await _capture_t26_sets()
 		if _capture_unsupported:
 			_done = true
 			return  # already quitting CAPTURE_UNSUPPORTED_EXIT for the runner
@@ -1189,6 +1190,29 @@ func _log_texts(docket: Docket) -> Array[String]:
 	return out
 
 
+## One docket's visible-label R1 sweep (T26: run per shown zone board on the
+## patrol — Sunny default, then the Gift Court tab — never against both).
+func _r1_label_sweep(docket: Control, vp_rect: Rect2, vp_size: Vector2i,
+		scale_name: String, id: String) -> void:
+	# No instruction label is clipped: nothing visible crosses the
+	# viewport's top edge, and every wrapped label renders every line inside
+	# its own rect (the POSTED SHIFTS family).
+	for l in docket.find_children("*", "Label", true, false):
+		var label := l as Label
+		if not label.is_visible_in_tree() or label.text.strip_edges() == "":
+			continue
+		var r := label.get_global_rect()
+		if r.end.y > vp_rect.position.y + 0.5:
+			_check(r.position.y >= vp_rect.position.y - 0.5,
+				"R1 %dx%d %s %s: label '%s' not sliced at the docket top edge" % [
+					vp_size.x, vp_size.y, scale_name, id,
+					label.text.substr(0, 28)])
+		_check(label.get_visible_line_count() >= label.get_line_count(),
+			"R1 %dx%d %s %s: label '%s' renders every wrapped line (%d/%d)" % [
+				vp_size.x, vp_size.y, scale_name, id, label.text.substr(0, 28),
+				label.get_visible_line_count(), label.get_line_count()])
+
+
 ## ScrollContainer kept a stale scroll offset across department changes, so
 ## the first visible line rendered sliced at the viewport's top edge and the
 ## docket header plate sat scrolled out of view. The fix resets the docket to
@@ -1228,23 +1252,25 @@ func _check_r1_viewport_geometry() -> void:
 				_check(plate != null and vp_rect.encloses(plate.get_global_rect()),
 					"R1 %dx%d %s %s: docket header plate fully inside the viewport" % [
 						vp_size.x, vp_size.y, scale_name, id])
-				# No instruction label is clipped: nothing visible crosses the
-				# viewport's top edge, and every wrapped label renders every
-				# line inside its own rect (the POSTED SHIFTS family).
-				for l in docket.find_children("*", "Label", true, false):
-					var label := l as Label
-					if not label.is_visible_in_tree() or label.text.strip_edges() == "":
-						continue
-					var r := label.get_global_rect()
-					if r.end.y > vp_rect.position.y + 0.5:
-						_check(r.position.y >= vp_rect.position.y - 0.5,
-							"R1 %dx%d %s %s: label '%s' not sliced at the docket top edge" % [
-								vp_size.x, vp_size.y, scale_name, id,
-								label.text.substr(0, 28)])
-					_check(label.get_visible_line_count() >= label.get_line_count(),
-						"R1 %dx%d %s %s: label '%s' renders every wrapped line (%d/%d)" % [
-							vp_size.x, vp_size.y, scale_name, id, label.text.substr(0, 28),
-							label.get_visible_line_count(), label.get_line_count()])
+				# T26 zone tabs: the patrol posts ONE zone's board at a time
+				# (Addendum 2) — the label sweep covers BOTH boards, each on
+				# its own tab pass.
+				var zone_passes := 1
+				if id == "wasteland_patrol":
+					zone_passes = 2
+				for zone_pass in zone_passes:
+					if zone_pass == 1:
+						_r1_label_sweep(docket, vp_rect, vp_size, scale_name, id)
+						if zone_passes == 2:
+							(_concourse.docket_controller(id) as DocketPatrol) \
+								.zone_tab_gift.pressed.emit()
+							await _frames(1)
+					else:
+						_r1_label_sweep(docket, vp_rect, vp_size, scale_name, id + " gift_court")
+				if zone_passes == 2:
+					(_concourse.docket_controller(id) as DocketPatrol) \
+						.zone_tab_sunny.pressed.emit()
+					await _frames(1)
 			# The critique's unverified 200% claim, pinned: the manifest EQUIP
 			# control never rides behind the slot plates or the list.
 			if scale_value > 1.0:
@@ -1621,6 +1647,199 @@ func _validate_t10a_pngs() -> void:
 				colors[img.get_pixel(x, y).to_html(true)] = true
 		_check(colors.size() >= 8, "%s renders real content (%d distinct sampled colors)" % [
 			file_name, colors.size()])
+
+# ------------------------------------------------------- T26 capture set
+## The DEPARTMENTAL DOSSIER + zone tabs review set: one capture per skill
+## docket with its FORM R-1 register EXPANDED over live engine state (a real
+## worked shift on Scavenging — progress readouts moved, an early rung
+## stamped + dimmed, the notice stamped in the log), the Patrol docket on
+## both zone tabs (Sunny board + the Gift Court board with its T24 copy and
+## RM boss plate), the Gift Court's ZONE SECURED certificate, and a fully
+## completed dossier (the ALL 23 STAMPED · FORM R-1 plate). Windowed only —
+## the dummy rasterizer cannot capture (headless exits 42).
+const T26_DIR := "res://.impeccable/review/t26"
+
+func _capture_t26_sets() -> void:
+	if DirAccess.make_dir_recursive_absolute(T26_DIR) != OK:
+		_check(false, "t26 review dir created")
+		return
+	var tm: Node = _concourse.bound_tick_manager()
+	if tm == null:
+		_check(false, "t26 capture: engine bound")
+		return
+	_vp.size = Vector2i(1280, 720)
+	tm.new_game(20260915)
+	tm.batcher.mark("inventory")
+	tm.batcher.mark("xp")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	await _frames(2)
+	_concourse.set_first_run(false)
+	# Staging, documented: the O-1 intake form folds to its slip so the
+	# captures show the register/board regions it corners (live, the fold
+	# control posts at >= 5 stamped steps — the tutorial stays expanded
+	# while it IS the priority; these captures review the dossier sections).
+	_concourse.orientation_form.fold()
+	await _frames(1)
+	_check(not _concourse.orientation_form.is_expanded()
+			and not _concourse.orientation_form.get_node("FormColumn/StepRows").is_visible_in_tree(),
+		"t26 capture: O-1 form slipped (rows hidden) for register visibility")
+	var scroll: ScrollContainer = _concourse.find_child("DocketScroll", true, false) as ScrollContainer
+
+	# Scavenging: a real worked shift — readouts alive, clearance-2 stamped.
+	await _settle_t26("scavenging")
+	tm.start_activity("sort_scrap_pile")
+	_pump(tm, 30_000)
+	tm.stop_skill("scavenging")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	await _frames(2)
+	(_concourse.docket_controller("scavenging") as DocketSkill).register.expand()
+	await _frames(2)
+	scroll.scroll_vertical = 100000  # the register posts below the fold
+	await _frames(3)
+	if not _snap_t26("dossier_scavenging_1280x720.png"):
+		return
+
+	# The other three workshop dockets, stocked + expanded.
+	tm.state.add_item("duskcorn", 12)
+	tm.state.add_item("glowshroom", 6)
+	tm.state.add_item("scrap_metal", 30)
+	tm.state.add_item("copper_wiring", 20)
+	tm.batcher.mark("inventory")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	for dept in ["foraging", "junksmithing", "cooking"]:
+		await _settle_t26(dept)
+		(_concourse.docket_controller(dept) as DocketSkill).register.expand()
+		await _frames(2)
+		scroll.scroll_vertical = 100000
+		await _frames(3)
+		if not _snap_t26("dossier_%s_1280x720.png" % dept):
+			return
+
+	# Patrol: the EXTERIOR DOSSIER on the Sunny tab (zone tabs + register).
+	await _settle_t26("wasteland_patrol")
+	var patrol := _concourse.docket_controller("wasteland_patrol") as DocketPatrol
+	_check(patrol.active_zone == "dusty_flats" and patrol.zone_tab_sunny.button_pressed,
+		"t26 capture: Sunny zone posts for the patrol docket shot")
+	_check(_concourse.active_department() == "wasteland_patrol",
+		"t26 capture: patrol docket settled (no mid-transition shot)")
+	patrol.register.expand()
+	await _frames(2)
+	scroll.scroll_vertical = 100000
+	await _frames(3)
+	if not _snap_t26("dossier_patrol_sunny_zone_1280x720.png"):
+		return
+
+	# The Gift Court tab: its board + zone copy + RM boss plate (gates up).
+	patrol.zone_tab_gift.pressed.emit()
+	await _frames(2)
+	scroll.ensure_control_visible(patrol.zone_tabs_row)  # the board posts below the fold
+	await _frames(3)
+	_check(patrol.active_zone == "gift_court" and patrol.zone_tab_gift.button_pressed,
+		"t26 capture: Gift Court tab active for its board shot")
+	_check(patrol.zone_tabs_row.get_global_rect().intersects(scroll.get_global_rect()),
+		"t26 capture: zone tabs in frame")
+	_check(patrol.zone_serial.is_visible_in_tree()
+			and "GIFT COURT" in patrol.zone_serial.text,
+		"t26 capture: Gift Court zone serial posted")
+	_check(not (_concourse.docket_controller("wasteland_patrol").get("_cards") as Dictionary)["junkyard_roach"].button.is_visible_in_tree(),
+		"t26 capture: Sunny fauna hidden on the Gift Court board")
+	if not _snap_t26("patrol_zone_gift_court_1280x720.png"):
+		return
+
+	# The completed dossier: every scavenging condition force-met through
+	# the counters, one evaluate (the engine's own cascade), the completion
+	# plate posts expanded (the win moment) with the notice in the log.
+	tm.objectives.ensure_objectives(tm.state)
+	var counters: Dictionary = tm.state.objectives["counters"]
+	for obj_id in tm.engine.lib.objectives:
+		var obj: ObjectiveDef = tm.engine.lib.objectives[obj_id]
+		if obj.skill != "scavenging" or obj.counter_key == "":
+			continue
+		counters[obj.counter_key] = maxi(int(counters.get(obj.counter_key, 0)), obj.target)
+	tm.objectives.evaluate(tm.state)
+	tm.batcher.mark("objectives")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	await _settle_t26("scavenging")
+	scroll.scroll_vertical = 100000
+	await _frames(3)
+	if not _snap_t26("dossier_completed_all_stamped_1280x720.png"):
+		return
+
+	# The Gift Court's ZONE SECURED certificate: the Regional Manager falls
+	# through the victory seam (POSTED — SECTOR G posts on its own tab).
+	tm.objectives.note_victory(tm.state, "regional_manager")
+	tm.state.combat["zone_clear"] = true  # the Sunny truth, for contrast
+	tm.batcher.mark("objectives")
+	tm.batcher.mark("combat")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	await _settle_t26("wasteland_patrol")
+	scroll.scroll_vertical = 0  # the certificates post at the docket's head
+	patrol.zone_tab_gift.pressed.emit()
+	await _frames(3)
+	_check(patrol.zone_plate_gift.is_visible_in_tree()
+			and "SECTOR G" in patrol.zone_plate_gift.get_child(0).get_child(0).text,
+		"t26 capture: Gift Court certificate posted for its shot")
+	if not _snap_t26("patrol_zone_gift_court_certificate_1280x720.png"):
+		return
+	_validate_t26_pngs()
+
+
+func _snap_t26(file_name: String) -> bool:
+	var img := _vp.get_texture().get_image()
+	if img == null:
+		print("HEADLESS_CAPTURE_UNSUPPORTED (dummy rasterizer returned no image)")
+		_capture_unsupported = true
+		quit(CAPTURE_UNSUPPORTED_EXIT)
+		_done = true
+		return false
+	var path := T26_DIR + "/" + file_name
+	var err := img.save_png(path)
+	_check(err == OK, "captured %s (err=%d)" % [path, err])
+	return true
+
+
+## Select a department and WAIT OUT the bulkhead transition (the t26 set
+## captured a docket mid-slide once — the old department was still mounted
+## under the shutter; the review capture must show the settled docket).
+func _settle_t26(id: String) -> void:
+	_concourse.select_department(id, true)
+	var n := 0
+	while (_concourse.is_transitioning() or n < 10) and n < 90:
+		await _frames(1)
+		n += 1
+
+
+func _validate_t26_pngs() -> void:
+	var expects := {
+		"dossier_scavenging_1280x720.png": Vector2i(1280, 720),
+		"dossier_foraging_1280x720.png": Vector2i(1280, 720),
+		"dossier_junksmithing_1280x720.png": Vector2i(1280, 720),
+		"dossier_cooking_1280x720.png": Vector2i(1280, 720),
+		"dossier_patrol_sunny_zone_1280x720.png": Vector2i(1280, 720),
+		"patrol_zone_gift_court_1280x720.png": Vector2i(1280, 720),
+		"dossier_completed_all_stamped_1280x720.png": Vector2i(1280, 720),
+		"patrol_zone_gift_court_certificate_1280x720.png": Vector2i(1280, 720),
+	}
+	for file_name: String in expects:
+		var path := T26_DIR + "/" + file_name
+		var fa := FileAccess.open(path, FileAccess.READ)
+		_check(fa != null and fa.get_length() > 0, "%s saved with size > 0" % file_name)
+		if fa == null:
+			continue
+		fa.close()
+		var img := Image.load_from_file(path)
+		_check(img != null, "%s is a loadable image" % file_name)
+		if img == null:
+			continue
+		_check(Vector2i(img.get_width(), img.get_height()) == expects[file_name],
+			"%s dimensions %dx%d" % [file_name, img.get_width(), img.get_height()])
+		var colors := {}
+		for x in range(0, img.get_width(), 16):
+			for y in range(0, img.get_height(), 16):
+				colors[img.get_pixel(x, y).to_html(true)] = true
+		_check(colors.size() >= 8, "%s renders real content (%d distinct sampled colors)" % [
+			file_name, colors.size()])
+
 
 func _validate_saved_pngs() -> void:
 	var expects := {

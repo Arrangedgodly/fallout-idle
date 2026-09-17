@@ -153,6 +153,7 @@ var _serial_token := 0
 var _tm: Node = null              # TickManager (autoload in prod, twin in tests)
 var _mail_hooked := false
 var _orientation_hooked := false
+var _objectives_hooked := false
 
 func _ready() -> void:
 	_ui_theme = get_node_or_null("/root/UiTheme")
@@ -301,6 +302,10 @@ func bind_engines(p_tm: Node = null, p_save: Node = null) -> void:
 		(_tm.orientation_step_done as Signal).disconnect(_on_orientation_step)
 		(_tm.orientation_completed as Signal).disconnect(_on_orientation_complete)
 		_orientation_hooked = false
+	if rebound and _tm != null and _objectives_hooked:
+		(_tm.objective_stamped as Signal).disconnect(_on_objective_stamped)
+		(_tm.dossier_completed as Signal).disconnect(_on_dossier_completed)
+		_objectives_hooked = false
 	_tm = new_tm
 	for id in _controllers:
 		(_controllers[id] as Docket).bind(_tm)
@@ -309,6 +314,13 @@ func bind_engines(p_tm: Node = null, p_save: Node = null) -> void:
 		(_tm.orientation_step_done as Signal).connect(_on_orientation_step)
 		(_tm.orientation_completed as Signal).connect(_on_orientation_complete)
 		_orientation_hooked = true
+	# T26: the DEPARTMENTAL DOSSIER auto-grant notices — the console flash
+	# half of the stamp idiom (the docket log stamp is the dockets' own
+	# handler; rewards post themselves, no claim button anywhere).
+	if not _objectives_hooked:
+		(_tm.objective_stamped as Signal).connect(_on_objective_stamped)
+		(_tm.dossier_completed as Signal).connect(_on_dossier_completed)
+		_objectives_hooked = true
 	mail_call.lib = _tm.engine.lib
 	if not _mail_hooked:
 		(_tm.mail_call_ready as Signal).connect(_on_mail_call_ready)
@@ -359,6 +371,17 @@ func _refresh_orientation_cue(animate := false) -> void:
 	orientation_cue.visible = target != ""
 	if target != "" and _plates.has(target):
 		orientation_cue.aim(_plates[target], animate)
+
+
+# ---------------------------------------------------------------- T26 dossier
+## FORM R-1 auto-grant + completion notices on the console serial (the O-1
+## precedent: the notice lines are naming-bible-verbatim, payload-owned).
+func _on_objective_stamped(payload: Dictionary) -> void:
+	_flash_serial(str(payload.get("notice_line", "")))
+
+
+func _on_dossier_completed(payload: Dictionary) -> void:
+	_flash_serial(str(payload.get("stamp_line", "")))
 
 
 # ------------------------------------------------------------------ hotkeys

@@ -494,6 +494,38 @@ func test_stamped_count_cascade_completes_the_dossier() -> void:
 		"honest wallet math: the tender (40) + five merit lines (10/25/15/20/50) + the crowns line (25)")
 
 
+## T26 pin (the completion arm guard): a RE-ENTRANT cascade — an XP-leg
+## grant re-entering evaluation inside _stamp while nested passes land the
+## remaining objectives — used to emit dossier_completed TWICE for one
+## completion (the in-flight _stamp's own check fired after the nested last
+## stamper had already fired). Repro: seed every real scavenging counter to
+## its target, one evaluate — re-entrant XP legs complete the skill across
+## nested passes. Exactly ONE completion notice may post (T23 header: "when
+## a skill's LAST objective stamps"); the guard re-arms only if the skill
+## later drops below total (content adds objectives).
+func test_dossier_completed_emits_once_under_reentrant_cascade() -> void:
+	var tm: Variant = _make_tm(_fixture_lib(_fixture_dir("reentrant", _shipped_objectives())))
+	var completions: Array = []
+	tm.dossier_completed.connect(func(payload: Dictionary) -> void: completions.append(payload))
+	tm.objectives.ensure_objectives(tm.state)
+	var counters: Dictionary = tm.state.objectives["counters"]
+	for obj_id in tm.engine.lib.objectives:
+		var obj: ObjectiveDef = tm.engine.lib.objectives[obj_id]
+		if obj.skill != "scavenging" or obj.counter_key == "":
+			continue
+		counters[obj.counter_key] = maxi(int(counters.get(obj.counter_key, 0)), obj.target)
+	tm.objectives.evaluate(tm.state)
+	assert_eq(tm.objectives.stamped_count_for_skill(tm.state, "scavenging"), 23,
+		"the whole real 23-rung scavenging dossier stamps in the cascade")
+	assert_eq(completions.size(), 1,
+		"dossier_completed posts exactly once despite re-entrant nested passes (got %d)" % completions.size())
+	assert_eq(String(completions[0]["stamp_line"]), "ALL 23 STAMPED · FORM R-1",
+		"the one completion carries the T22 stamp line")
+	# Idempotence: a re-evaluation neither re-stamps nor re-completes.
+	tm.objectives.evaluate(tm.state)
+	assert_eq(completions.size(), 1, "re-evaluation does not re-complete")
+
+
 # ---------------------------------------------------------------------------
 # (b) auto-grant exactly once + idempotence + round trip
 # ---------------------------------------------------------------------------
