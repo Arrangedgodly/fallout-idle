@@ -289,7 +289,7 @@ XP rate escalates strictly; L71–99 is the long-tail cap grind):**
 | 6 | 30 | 10000 ms | 190 | 1140 | Pry the Mezzanine Lockers | Reap the Relay Garden | 136.7 |
 | 7 | 41 | 11500 ms | 275 | 1435 | Deconstruct the Signal Tower | Tend the Hydroponics Bay | 171.6 |
 | 8 | 54 | 13000 ms | 400 | 1846 | Excavate the Foundation Grid | Gather the Greenhouse Span | 184.2 |
-| 9 | 70 | 15000 ms | 580 | 2320 | Audit the Archive Vault | Work the Canopy Rows | 223.3 |
+| 9 | 70 | 15000 ms | 580 | 2320 | Audit the Archive Strongroom | Work the Canopy Rows | 223.3 |
 
 New materials: Scavenging yields **Directive Cord** (cordage, T5+),
 **Survey Lens** (optical bits, T5+), **Heritage Hardware** (pre-war
@@ -310,8 +310,12 @@ gates rise — probe-pinned):**
   @45 … Mass-Produce Regret @92 — the O-1 "processing is paperwork" spirit,
   at scale).
 
-**Food ladder (auto-eat best-first climbs a strictly increasing ladder;
-heals scale with ingredient rarity — new flora + Gift Court drops):**
+**Food ladder (heal values strictly increase — 10 < 15 < 35 < 55 < 80 < 120
+< 160 < 190 < 230 — and auto-eat best-first always climbs to the highest heal
+unlocked; heals scale with ingredient rarity — new flora + Gift Court drops.
+Gate order deliberately interleaves: Chef's Regret 80 @10 precedes Grade-D
+Fritters 55 @13 — the apex soup arrives early, the mid-tier Fritters are the
+cheap filler beneath it):**
 
 | Food | Heal | Gate | Ingredients |
 |---|---|---|---|

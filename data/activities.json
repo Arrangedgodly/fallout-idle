@@ -123,7 +123,7 @@
 		},
 		{
 			"id": "audit_archive_vault",
-			"name": "Audit the Archive Vault",
+			"name": "Audit the Archive Strongroom",
 			"skill": "scavenging",
 			"level_gate": 70,
 			"interval_ms": 15000,

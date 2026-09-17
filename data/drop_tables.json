@@ -179,7 +179,7 @@
 		},
 		{
 			"id": "archive_vault",
-			"name": "Archive Vault Yields",
+			"name": "Archive Strongroom Yields",
 			"rolls": 1,
 			"entries": [
 				{ "item": "counterweight", "weight": 35, "qty_min": 3, "qty_max": 4 },

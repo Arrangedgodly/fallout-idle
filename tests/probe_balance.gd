@@ -479,7 +479,11 @@ func _check_food_ladder() -> void:
 		"Vintage Snack Cake drops from the Feral Snack Dispenser (pre-cooking combat sustain)")
 
 	# -- T24 food tiers: the heal ladder scales with ingredient rarity, and
-	#    the auto-eat best-first rule climbs a strictly increasing ladder.
+	#    the heal VALUES form a strictly increasing ladder. Gate order
+	#    interleaves by design (Chef's Regret 80 @10 precedes Grade-D
+	#    Fritters 55 @13 — the apex soup early, the mid-tier Fritters as the
+	#    cheap filler beneath it); auto-eat best-first always picks the
+	#    highest heal unlocked, so effective sustain still only climbs.
 	var fritters := lib.item("grade_d_fritters")
 	var compote := lib.item("quarantine_compote")
 	var tea := lib.item("notary_tea")
@@ -490,7 +494,7 @@ func _check_food_ladder() -> void:
 			"T24 food '%s' heals %d (scaled to the Gift Court damage ladder)" % [pair[0].id if pair[0] else "?", pair[1]])
 	_check(casserole.heal < fritters.heal and fritters.heal < stew.heal and stew.heal < compote.heal
 			and compote.heal < tea.heal and tea.heal < sherbet.heal and sherbet.heal < feast.heal,
-		"the heal ladder is strictly increasing in unlock order (10 < 15 < 35 < 55 < 80 < 120 < 160 < 190 < 230)")
+		"the heal values form a strictly increasing ladder (10 < 15 < 35 < 55 < 80 < 120 < 160 < 190 < 230); gate order interleaves (Chef's Regret 80 @10 before Grade-D Fritters 55 @13), auto-eat best-first unaffected")
 	var rm := lib.monster("regional_manager")
 	_check(feast.heal >= 2 * rm.max_hit,
 		"the apex food (%d) heals at least 2 Regional Manager max hits (%d) — real chunks vs the burst ladder" % [feast.heal, rm.max_hit])

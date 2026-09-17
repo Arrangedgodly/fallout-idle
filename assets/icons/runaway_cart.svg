@@ -8,6 +8,6 @@
     <path d="M74 74 L84 86" stroke-width="5"/>
     <circle cx="86" cy="90" r="7" stroke-width="5" fill="#FFB000"/>
     <path d="M96 44 L104 36" stroke-width="5"/>
-    <path d="M100 40 L104 44 M104 36 L108 40" stroke-width="3.5"/>
+    <path d="M100 40 L104 44 M104 36 L108 40" stroke-width="4"/>
   </g>
 </svg>

@@ -6,7 +6,7 @@
     <path d="M56 48 L72 48" stroke-width="4.5"/>
     <path d="M42 92 L88 92" stroke-width="6"/>
     <path d="M34 44 Q30 52 34 58 M96 44 Q100 52 96 58" stroke-width="4"/>
-    <circle cx="30" cy="34" r="3" stroke-width="3.5"/>
-    <circle cx="98" cy="34" r="3" stroke-width="3.5"/>
+    <circle cx="30" cy="34" r="3" stroke-width="4"/>
+    <circle cx="98" cy="34" r="3" stroke-width="4"/>
   </g>
 </svg>

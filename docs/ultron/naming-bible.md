@@ -474,7 +474,7 @@ precedent):
 | **The Gift Court** (second combat zone; machine id `gift_court`) | zone | Retail-architecture "court" (the food-court word) + gift — the mall-as-amenity misclassification. Web-verified scan (2026-09-16): no game, boss, zone, or registered mark; wild use is generic department-store English (a 1979 department-store "gift court" section; a university donor "gift court") plus an event-usher business in Nigeria — different channels entirely, no famous-mark overlap; mundane retail provenance is the parody. No Fallout location shares the construction (nearest Fallout retail is Super-Duper Mart — different words, no brand echo); no Melvor zone by any root | **PASS** |
 | **The Regional Manager** (second boss; machine id `regional_manager`) | boss | Ordinary job title, deliberately the lateral authority counterpart to The Superintendent (generic-title precedent row) and the opposite of the banned "Overseer" — a mid-level civilian manager. Web-verified scan (2026-09-16): no registered mark; no notable game boss by the name (nearest hits: a fan-made non-commercial office-sim doc on Scribd; the TV-comedy role usage — generic dictionary title, unprotectable, and parody-favorable); no Fallout/Melvor creature shares the name or construction | **PASS** |
 
-### T24-authored content names (Run 3, applied 2026-09-15 under the §13.1 protocol — all Class A)
+### T24-authored content names (Run 3, applied 2026-09-15 under the §13.1 protocol — all Class A; vault-free retry same date, below)
 
 The run-3 depth expansion added ~90 display names. Per §13.1 every one
 registers below as a **Class A row** (generic-word institutional phrases,
@@ -485,7 +485,13 @@ above). Codebase grepped before assignment (scripts/, scenes/, data/, tests/):
 no display name below collides with any shipped string; all §9 patterns walked
 clean (no vault/nuka/rad-/caps/overseer/dweller/letter-dash-number-on-gear/
 smash-brand/mascot constructs; every name is generic dictionary vocabulary or
-an institutional compound of it).
+an institutional compound of it). **Retry correction (2026-09-15): the first
+pass shipped "Audit the Archive Vault" + "Archive Vault Yields" — a §9 vault
+construction the §10 self-review missed; the T24 verifier's lexicon sweep
+caught it, and both rows below are the renamed, walked-clean versions
+("Strongroom" = the generic-English synonym deliberately chosen over the
+banned word). Machine ids `audit_archive_vault`/`archive_vault` stay stable
+(display names only — the §15 `sewer_landlord` precedent).**
 
 **Activities (10)** — signage-task voice, the T5 pattern:
 
@@ -495,7 +501,7 @@ an institutional compound of it).
 | Pry the Mezzanine Lockers | activity | Generic verb + generic architecture pair | **PASS** |
 | Deconstruct the Signal Tower | activity | Bureaucratic inversion (deconstruct) + generic structure | **PASS** |
 | Excavate the Foundation Grid | activity | Generic civil-engineering words | **PASS** |
-| Audit the Archive Vault | activity | Bureau verb + generic recordkeeping noun | **PASS** |
+| Audit the Archive Strongroom | activity | Bureau verb + generic recordkeeping noun ("strongroom" = the bank/government generic for a records depository's reinforced room — the vault-free retry rename) | **PASS** |
 | Prune the Atrium Thicket | activity | Generic groundskeeping words | **PASS** |
 | Reap the Relay Garden | activity | Generic harvest verb + generic garden noun | **PASS** |
 | Tend the Hydroponics Bay | activity | Generic horticulture words | **PASS** |
@@ -506,7 +512,7 @@ an institutional compound of it).
 
 | Name | Kind | Construction / proximity | Verdict |
 |---|---|---|---|
-| Corridor Cache Yields · Mezzanine Locker Yields · Signal Tower Yields · Foundation Grid Yields · Archive Vault Yields | drop header ×5 | Generic-location + "Yields", the T5 header pattern; each follows its activity's cleared name | **PASS** |
+| Corridor Cache Yields · Mezzanine Locker Yields · Signal Tower Yields · Foundation Grid Yields · Archive Strongroom Yields | drop header ×5 | Generic-location + "Yields", the T5 header pattern; each follows its activity's cleared name | **PASS** |
 | Atrium Thicket Yields · Relay Garden Yields · Hydroponics Bay Yields · Greenhouse Span Yields · Canopy Rows Yields | drop header ×5 | Same pattern, foraging side | **PASS** |
 | Cart Cargo Yields · Kiosk Directory Yields · Wet Floor Yields · Escalator Yields · Hanger Flock Yields | drop header ×5 | Follow their fauna's cleared names minus modifiers (Snack Dispenser precedent) | **PASS** |
 | Manager's Memoranda | drop header (boss) | Possessive of the pre-cleared boss (T22) + generic office noun — the Superintendent's Receipts construction | **PASS** |

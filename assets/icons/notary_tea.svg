@@ -7,6 +7,6 @@
     <line x1="36" y1="64" x2="88" y2="64" stroke-width="4"/>
     <path d="M58 50 L66 36" stroke-width="4"/>
     <rect x="62" y="22" width="20" height="15" rx="3" fill="#F2EDE3" stroke-width="4.5"/>
-    <circle cx="72" cy="29" r="3.5" stroke-width="3"/>
+    <circle cx="72" cy="29" r="3.5" stroke-width="4"/>
   </g>
 </svg>

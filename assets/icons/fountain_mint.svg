@@ -6,6 +6,6 @@
     <path d="M42 92 L48 78 M86 92 L80 78" stroke-width="5"/>
     <path d="M64 76 V60" stroke-width="5"/>
     <path d="M64 60 Q52 56 48 44 Q62 40 68 48 Q72 56 64 60 Z" fill="#F2EDE3" stroke-width="5"/>
-    <path d="M63 58 Q60 50 52 46" stroke-width="3.5"/>
+    <path d="M63 58 Q60 50 52 46" stroke-width="4"/>
   </g>
 </svg>
