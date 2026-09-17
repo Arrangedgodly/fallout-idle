@@ -294,6 +294,14 @@ func test_migration_three_skills_one_survivor_plus_notice() -> void:
 	assert_eq(int(redoc["save_version"]), 3, "the re-filed record is v3")
 	assert_eq(int(redoc["engine"]["staffing"]["deputies"]), 0, "deputies persisted")
 	assert_true(redoc["engine"]["staffing"]["suspended"].has("foraging"), "parked postings persisted")
+	# P0 gap closure (recorded in production-log): this suite checked the
+	# parked posting's PRESENCE but never its rng FORM — _build_doc's
+	# stringify loop covered engine.active only, so parked rng shipped as
+	# bare >= 2^53 JSON numbers and the re-filed record's own next load
+	# rejected it. The form is pinned here; the full save->reload chain is
+	# pinned by tests/test_save.gd's P0 battery.
+	assert_true(typeof(redoc["engine"]["staffing"]["suspended"]["foraging"]["rng_state"]) == TYPE_STRING,
+		"parked rng ships as a STRING (int64-exact past the 2^53 JSON cliff)")
 
 
 func test_migration_combat_newest_keeps_the_patrol() -> void:

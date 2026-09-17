@@ -25,7 +25,21 @@ separation rule, Doctor Strange's versioning-from-day-1 claim).
   float round-trips). The one int64 pair that matters today — per-slot RNG
   `rng_seed`/`rng_state` — ships as STRINGS because Godot's JSON loses
   precision past 2^53 (verified: 9007199254740993 parses back as ...992.0);
-  the string↔int64 round-trip is exact and pinned by tests.
+  the string↔int64 round-trip is exact and pinned by tests. This covers BOTH
+  slot homes: `engine.active` and postings parked in
+  `engine.staffing.suspended` (the P0 fix — the suspended path once shipped
+  bare ≥2^53 numbers, and the loader's own validator rejected them, bricking
+  any record with a parked posting on save→reload).
+  **Legacy coercion (P0, suspended slots ONLY):** records written before that
+  fix may carry parked rng as bare JSON numbers. The loader accepts them
+  there and coerces at hydration — magnitudes < 2^53 int() exactly; ≥ 2^53
+  clamp to the exact-representable bound ±(2^53−1) with a one-line
+  `staffing.rng_legacy_clamped` notice in the loaded state. Honest scope: the
+  parked RNG stream position is worst-case cosmetically off for a suspended
+  posting (a parked posting never accrues; a later re-post supersedes the
+  entry), and the notice is transient — it drops out of the namespace once
+  the repaired state re-files as strings. No other leniency: `engine.active`
+  rng stays strict.
 - Unknown keys inside known objects are *dropped on next save* (saves are
   engine-owned, unlike content where unknown keys are errors) — but never a
   load failure.
@@ -74,7 +88,9 @@ counters).
 		"combat": {},                 // T7 namespace (CombatSession owns semantics)
 		"staffing": {                 // T17 namespace (save_version 2)
 			"deputies": 1,        // int 0-4; postings = 1 + deputies
-			"suspended": {}       // skill_id -> parked ActiveSlot dict (see below)
+			"suspended": {}       // skill_id -> parked ActiveSlot dict; rng
+			                       // ships as STRINGS here too (P0 fix; legacy
+			                       // bare numbers coerced, see Versioning rules)
 		},
 		"orientation": {              // T18 namespace (same amended v2)
 			"steps_done": ["work_shift", "earn_clearance"],  // the 7 §14 step
@@ -147,6 +163,21 @@ zero — the notice is the point. Validation never rejects an
 over-subscribed record as corrupt (repair beats discard: the player keeps
 everything); `staffing.deputies` must be an integer 0-4 and parked slots
 validate against content exactly like active ones.
+
+**P0 note (parked-rng serialization, 2026-09-17 fix):** parked slots kept
+their full state through the migration, but `_build_doc` stringified rng
+int64s only for `engine.active` — so the parked `rng_seed`/`rng_state`
+(FNV-64 seed and PCG stream position, ≥2^53 essentially always) shipped as
+bare JSON numbers, Godot's parser returned them as inexact floats, and the
+loader's own `_validate_slot` rejected the record. Any v1 player with 2+
+concurrent postings (exactly what this migration parks) bricked on
+save→reload. Fixed both ways: the writer stringifies parked rng like active
+rng, and the loader tolerates the legacy bare-number form in suspended slots
+ONLY (coerce < 2^53 exactly; clamp ≥ 2^53 to ±(2^53−1) with the transient
+`staffing.rng_legacy_clamped` one-line notice — see Versioning rules). The
+miss was a T17 test gap — its suite round-tripped a parked posting's
+presence but never its rng form or a reload; both are now pinned
+(tests/test_staffing.gd + the P0 battery in tests/test_save.gd).
 
 ## Migration 2→3 (T23 objectives)
 

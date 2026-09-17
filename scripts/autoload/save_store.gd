@@ -41,8 +41,16 @@ extends Node
 ##
 ## RNG PRECISION (binding T6 note): slot rng_seed/rng_state are exact int64s;
 ## Godot's JSON silently loses precision past 2^53 (verified: 9007199254740993
-## parses back as ...992.0), so both ship as STRINGS. int() accepts the string
-## form on the way back in; the round-trip is bit-exact (pinned by tests).
+## parses back as ...992.0), so both ship as STRINGS — for engine.active AND
+## for slots parked in engine.staffing.suspended (P0 fix: the suspended path
+## once shipped bare >= 2^53 numbers and its own next load rejected them).
+## int() accepts the string form on the way back in; the round-trip is
+## bit-exact (pinned by tests). Legacy records written before the fix may
+## carry bare-number rng in suspended slots ONLY: _validate_slot accepts them
+## there and PlayerState.from_dict coerces (< 2^53 exact; >= 2^53 clamped to
+## the exact-representable bound with a one-line staffing.rng_legacy_clamped
+## notice in the hydrated state — a parked posting never accrues, so a
+## worst-case-shifted stream position is cosmetic). No other leniency.
 ##
 ## BIG-INT STATE (T14 sweep — the same cliff, every large-int field): crowns,
 ## per-skill lifetime xp and inventory stacks are UNBOUNDED ints in play
@@ -208,13 +216,24 @@ func _fail_save(now: int, reason: String) -> Dictionary:
 
 
 ## The envelope (docs/save-schema.md, as-shipped v1). PlayerState.to_dict()
-## supplies the engine namespace; the two int64 RNG fields are stringified.
+## supplies the engine namespace; the two int64 RNG fields are stringified —
+## for ACTIVE slots and, since the P0 fix, for slots PARKED in
+## staffing.suspended (the parked dicts are slot.to_dict() output: exact
+## int64s in memory, which JSON.stringify would ship as bare >= 2^53 numbers
+## — precisely the shape _validate_slot rejects, bricking the record's own
+## next load; see the header's RNG PRECISION note).
 func _build_doc(now: int) -> Dictionary:
 	var engine: Dictionary = _tm.state.to_dict()
 	for skill_id in engine["active"]:
 		var slot: Dictionary = engine["active"][skill_id]
 		slot["rng_seed"] = str(int(slot["rng_seed"]))
 		slot["rng_state"] = str(int(slot["rng_state"]))
+	# P0 fix: parked postings ride the SAME rng string policy as active ones.
+	var suspended_out: Dictionary = (engine.get("staffing", {}) as Dictionary).get("suspended", {})
+	for skill_id in suspended_out:
+		var parked: Dictionary = suspended_out[skill_id]
+		parked["rng_seed"] = str(int(parked["rng_seed"]))
+		parked["rng_state"] = str(int(parked["rng_state"]))
 	# T14 big-int sweep: unbounded player ints flip to strings at the 2^53
 	# JSON cliff (see header). PlayerState.from_dict int()s both forms back.
 	engine["crowns"] = _json_int(int(engine["crowns"]))
@@ -620,7 +639,9 @@ func _validate_doc(d: Dictionary) -> String:
 		var parked: Variant = (suspended as Dictionary)[skill_id]
 		if parked is not Dictionary:
 			return "staffing.suspended['%s'] is not an object" % skill_id
-		var parked_why := _validate_slot(parked, String(skill_id), lib)
+		# legacy_rng=true: pre-P0 records park their rng as bare JSON numbers
+		# (see _validate_slot's comment) — accepted + coerced at hydration.
+		var parked_why := _validate_slot(parked, String(skill_id), lib, true)
 		if parked_why != "":
 			return "staffing." + parked_why
 	# T18 orientation namespace. Validated WHEN PRESENT: the v1->v2 migration
@@ -722,7 +743,8 @@ func _is_valid_objective_counter_key(key: String, lib: ContentLibrary) -> bool:
 		_: return false
 
 
-func _validate_slot(slot: Dictionary, skill_id: String, lib: ContentLibrary) -> String:
+func _validate_slot(slot: Dictionary, skill_id: String, lib: ContentLibrary,
+		legacy_rng := false) -> String:
 	if String(slot.get("skill_id", "")) != skill_id:
 		return "active['%s'].skill_id mismatch" % skill_id
 	var cid := String(slot.get("content_id", ""))
@@ -750,7 +772,15 @@ func _validate_slot(slot: Dictionary, skill_id: String, lib: ContentLibrary) -> 
 		if rv is String:
 			if not (rv as String).is_valid_int():
 				return "active['%s'].%s is not an integer string" % [skill_id, rng_key]
-		elif not _is_number(rv):
+		elif not _is_number(rv) and not (legacy_rng and rv is float):
+			# legacy_rng (suspended slots ONLY, P0 repair): records written
+			# before the suspended-rng stringify fix ship bare >= 2^53 JSON
+			# numbers, which Godot's parser returns as inexact floats. The
+			# true int64 is already unrecoverable at parse time — accepted
+			# here and coerced/clamped by PlayerState.from_dict at hydration
+			# (repair beats discard: a parked posting never accrues, so a
+			# worst-case-shifted stream position is cosmetic). Active slots
+			# stay STRICT — no other leniency.
 			return "active['%s'].%s missing or not an integer/string" % [skill_id, rng_key]
 	if slot.get("stream_started", false) is not bool:
 		return "active['%s'].stream_started is not a boolean" % skill_id

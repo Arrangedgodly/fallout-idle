@@ -26,6 +26,14 @@ extends GutTest
 ##   (h) migration hook: ordered named functions, refuses unregistered steps
 ##   (i) concourse wiring: FILE RECORD -> save + stamped confirmation;
 ##       CLOCK OUT -> save (quit suppressed by the documented test seam)
+##   (j) P0 regression battery (suspended-slot rng serialization — the
+##       stringify loop once covered engine.active ONLY, so any record with
+##       a posting parked in staffing.suspended bricked on save->reload):
+##       parked round-trips deep-equal at v2 AND v3; legacy bare-number
+##       fixtures (<2^53 exact, >=2^53 clamped + one-line notice, then a
+##       clean re-file cycle); the verifier's exact brick chain
+##       v1 -> migrate/park -> re-file -> reload; and the REAL user chain
+##       loaded from read-only temp COPIES of the actual user:// records.
 
 const SaveStoreScript := preload("res://scripts/autoload/save_store.gd")
 const TickManagerScript := preload("res://scripts/autoload/tick_manager.gd")
@@ -155,9 +163,8 @@ func _assert_states_equal(a: PlayerState, b: PlayerState, label: String) -> void
 		assert_eq(sa.stream_started, sb.stream_started, "%s: '%s' stream positioned" % [label, skill_id])
 	assert_eq(int(a.staffing.get("deputies", -1)), int(b.staffing.get("deputies", -1)),
 		"%s: staffing deputies (T17 namespace)" % label)
-	assert_eq((a.staffing.get("suspended", {}) as Dictionary).keys(),
-		(b.staffing.get("suspended", {}) as Dictionary).keys(),
-		"%s: suspended postings keys (T17 namespace)" % label)
+	assert_eq(a.staffing.get("suspended", {}), b.staffing.get("suspended", {}),
+		"%s: suspended postings — full parked slots incl. int64-exact rng (T17/P0)" % label)
 
 
 # ---------------------------------------------------------------------------
@@ -469,6 +476,282 @@ func test_production_migration_1_to_2_seeds_staffing() -> void:
 	# Untouched pass-throughs: the migration changes shape, never progress.
 	assert_eq(int(out["engine"]["crowns"]), 5, "crowns untouched")
 	assert_true(out["engine"]["active"].has("scavenging"), "active slots untouched (enforcement is load-time engine state)")
+
+
+# ---------------------------------------------------------------------------
+# (j) P0 regression — suspended-slot rng serialization + legacy repair
+# ---------------------------------------------------------------------------
+
+## The brick-scenario prologue: a v1 record carrying TWO running postings
+## (written with a deputy so both start legally, then rewritten as an honest
+## v1 — no staffing namespace, exactly the pre-T17 player's file).
+func _write_v1_two_posting_record(dir: String, tm: Variant) -> void:
+	tm.engine.ensure_staffing(tm.state)
+	tm.state.staffing["deputies"] = 1
+	assert_true(tm.start_activity("walk_the_glow_rows")["ok"], "foraging posted first (will park)")
+	_pump(tm, 15_000, 1_000)
+	assert_true(tm.start_activity("sort_scrap_pile")["ok"], "scavenging posted last (newest — survives)")
+	_pump(tm, 15_000, 1_000)
+	var stream: PlayerState.ActiveSlot = tm.state.active["foraging"]
+	assert_true(stream.stream_started, "the foraging rng stream is positioned (live int64 state)")
+	assert_true(maxi(absi(stream.rng_seed), absi(stream.rng_state)) >= 9007199254740992,
+		"the parked rng magnitudes cross the 2^53 JSON cliff (deterministic under the fixed SEED)")
+	var store: Variant = _make_store(dir, tm, NOW)
+	assert_true(store.save_now(NOW)["ok"], "v3 record filed (rewrite material)")
+	var path := dir.path_join("save.json")
+	var doc: Dictionary = JSON.parse_string(_read(path))
+	doc["save_version"] = 1
+	doc["engine"].erase("staffing")
+	_write(path, JSON.stringify(doc, "\t"))
+
+
+## (c) The verifier's exact brick scenario, reproduced then green: v1 record
+## with two postings -> migration parks the older -> re-file -> RELOAD. At
+## HEAD the re-filed primary shipped parked rng as bare >= 2^53 numbers and
+## its own next boot rejected primary AND ring (all_saves_corrupt_fresh_state).
+func test_p0_verifier_brick_scenario_parked_record_reloads_green() -> void:
+	var dir := _tmp_dir("p0brick")
+	var tm1: Variant = _make_tm()
+	_write_v1_two_posting_record(dir, tm1)
+
+	# Boot 1: the v1 record migrates up; enforce_staffing parks foraging with
+	# its full slot state (parking was never the bug — the FORM was).
+	var tm2: Variant = _make_tm()
+	var store2: Variant = _make_store(dir, tm2, NOW)
+	assert_eq(String(store2.load_report["loaded_from"]), "save.json", "v1 record loads (migrated)")
+	assert_eq(tm2.state.active.keys(), ["scavenging"], "the newest posting survives")
+	assert_eq((tm2.state.staffing["suspended"] as Dictionary).keys(), ["foraging"],
+		"the older posting parks")
+	assert_true(store2.save_now(NOW + 1_000)["ok"], "the parked record re-files")
+
+	# The P0 fix itself: the re-filed primary ships parked rng as STRINGS.
+	var redoc: Dictionary = JSON.parse_string(_read(dir.path_join("save.json")))
+	var reparked: Dictionary = redoc["engine"]["staffing"]["suspended"]["foraging"]
+	assert_true(typeof(reparked["rng_seed"]) == TYPE_STRING and typeof(reparked["rng_state"]) == TYPE_STRING,
+		"parked rng ships as strings (bare >= 2^53 numbers are what bricked the chain)")
+
+	# Boot 2 — THE BRICK: at HEAD this reload rejected everything; green now.
+	var tm3: Variant = _make_tm()
+	var store3: Variant = _make_store(dir, tm3, NOW + 1_000)
+	assert_eq(String(store3.load_report["loaded_from"]), "save.json",
+		"the parked record's own next load succeeds (the exact brick scenario)")
+	assert_eq(store3.notice, {}, "no rejection, no notice")
+	assert_eq(_count_files(dir, "save.json.corrupt-"), 0, "nothing quarantined")
+	assert_eq(tm2.state.staffing["suspended"], tm3.state.staffing["suspended"],
+		"the parked posting round-trips bit-exact (int64s via strings)")
+
+
+## (a) A record carrying a parked posting round-trips deep-equal at v3 AND
+## at v2 (the same engine payload stamped as an honest v2 — no objectives
+## namespace — loaded through the registered 2->3 migration).
+func test_p0_parked_posting_round_trip_v3_and_v2_deep_equal() -> void:
+	var dir := _tmp_dir("p0rt")
+	var tm1: Variant = _make_tm()
+	_write_v1_two_posting_record(dir, tm1)
+	var tm2: Variant = _make_tm()
+	var store2: Variant = _make_store(dir, tm2, NOW)
+	assert_true(store2.save_now(NOW + 1_000)["ok"], "genuine v3 record with a parked posting filed")
+
+	# v3 round-trip: deep-equal, no rejection.
+	var tm3: Variant = _make_tm()
+	var store3: Variant = _make_store(dir, tm3, NOW + 1_000)
+	assert_eq(String(store3.load_report["loaded_from"]), "save.json", "v3 parked record loads from the primary")
+	assert_eq(store3.notice, {}, "clean v3 round-trip")
+	_assert_states_equal(tm2.state, tm3.state, "parked v3 round-trip")
+
+	# v2 round-trip: same parked payload through the v2 form.
+	var path := dir.path_join("save.json")
+	var doc: Dictionary = JSON.parse_string(_read(path))
+	doc["save_version"] = 2
+	doc["engine"].erase("objectives")
+	_write(path, JSON.stringify(doc, "\t"))
+	var tm4: Variant = _make_tm()
+	var store4: Variant = _make_store(dir, tm4, NOW + 1_000)
+	assert_eq(String(store4.load_report["loaded_from"]), "save.json", "v2 parked record loads (migrated 2->3)")
+	assert_eq(store4.notice, {}, "clean v2 round-trip")
+	assert_eq(tm2.state.staffing["suspended"], tm4.state.staffing["suspended"],
+		"parked slot deep-equal through the v2 form (rng strings)")
+	assert_eq(tm2.state.active.keys(), tm4.state.active.keys(), "active selections survive the v2 form")
+	assert_eq(_count_files(dir, "save.json.corrupt-"), 0, "no quarantine in either direction")
+
+
+## A parked-slot dict in the LEGACY bare-number shape — int Variants, which
+## JSON.stringify writes as bare JSON integers (the pre-fix writer's exact
+## output; magnitudes mirror the user's real chain: FNV seed ~-5.4e17, PCG
+## state ~4.0e18).
+func _parked_slot(skill_id: String, content_id: String, rng_seed: int, rng_state: int) -> Dictionary:
+	return {
+		"skill_id": skill_id, "content_id": content_id, "is_recipe": false,
+		"interval_ms": 3000, "anchor_ms": 614400, "completed": 28,
+		"rng_seed": rng_seed, "rng_state": rng_state, "stream_started": true,
+	}
+
+
+## (b) Legacy bare-number fixtures: < 2^53 coerces EXACTLY, >= 2^53 clamps
+## to the exact-representable bound with a one-line notice in the loaded
+## state, and the repaired state re-files clean (notice drops after one
+## cycle). No other leniency — nothing here is treated as corrupt.
+func test_p0_legacy_bare_number_rng_exact_clamped_and_notice() -> void:
+	var dir := _tmp_dir("p0legacy")
+	var tm: Variant = _make_tm()
+	var store: Variant = _make_store(dir, tm, NOW)
+	assert_true(store.save_now(NOW)["ok"], "clean v3 record filed (fixture material)")
+	var path := dir.path_join("save.json")
+	var doc: Dictionary = JSON.parse_string(_read(path))
+	doc["engine"]["staffing"] = {
+		"deputies": 0,
+		"suspended": {
+			"foraging": _parked_slot("foraging", "walk_the_glow_rows", 987654321, 3954541915971306884),
+			"scavenging": _parked_slot("scavenging", "sort_scrap_pile", -544270122476930938, 12345678901),
+		},
+	}
+	_write(path, JSON.stringify(doc, "\t"))
+	var text := _read(path)
+	assert_true(text.contains("\"rng_state\": 3954541915971306884")
+			and not text.contains("\"rng_state\": \"3954541915971306884\""),
+		"the fixture truly ships parked rng as bare JSON numbers (the legacy shape)")
+
+	var tm2: Variant = _make_tm()
+	var store2: Variant = _make_store(dir, tm2, NOW + 1_000)
+	assert_eq(String(store2.load_report["loaded_from"]), "save.json",
+		"legacy bare-number record LOADS (repair, not rejection — at HEAD this was the brick)")
+	assert_eq(store2.notice, {}, "the repair is a state field, not a corruption notice")
+	var suspended: Dictionary = tm2.state.staffing["suspended"]
+	assert_eq(int(suspended["foraging"]["rng_seed"]), 987654321, "< 2^53 bare number coerces EXACTLY")
+	assert_eq(int(suspended["foraging"]["rng_state"]), 9007199254740991,
+		">= 2^53 clamps to the exact-representable bound (the true int64 is unrecoverable post-parse)")
+	assert_eq(int(suspended["scavenging"]["rng_seed"]), -9007199254740991,
+		"negative past the cliff clamps to the negative bound")
+	assert_eq(int(suspended["scavenging"]["rng_state"]), 12345678901, "state under the cliff exact")
+	assert_true(tm2.state.staffing.has("rng_legacy_clamped"), "the one-line repair notice rides the loaded state")
+	var notice_line := String(tm2.state.staffing["rng_legacy_clamped"])
+	assert_true(notice_line.contains("foraging.rng_state") and notice_line.contains("scavenging.rng_seed"),
+		"the notice names exactly the clamped fields: %s" % notice_line)
+	assert_false(notice_line.contains("foraging.rng_seed") or notice_line.contains("scavenging.rng_state"),
+		"exact-coerced fields are NOT flagged (no overclaiming)")
+
+	# The repair cycle: re-file writes clean strings; the transient notice
+	# drops out of the hydrated namespace on the next load.
+	assert_true(store2.save_now(NOW + 2_000)["ok"], "the repaired state re-files")
+	var redoc: Dictionary = JSON.parse_string(_read(dir.path_join("save.json")))
+	assert_true(typeof(redoc["engine"]["staffing"]["suspended"]["foraging"]["rng_state"]) == TYPE_STRING,
+		"the re-filed parked rng is a string now")
+	assert_eq(str(redoc["engine"]["staffing"]["suspended"]["foraging"]["rng_state"]), "9007199254740991",
+		"the clamped position re-files exactly")
+	var tm3: Variant = _make_tm()
+	var store3: Variant = _make_store(dir, tm3, NOW + 2_000)
+	assert_eq(String(store3.load_report["loaded_from"]), "save.json", "the repaired record reloads clean")
+	assert_false(tm3.state.staffing.has("rng_legacy_clamped"),
+		"the transient notice drops once the record re-files as strings")
+	assert_eq(int(tm3.state.staffing["suspended"]["foraging"]["rng_state"]), 9007199254740991,
+		"the clamped position is stable across the repair cycle")
+
+
+## (d) The REAL user chain: read-only COPIES of the actual user:// records
+## (the quarantined primary + the 3-slot ring, ~20 min of play, v1->v2
+## migrated with a suspended foraging posting) load green through the
+## tolerant loader. Binding discipline: no store EVER points at the real
+## user:// — every load runs against an OS temp copy — and the test pins
+## byte-equality of the real files before/after as the read-only proof. The
+## chain is machine-local evidence; where it is absent the test passes with
+## an explicit marker (nothing to pin elsewhere).
+func test_p0_real_user_chain_loads_from_read_only_temp_copy() -> void:
+	var user_dir := ProjectSettings.globalize_path("user://")
+	var chain := [
+		"save.json.corrupt-1789605304",  # the quarantined primary (the newest record)
+		"save.json.bak1", "save.json.bak2", "save.json.bak3",
+	]
+	for fname in chain:
+		if not FileAccess.file_exists(user_dir.path_join(String(fname))):
+			assert_true(true, "real user chain absent on this machine — the copy proof only runs where it exists")
+			return
+	var bytes_before := {}
+	for fname in chain:
+		bytes_before[String(fname)] = _read(user_dir.path_join(String(fname)))
+
+	# Each record alone, as the primary of its own temp base dir.
+	# NOTE on xp: a load also SETTLES pending objective stamps (ObjectivesTracker
+	# .settle_offline evaluates at every load, zero gap included — these
+	# records carry satisfied counters with stamped:[]), so loaded xp == file
+	# xp + the deterministic reward legs (a uniform +75 scavenging COMMENDATION
+	# at current content). Record IDENTITY is pinned by the completed-action
+	# count, which a zero-gap load never moves; the xp delta is asserted to
+	# ride exactly the mail payload's reward leg.
+	for fname in chain:
+		var solo := _tmp_dir("p0usersolo")
+		DirAccess.make_dir_recursive_absolute(solo)
+		DirAccess.copy_absolute(user_dir.path_join(String(fname)), solo.path_join("save.json"))
+		var source_doc: Dictionary = JSON.parse_string(_read(user_dir.path_join(String(fname))))
+		var expected_xp := int(source_doc["engine"]["skills_xp"]["scavenging"])
+		var expected_completed := int(source_doc["engine"]["active"]["scavenging"]["completed"])
+		var tm: Variant = _make_tm()
+		var store: Variant = _make_store(solo, tm, NOW)
+		assert_eq(String(store.load_report["loaded_from"]), "save.json",
+			"%s loads as its own primary through the tolerant loader" % fname)
+		assert_eq(store.notice, {}, "%s: clean load — repair, not a corruption event" % fname)
+		assert_eq(int(tm.state.active["scavenging"].completed), expected_completed,
+			"%s: its OWN record landed (completed identity, %d)" % [fname, expected_completed])
+		var xp_gain := int((tm.state.last_mail_call.get("skills_xp", {}) as Dictionary).get("scavenging", 0))
+		assert_eq(int(tm.state.skills_xp["scavenging"]), expected_xp + xp_gain,
+			"%s: file xp + exactly the mail payload's reward leg (settle-at-load)" % fname)
+		assert_eq(int(tm.state.last_mail_call.get("elapsed_ms", -1)), 0,
+			"%s: zero away gap — nothing but the settle ran" % fname)
+		assert_eq((tm.state.orientation.get("steps_done", []) as Array).size(), 2,
+			"%s: orientation 2/7 steps" % fname)
+		var suspended_r: Dictionary = tm.state.staffing["suspended"]
+		assert_true(suspended_r.has("foraging"), "%s: the foraging posting stays parked" % fname)
+		assert_eq(int(suspended_r["foraging"]["rng_seed"]), -9007199254740991,
+			"%s: legacy parked seed clamps to the negative bound" % fname)
+		assert_eq(int(suspended_r["foraging"]["rng_state"]), 9007199254740991,
+			"%s: legacy parked state clamps to the positive bound" % fname)
+		assert_true(tm.state.staffing.has("rng_legacy_clamped"), "%s: the repair notice is present" % fname)
+		assert_eq(str(tm.state.active["scavenging"].content_id), "sort_scrap_pile",
+			"%s: the active posting is the scrap sort" % fname)
+
+	# The whole chain in one base dir (primary restored from quarantine +
+	# ring): newest-good wins — the restored primary IS the newest record.
+	var together := _tmp_dir("p0userchain")
+	DirAccess.make_dir_recursive_absolute(together)
+	for bak in ["save.json.bak3", "save.json.bak2", "save.json.bak1"]:  # oldest first: copy order == mtime order
+		DirAccess.copy_absolute(user_dir.path_join(bak), together.path_join(bak))
+	DirAccess.copy_absolute(user_dir.path_join("save.json.corrupt-1789605304"), together.path_join("save.json"))
+	var tm_c: Variant = _make_tm()
+	var store_c: Variant = _make_store(together, tm_c, NOW)
+	assert_eq(String(store_c.load_report["loaded_from"]), "save.json",
+		"newest-good wins: the restored primary (the file HEAD quarantined) loads")
+	assert_eq(int(tm_c.state.active["scavenging"].completed), 10277,
+		"the primary's own record (completed identity) — not a ring fallback")
+	assert_true((tm_c.state.staffing["suspended"] as Dictionary).has("foraging"), "foraging parked")
+	assert_eq(_count_files(together, "save.json.corrupt-"), 0, "no new quarantine in the temp copy")
+
+	# Ring-only (primary removed from the TEMP copy): bak1 is the newest
+	# last-good and wins the walk.
+	DirAccess.remove_absolute(together.path_join("save.json"))
+	var tm_b: Variant = _make_tm()
+	var store_b: Variant = _make_store(together, tm_b, NOW)
+	assert_eq(String(store_b.load_report["loaded_from"]), "save.json.bak1", "ring walk lands on bak1 (newest last-good)")
+	assert_eq(int(tm_b.state.active["scavenging"].completed), 10237, "bak1's own record (completed identity)")
+
+	# The repair cycle on a solo copy: load -> re-file -> reload clean.
+	var repaired := _tmp_dir("p0userrepair")
+	DirAccess.make_dir_recursive_absolute(repaired)
+	DirAccess.copy_absolute(user_dir.path_join("save.json.corrupt-1789605304"), repaired.path_join("save.json"))
+	var tm_x: Variant = _make_tm()
+	var store_x: Variant = _make_store(repaired, tm_x, NOW)
+	assert_true(store_x.save_now(NOW + 1_000)["ok"], "the repaired record re-files (in the temp copy)")
+	var tm_y: Variant = _make_tm()
+	var store_y: Variant = _make_store(repaired, tm_y, NOW + 1_000)
+	assert_eq(String(store_y.load_report["loaded_from"]), "save.json", "the re-filed record reloads clean")
+	assert_false(tm_y.state.staffing.has("rng_legacy_clamped"), "the transient notice is gone after one cycle")
+	var refiled_doc: Dictionary = JSON.parse_string(_read(repaired.path_join("save.json")))
+	assert_true(typeof(refiled_doc["engine"]["staffing"]["suspended"]["foraging"]["rng_state"]) == TYPE_STRING,
+		"the re-filed parked rng is a clean string")
+
+	# The read-only proof: the real dir is byte-identical after everything
+	# (copies only; the .corrupt quarantine itself is deliberately left as-is).
+	for fname in chain:
+		assert_eq(_read(user_dir.path_join(String(fname))), bytes_before[String(fname)],
+			"real file %s untouched — copy, never move" % fname)
 
 
 # ---------------------------------------------------------------------------

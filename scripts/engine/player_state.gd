@@ -39,6 +39,9 @@ var combat: Dictionary = {}
 ## ActivityEngine.enforce_staffing (v1-migration over-subscription: keep the
 ## most-recently-started posting, pause the rest, notice via MAIL CALL);
 ## a successful re-post on that skill erases its entry. Pass-through here.
+## Parked-slot rng ships as STRINGS in saves (the active-slot policy, P0
+## fix); from_dict additionally coerces legacy bare-number forms and may set
+## the transient one-line "rng_legacy_clamped" notice key (see from_dict).
 var staffing: Dictionary = {}
 
 ## T18 orientation namespace (save_version 2, naming-bible §14 machine ids):
@@ -179,12 +182,46 @@ static func from_dict(d: Dictionary, lib: ContentLibrary) -> PlayerState:
 	st.combat = combat_d.duplicate(true)
 	# T17 staffing (v2 saves carry it; the v1->v2 migration seeds it — values
 	# are hydrated raw, ActivityEngine.ensure_staffing clamps/repairs).
+	# P0 legacy repair (rng string policy — see save_store.gd's header):
+	# records written before the suspended-rng stringify fix park their
+	# rng_seed/rng_state as BARE JSON numbers; Godot's JSON parses those to
+	# float and every bit past 2^53 is already gone at parse time. Coerced
+	# here, never rejected (repair beats discard): floats under the cliff
+	# int() EXACTLY; at/above it the true int64 is unrecoverable, so the
+	# value clamps to the exact-representable bound ±(2^53-1) and the repair
+	# records itself in staffing.rng_legacy_clamped (one line, transient —
+	# it drops out of the namespace once the repaired state re-files as
+	# strings). Honest scope: a parked posting never accrues, so a shifted
+	# RNG stream position is worst-case cosmetically off if the player later
+	# re-posts that skill. String forms int() back exactly (the active-slot
+	# policy); every hydrated parked rng leaves this loop a plain int.
 	var staffing_d: Dictionary = d.get("staffing", {})
 	var suspended_d: Dictionary = staffing_d.get("suspended", {})
+	var suspended := {}
+	var rng_clamped := PackedStringArray()
+	for skill_id in suspended_d:
+		var parked: Dictionary = (suspended_d[skill_id] as Dictionary).duplicate(true)
+		for rng_key in ["rng_seed", "rng_state"]:
+			var v: Variant = parked.get(rng_key)
+			if v is float and absf(v) >= 9007199254740992.0:
+				parked[rng_key] = 9007199254740991 if v > 0.0 else -9007199254740991
+				rng_clamped.append("%s.%s" % [String(skill_id), rng_key])
+			elif v == null:
+				parked[rng_key] = 0
+			else:
+				parked[rng_key] = int(v)
+		# Re-type through the slot codec: JSON parses EVERY number as float,
+		# so interval/anchor/completed would otherwise hydrate as floats —
+		# ActiveSlot.from_dict int()s them and to_dict() emits the canonical
+		# slot shape (the exact dict enforce_staffing parks).
+		suspended[String(skill_id)] = ActiveSlot.from_dict(parked).to_dict()
 	st.staffing = {
 		"deputies": int(staffing_d.get("deputies", 0)),
-		"suspended": suspended_d.duplicate(true),
+		"suspended": suspended,
 	}
+	if not rng_clamped.is_empty():
+		st.staffing["rng_legacy_clamped"] = \
+			"legacy bare-number rng clamped to ±(2^53-1): " + ", ".join(rng_clamped)
 	# T18 orientation (v2 saves carry it; the migration seeds it and any
 	# T17-window record without the namespace hydrates a fresh one — values
 	# hydrate raw, OrientationTracker.ensure_orientation repairs types).
