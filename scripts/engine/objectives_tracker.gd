@@ -75,6 +75,31 @@ func _init(p_lib: ContentLibrary, p_batcher: UpdateBatcher = null, p_xp_engine: 
 	lib = p_lib
 	batcher = p_batcher if p_batcher != null else UpdateBatcher.new()
 	xp_engine = p_xp_engine
+	_build_counter_index()
+
+
+## T25 performance index: counter key -> the objective ids that read it, in
+## canonical posted order. A live seam bumps a handful of counters per event;
+## before the index every bump re-walked ALL objectives (a 115-line set cost
+## ~0.5 ms per action through the worst-case 4-posting window). The live seams
+## now evaluate only what they touched (evaluate_touching); the full fixpoint
+## evaluate() still runs at boot/adopt/settlement and after any stamp (the
+## cascade path: MERIT PAY feeds the lifetime-crowns counter, stamped_count
+## re-arms) — behavior-identical by construction, proven by the T23 matrix.
+var _by_counter: Dictionary = {}
+
+
+func _build_counter_index() -> void:
+	_by_counter = {}
+	var ids: Array = lib.objectives.keys()  # file order == insertion order
+	ids.sort_custom(_posted_order)
+	for obj_id in ids:
+		var obj: ObjectiveDef = lib.objectives[obj_id]
+		if obj.counter_key == "":
+			continue  # hand-built defs (tests) fall back to the full walk
+		if not _by_counter.has(obj.counter_key):
+			_by_counter[obj.counter_key] = [] as Array[String]
+		(_by_counter[obj.counter_key] as Array[String]).append(String(obj_id))
 
 
 # ---------------------------------------------------------------- namespace --
@@ -182,63 +207,76 @@ func _rebuild_stamped_counters(state: PlayerState) -> void:
 ## offline: counters always update through the shared keystone; `evaluate_now`
 ## is the emit_levels discipline — live stamps immediately, offline defers to
 ## settle_offline). `drops` is the action's per-item yield.
+## T25 seam discipline: new_game / adopt_state / evaluate own
+## ensure_objectives (the repair contract — every live state is ensured before
+## any seam can run); the seams seed the counters dict only if it is missing
+## (a ~free guard for bare tracker use) and evaluate through the counter
+## index (evaluate_touching) instead of walking the whole set per action.
+func _counters(state: PlayerState) -> Dictionary:
+	if not (state.objectives.get("counters") is Dictionary):
+		ensure_objectives(state)
+	return state.objectives["counters"]
+
+
 func note_gather_action(state: PlayerState, adef: ActivityDef, drops: Dictionary, evaluate_now: bool) -> void:
 	if adef == null:
 		return
-	ensure_objectives(state)
-	var counters: Dictionary = state.objectives["counters"]
+	var counters := _counters(state)
+	var touched: Array[String] = ["activity:%s" % adef.id]
 	_bump(counters, "activity:%s" % adef.id, 1)
 	for item_id in drops:
-		_bump(counters, "item_gathered:%s" % item_id, int(drops[item_id]))
+		var key := "item_gathered:%s" % item_id
+		_bump(counters, key, int(drops[item_id]))
+		touched.append(key)
 	if evaluate_now:
-		evaluate(state)
+		evaluate_touching(state, touched)
 
 
 ## One completed CRAFT action (same seam contract as note_gather_action).
 func note_craft_action(state: PlayerState, rdef: RecipeDef, evaluate_now: bool) -> void:
 	if rdef == null:
 		return
-	ensure_objectives(state)
-	_bump(state.objectives["counters"], "recipe:%s" % rdef.id, 1)
+	var key := "recipe:%s" % rdef.id
+	_bump(_counters(state), key, 1)
 	if evaluate_now:
-		evaluate(state)
+		evaluate_touching(state, [key])
 
 
 ## One Depot tender (TickManager.depot_sell): units sold + Crowns posted.
 func note_sale(state: PlayerState, item_id: String, qty: int, crowns: int) -> void:
-	ensure_objectives(state)
-	var counters: Dictionary = state.objectives["counters"]
+	var counters := _counters(state)
 	_bump(counters, "item_sold:%s" % item_id, maxi(qty, 0))
 	_bump(counters, "crowns", maxi(crowns, 0))
-	evaluate(state)
+	evaluate_touching(state, ["item_sold:%s" % item_id, "crowns"])
 
 
 ## One equip through the Manifest (TickManager.equip_item).
 func note_equip(state: PlayerState, item_id: String) -> void:
-	ensure_objectives(state)
-	_bump(state.objectives["counters"], "item_equipped:%s" % item_id, 1)
-	evaluate(state)
+	var key := "item_equipped:%s" % item_id
+	_bump(_counters(state), key, 1)
+	evaluate_touching(state, [key])
 
 
 ## One combat victory (TickManager's combat_ended hook). A boss defeat also
 ## counts as one clear of the boss's zone (repeatable — re-kills re-secure).
 func note_victory(state: PlayerState, monster_id: String) -> void:
-	ensure_objectives(state)
-	var counters: Dictionary = state.objectives["counters"]
+	var counters := _counters(state)
+	var touched: Array[String] = ["monster:%s" % monster_id]
 	_bump(counters, "monster:%s" % monster_id, 1)
 	var mdef: MonsterDef = lib.monster(monster_id)
 	if mdef != null and mdef.is_boss:
-		_bump(counters, "zone:%s" % mdef.zone, 1)
-	evaluate(state)
+		var zkey := "zone:%s" % mdef.zone
+		_bump(counters, zkey, 1)
+		touched.append(zkey)
+	evaluate_touching(state, touched)
 
 
 ## A live level crossing (TickManager's engine.level_up hook).
 func note_level_up(state: PlayerState, skill_id: String, new_level: int) -> void:
-	ensure_objectives(state)
 	var key := "level:%s" % skill_id
-	var counters: Dictionary = state.objectives["counters"]
+	var counters := _counters(state)
 	counters[key] = maxi(int(counters.get(key, 0)), new_level)
-	evaluate(state)
+	evaluate_touching(state, [key])
 
 
 ## Crowns posted outside a Depot tender (the O-1 stipend; the tracker's own
@@ -246,9 +284,8 @@ func note_level_up(state: PlayerState, skill_id: String, new_level: int) -> void
 func note_crowns_posted(state: PlayerState, amount: int) -> void:
 	if amount <= 0:
 		return
-	ensure_objectives(state)
-	_bump(state.objectives["counters"], "crowns", amount)
-	evaluate(state)
+	_bump(_counters(state), "crowns", amount)
+	evaluate_touching(state, ["crowns"])
 
 
 # ------------------------------------------------------------- adopt + sync --
@@ -277,6 +314,8 @@ func count_for(state: PlayerState, obj: ObjectiveDef) -> int:
 	if obj == null:
 		return 0
 	var counters: Dictionary = state.objectives.get("counters", {})
+	if obj.counter_key != "":
+		return int(counters.get(obj.counter_key, 0))
 	match obj.kind:
 		ObjectiveDef.KIND_LEVEL_REACH:
 			return int(counters.get("level:%s" % obj.skill, 0))
@@ -322,6 +361,39 @@ func evaluate(state: PlayerState, emit_levels := true) -> Array[Dictionary]:
 			if count_for(state, obj) >= obj.target:
 				stamps.append(_stamp(state, obj, emit_levels))
 				changed = true
+	return stamps
+
+
+## LIVE-SEAM evaluation (T25): only the objectives that read one of the
+## just-bumped `keys` can newly hold (counters are monotone — nothing else
+## changed), so the per-action cost is a handful of checks instead of a walk
+## of the whole set. Candidates merge + dedup + sort into the canonical
+## posted order first, so a multi-key event (a gather action bumps its
+## activity counter AND item-yield counters) stamps in exactly the order the
+## full evaluate() would. ANY stamp falls back to the full fixpoint evaluate()
+## — the cascade path (MERIT PAY feeds lifetime crowns; stamped_count re-arms)
+## is unchanged. Offline keeps the deferred discipline (evaluate_now=false
+## seams never call this; settle_offline runs the full evaluate).
+func evaluate_touching(state: PlayerState, keys: Array) -> Array[Dictionary]:
+	if keys.is_empty():
+		return []
+	var candidates := {}
+	for key in keys:
+		for obj_id in (_by_counter.get(String(key), []) as Array):
+			candidates[obj_id] = true
+	if candidates.is_empty():
+		return []
+	var ordered: Array = candidates.keys()
+	ordered.sort_custom(_posted_order)
+	var stamps: Array[Dictionary] = []
+	for obj_id in ordered:
+		var obj: ObjectiveDef = lib.objective(String(obj_id))
+		if obj == null or is_stamped(state, obj.id):
+			continue
+		if count_for(state, obj) >= obj.target:
+			stamps.append(_stamp(state, obj, true))
+	if not stamps.is_empty():
+		stamps.append_array(evaluate(state))
 	return stamps
 
 

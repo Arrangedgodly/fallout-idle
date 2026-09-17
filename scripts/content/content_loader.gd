@@ -331,6 +331,7 @@ static func _install_objectives(lib: ContentLibrary, defs: Array, ctx: Ctx, key:
 			ctx.err("id", "duplicate objective id '%s' — already defined in this file" % def.id)
 			continue
 		lib.objectives[def.id] = def
+		lib.index_objective_order(def.id)  # T25: the O(1) posted-order sort key
 
 
 # ------------------------------------------------------------ record schemas
@@ -834,6 +835,7 @@ static func _cross_check(lib: ContentLibrary, res: Result) -> void:
 			continue
 		match obj.kind:
 			ObjectiveDef.KIND_LEVEL_REACH:
+				obj.counter_key = "level:%s" % obj.skill
 				if obj.target > skill.max_level:
 					res.errors.append("[content] data/objectives.json · %s · condition.target: %d exceeds skill '%s' max_level %d — the clearance is unreachable" %
 						[pointer, obj.target, obj.skill, skill.max_level])
@@ -842,11 +844,13 @@ static func _cross_check(lib: ContentLibrary, res: Result) -> void:
 				var item: ItemDef = lib.items.get(obj.ref)
 				if adef != null:
 					obj.gather_ref_is_activity = true
+					obj.counter_key = "activity:%s" % obj.ref
 					if adef.skill != obj.skill:
 						res.errors.append("[content] data/objectives.json · %s · condition.ref: activity '%s' belongs to skill '%s', not dossier skill '%s'" %
 							[pointer, obj.ref, adef.skill, obj.skill])
 				elif item != null:
 					obj.gather_ref_is_activity = false
+					obj.counter_key = "item_gathered:%s" % obj.ref
 					if not _skill_produces_item(lib, obj.skill, obj.ref):
 						res.errors.append("[content] data/objectives.json · %s · condition.ref: no '%s' activity drop table produces item '%s' — the gather count is unreachable" %
 							[pointer, obj.skill, obj.ref])
@@ -854,6 +858,7 @@ static func _cross_check(lib: ContentLibrary, res: Result) -> void:
 					res.errors.append("[content] data/objectives.json · %s · condition.ref: references unknown activities/items id '%s'" %
 						[pointer, obj.ref])
 			ObjectiveDef.KIND_CRAFT_COUNT:
+				obj.counter_key = "recipe:%s" % obj.ref
 				var rdef: RecipeDef = lib.recipes.get(obj.ref)
 				if rdef == null:
 					res.errors.append("[content] data/objectives.json · %s · condition.ref: references unknown recipes id '%s'" % [pointer, obj.ref])
@@ -861,15 +866,18 @@ static func _cross_check(lib: ContentLibrary, res: Result) -> void:
 					res.errors.append("[content] data/objectives.json · %s · condition.ref: recipe '%s' belongs to skill '%s', not dossier skill '%s'" %
 						[pointer, obj.ref, rdef.skill, obj.skill])
 			ObjectiveDef.KIND_KILL_COUNT:
+				obj.counter_key = "monster:%s" % obj.ref
 				if lib.monsters.get(obj.ref) == null:
 					res.errors.append("[content] data/objectives.json · %s · condition.ref: references unknown monsters id '%s'" % [pointer, obj.ref])
 				if not combat_skills.has(obj.skill):
 					res.errors.append("[content] data/objectives.json · %s · skill: kill objectives belong to the combat skill's dossier, got '%s'" %
 						[pointer, obj.skill])
 			ObjectiveDef.KIND_SELL_COUNT:
+				obj.counter_key = "item_sold:%s" % obj.ref
 				if lib.items.get(obj.ref) == null:
 					res.errors.append("[content] data/objectives.json · %s · condition.ref: references unknown items id '%s'" % [pointer, obj.ref])
 			ObjectiveDef.KIND_EQUIP_ITEM:
+				obj.counter_key = "item_equipped:%s" % obj.ref
 				if lib.items.get(obj.ref) == null or lib.equipment.get(obj.ref) == null:
 					res.errors.append("[content] data/objectives.json · %s · condition.ref: references unknown equipment item '%s' (needs an items record + an equipment record)" %
 						[pointer, obj.ref])
@@ -877,6 +885,7 @@ static func _cross_check(lib: ContentLibrary, res: Result) -> void:
 					res.errors.append("[content] data/objectives.json · %s · skill: equip objectives belong to the combat skill's dossier, got '%s'" %
 						[pointer, obj.skill])
 			ObjectiveDef.KIND_ZONE_CLEAR:
+				obj.counter_key = "zone:%s" % obj.ref
 				if lib.zones.get(obj.ref) == null:
 					res.errors.append("[content] data/objectives.json · %s · condition.ref: references unknown zones id '%s'" % [pointer, obj.ref])
 				if not combat_skills.has(obj.skill):
@@ -886,12 +895,13 @@ static func _cross_check(lib: ContentLibrary, res: Result) -> void:
 				# The count excludes the objective itself while it is open, so
 				# the ceiling is (per-skill count - 1); equal = the full-set
 				# completion objective, greater = unreachable.
+				obj.counter_key = "stamped:%s" % obj.skill
 				var ceiling := int(per_skill_counts.get(obj.skill, 0)) - 1
 				if obj.target > ceiling:
 					res.errors.append("[content] data/objectives.json · %s · condition.target: %d exceeds the %d other objectives in skill '%s' — the set can never complete" %
 						[pointer, obj.target, ceiling, obj.skill])
 			ObjectiveDef.KIND_CROWNS_TOTAL:
-				pass  # whole-scope meta kind; no ref to resolve
+				obj.counter_key = "crowns"  # whole-scope meta kind; no ref to resolve
 		if obj.reward_xp_skill != "" and lib.skills.get(obj.reward_xp_skill) == null:
 			res.errors.append("[content] data/objectives.json · %s · reward.xp.skill: references unknown skills id '%s'" %
 				[pointer, obj.reward_xp_skill])

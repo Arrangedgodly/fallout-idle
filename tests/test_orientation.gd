@@ -28,6 +28,7 @@ extends GutTest
 ## discipline; SaveStore twins use injected temp dirs (test_save.gd's).
 
 const ConcourseScene := preload("res://scenes/main.tscn")
+const ObjectiveFreeLib := preload("res://tests/objective_free_lib.gd")
 const TickManagerScript := preload("res://scripts/autoload/tick_manager.gd")
 const SaveStoreScript := preload("res://scripts/autoload/save_store.gd")
 
@@ -50,9 +51,9 @@ var _concourse: Concourse
 
 
 func _lib() -> ContentLibrary:
-	var result = ContentLoader.load_all()
-	assert_not_null(result.library, "content loads (orientation tests run on live data)")
-	return result.library
+	# T25: the O-1 stipend-once arithmetic pins boot on the objective-free
+	# fixture — dossier merit pay no longer perturbs them (T27-safe).
+	return ObjectiveFreeLib.load("orientation")
 
 
 func _make_tm(seed: int = SEED) -> Variant:

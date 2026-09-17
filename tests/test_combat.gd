@@ -49,6 +49,7 @@ extends GutTest
 ## The combat-namespace HP writes in the auto-eat tests are a documented
 ## test seam (the engine reads state.combat.p_hp at the next tick).
 
+const ObjectiveFreeLib := preload("res://tests/objective_free_lib.gd")
 const TickManagerScript := preload("res://scripts/autoload/tick_manager.gd")
 
 const SEED_A := 424242
@@ -65,10 +66,10 @@ var _lib_cache: ContentLibrary = null
 
 func _lib() -> ContentLibrary:
 	if _lib_cache == null:
-		var result = ContentLoader.load_all()
-		assert_not_null(result.library, "content loads (combat tests run on live data)")
-		assert_true(result.ok(), "authored set validates: %s" % str(result.errors))
-		_lib_cache = result.library
+		# T25: exact combat-semantics pins (death zero-loss, wallet untouched)
+		# boot on the objective-free fixture — kill-run merit pay from the
+		# shipped dossier set no longer perturbs them (T27-safe).
+		_lib_cache = ObjectiveFreeLib.load("combat")
 	return _lib_cache
 
 

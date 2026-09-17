@@ -23,6 +23,7 @@ var zones: Dictionary = {}  ## String -> ZoneDef (T23; insertion order = file or
 ## posted order of `objectives.stamped`, the orientation steps_done pattern).
 ## T23 ships the schema + engine with an EMPTY set; T25 authors >= 20/skill.
 var objectives: Dictionary = {}
+var _objective_order: Dictionary = {}  ## id -> file-order index (built at install; the O(1) sort key — T25)
 
 
 func item(id: String) -> ItemDef:
@@ -77,14 +78,17 @@ func objectives_for_skill(skill_id: String) -> Array[ObjectiveDef]:
 
 
 ## Canonical posted-order index of an objective id (-1 unknown) — the sort
-## key for `objectives.stamped` / `objectives.rewards_granted`.
+## key for `objectives.stamped` / `objectives.rewards_granted`. O(1) from the
+## install-time map (T25: the old linear scan ran inside every stamp's
+## append-sort comparator — quadratic on the stamp path).
 func objective_order_index(objective_id: String) -> int:
-	var i := 0
-	for obj_id in objectives:
-		if String(obj_id) == objective_id:
-			return i
-		i += 1
-	return -1
+	return int(_objective_order.get(objective_id, -1))
+
+
+## Called by the loader's install pass (file order == insertion order).
+func index_objective_order(objective_id: String) -> void:
+	if not _objective_order.has(objective_id):
+		_objective_order[objective_id] = _objective_order.size()
 
 
 func shop_entries() -> Array[ShopEntryDef]:

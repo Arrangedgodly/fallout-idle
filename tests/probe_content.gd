@@ -23,10 +23,10 @@ const DOMAIN_FILES := [
 ]
 # 47 items + 5 skills + 18 activities + 40 recipes + 29 drop tables + 11 monsters
 # + 12 equipment + 34 shop lines + 1 curve + 4 deputy rungs (T5 set + T17
-# staffing, extended by T24 run-3 depth) + 2 zones (T23) + 0 objectives (T23
-# ships the schema + engine; T25 authors >= 20/skill and bumps this count
-# with the set).
-const GOLDEN_RECORD_COUNT := 203
+# staffing, extended by T24 run-3 depth) + 2 zones (T23) + 115 objectives
+# (T25: 23 per skill x 5 — the Scope Amendment 2 hard floor is >= 20/skill
+# and >= 100 total, asserted below).
+const GOLDEN_RECORD_COUNT := 318
 
 var checks := 0
 var failures: Array[String] = []
@@ -151,10 +151,18 @@ func _check_golden_set() -> void:
 	_check(lib.zone("gift_court") != null and String(lib.zone("gift_court").name) == "The Gift Court",
 		"the reserved Gift Court zone id resolves (T24 fills fauna)")
 
-	# Objectives (T23) — the schema + loader ship with an EMPTY set (T25
-	# authors >= 20/skill); the engine suite drives the full fixture matrix.
-	_check(lib.objectives.is_empty(), "objectives.json ships EMPTY (T23 engine-only; T25 authors the dossier sets)")
-	_check(lib.objectives_for_skill("scavenging").is_empty(), "per-skill dossier reads return file-order arrays")
+	# Objectives (T25) — THE Scope Amendment 2 hard acceptance: the authored
+	# DEPARTMENTAL DOSSIER set ships >= 20 per skill and >= 100 total, every
+	# condition ref resolved by the loader law above (zero errors == every
+	# ref resolves; ownership + reachability cross-checks included).
+	_check(lib.objectives.size() >= 100, "objectives.json ships >= 100 total objectives (got %d)" % lib.objectives.size())
+	for skill_def in lib.skills.values():
+		var count: int = lib.objectives_for_skill(skill_def.id).size()
+		_check(count >= 20, "dossier '%s' ships >= 20 objectives (got %d)" % [skill_def.id, count])
+	_check(lib.objectives_for_skill("scavenging").size() == 23
+		and String(lib.objectives_for_skill("scavenging")[0].description) == "EARN CLEARANCE 2"
+		and String(lib.objectives_for_skill("scavenging")[22].description) == "STAMP 22 RECLAMATION DUTIES",
+		"per-skill dossier reads return file-order arrays (ladder first, set-completion capstone last)")
 
 	# Whole-library shape.
 	_check(lib.record_count() == GOLDEN_RECORD_COUNT, "library record_count() == %d" % GOLDEN_RECORD_COUNT)

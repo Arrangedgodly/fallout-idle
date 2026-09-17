@@ -105,7 +105,18 @@ func _setup_worst_case() -> void:
 
 	# Worst case loadout + stockpiles through the real façade (the same calls
 	# the UI makes).
-	_tm.engine.grant_xp(_state, "wasteland_combat", L14_XP)
+	# T25: grades sync with emit_levels=true BEFORE the measured window — the
+	# v2->v3 adopt policy (levels are derivable; a progressed record's ladder
+	# rungs stamp at adopt). Without this, a fresh record + 4 deputies + boss
+	# combat (a state no real resident can hold — 4 deputies cost 12k Crowns
+	# and hours, by which time every early rung is long stamped) bursts 5
+	# dossier stamps into one frame of the window. The sync keeps the window
+	# measuring sustained engine+UI load, not an impossible fresh-record
+	# artifact; 1-2 honest stamps (boss-kill rungs) still land mid-window.
+	var curve: XpCurveDef = _tm.engine.lib.xp_curve("standard_99")
+	_tm.engine.grant_xp(_state, "wasteland_combat", curve.total_xp_to_reach(14), true)
+	for skill_id in ["scavenging", "foraging", "junksmithing", "cooking"]:
+		_tm.engine.grant_xp(_state, skill_id, curve.total_xp_to_reach(5), true)
 	_state.add_item("scrap_metal", 1_000_000_000)  # smelting never runs dry
 	_state.add_item("duskcorn", 1_000_000_000)     # grits never run dry
 	for pair in [["majority_whip", 1], ["carpool_carapace", 1], ["radstag_stew", 400]]:

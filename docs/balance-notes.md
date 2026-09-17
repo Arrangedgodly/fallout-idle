@@ -530,3 +530,49 @@ food court feeds Cooking); Cornmeal → the batch lines (a pantry with
 clearance-21+ sinks); every new gear piece is craftable AND Depot-stocked
 (buy>sell everywhere; no fully-stockable recipe buys its output's value —
 probe-pinned).
+
+### 6.3 T25 objective reward placeholders (authored 2026-09-15; T27 owns the fold-in)
+
+The 115 DEPARTMENTAL DOSSIER lines (23/skill) carry a placeholder MERIT PAY
+ladder + 10 COMMENDATION XP legs, sized against the §5.1/§6.1 earning model
+so pacing reads as rungs, not walls. **Every number here is a T27-tunable
+placeholder**; the windows below are authoring intent, not yet probe pins.
+
+- **Crowns ladder by expected time-to-stamp** (sizing rationale: §5.1 phase
+  rates + §3 tier timing — clearance 5 ≈ min 6, clearance 10 ≈ min 46,
+  clearance 16 ≈ past hour 1; tier 5–9 count rungs unlock in phases E–G):
+  - early (minutes): 25–100 cr — grade 2/5 rungs, tier-1 counts (25–250
+    actions at 3 s ≈ 75 s–13 min), first kills;
+  - mid (first hour): 100–400 cr — grade 10–16, tier-2/3 counts, first
+    sells (sized ≤ the same window's gathering income so merit never
+    out-earns duty);
+  - late-mid (hours): 400–1,200 cr — grade 30–45, tier-5–7 counts sized by
+    interval × target ≈ 15–45 min of dedicated posting each;
+  - late (multi-hour/deep): 800–2,000 cr — grade 54–85, tier-8/9 counts,
+    the Regional Manager kill rung;
+  - capstones 1,500–3,000 cr — zone clears (1,500/2,500), boss kill rungs
+    (1,000/2,500), every skill's STAMP 22 set-completion line (3,000 each).
+- **Crowns-total rungs** sit ON the modeled curve so they stamp mid-journey,
+  not at the end: 2,500 (Cooking, ≈ min 40) · 5,000 (Scavenging, ≈ min 60–70)
+  · 10,000 (Foraging, ≈ min 90–120) · 25,000 (Junksmithing, ≈ min 240) — the
+  EXTERIOR DOSSIER has none (combat pays in XP/drops per §5.1).
+- **Lifetime objective income ≈ 70k crowns if every line stamps** (per-skill
+  MERIT PAY totals ≈ 13–19k; the ladder back-loads: >60% posts past the
+  first deputy window). Against §5.1's modeled cumulative 80k by min 480,
+  full-stamp income is a multi-day trickle that never front-loads: the
+  first-session take is ≈ 250–450 cr (grades 2/5/10 + first counts), inside
+  the §5.2 stipend tolerance and below deputy #1's 250-price lesson.
+- **COMMENDATION XP legs (10 of 115)**: 75–3,500 XP, always ≤ ~20% of ONE
+  level step at the clearance where the objective lands (e.g. 75 at grade 10
+  vs ~1,050-step; 3,500 combat at the grade-40 court clear vs ~8k+ steps).
+  Two are cross-skill flavor (the weapon-forging duty commends 120 combat
+  XP; nothing approaches a free clearance).
+- **Count sizing rule used** (the §6.1 earning rates): early counts =
+  minutes (25–50 × tier-1 interval), mid = 10–20 min of a dedicated posting,
+  late = 30–60 min (tier-7–9 intervals are 11.5–15 s — 150–250 actions
+  ≈ 30–63 min; deputies split the attention, rungs stay rungs).
+- **T27's fold-in**: model objective income into the §5.1 phase table,
+  re-check the deputy windows (10–15 min / 30–60 min / 1.5–3 h / 4–8 h) and
+  the boss gate; retune these placeholders so the windows hold (deputy
+  prices move only with documented cause). No probe pin currently depends
+  on any number in this subsection.

@@ -23,12 +23,14 @@ extends GutTest
 ##       asserting the T2 error grammar: record id + field + reason);
 ##   (g) per-skill dossier grouping + the shipped-set contract.
 ##
-## Fixture discipline: the SHIPPED data/objectives.json is engine-only (T25
-## authors the >= 20/skill sets), so every engine test boots a TickManager
-## twin against a FIXTURE library (full data/ copy + a 14-objective set
-## covering every kind) through the injectable ContentLoader.load_all(dir) +
-## _boot(lib, seed) seams — the same discipline as the loader defect drills.
-## Determinism: explicit seeds, never in the tree, advance_wall_ms only.
+## Fixture discipline: T23 proved the engine on a FIXTURE library (full data/
+## copy + a 14-objective set covering every kind) through the injectable
+## ContentLoader.load_all(dir) + _boot(lib, seed) seams; T25 authors the
+## SHIPPED set (23 objectives per skill) and this suite extends with
+## engine-driven spot tests against that real set (pacing, the full-dossier
+## stamped_count cascade, an unresolvable-ref loader drill) plus the
+## amendment-floor contract. Determinism: explicit seeds, never in the tree,
+## advance_wall_ms only.
 
 const TickManagerScript := preload("res://scripts/autoload/tick_manager.gd")
 const SaveStoreScript := preload("res://scripts/autoload/save_store.gd")
@@ -138,16 +140,166 @@ func _pump(tm: Variant, total_ms: int, chunk_ms := 1_000) -> void:
 # (g) shipped-set contract + fixture grouping
 # ---------------------------------------------------------------------------
 
-func test_shipped_set_is_engine_only_and_zones_ship_both_ids() -> void:
+## The T25-authored set, parsed from the shipped file (each call re-reads, so
+## drill mutations never contaminate other tests).
+func _shipped_objectives() -> Array:
+	var doc: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/objectives.json"))
+	return doc["objectives"]
+
+
+func test_shipped_set_meets_the_amendment_floor() -> void:
 	var result = ContentLoader.load_all()
-	assert_true(result.ok(), "the live set loads clean with the new domains")
+	assert_true(result.ok(), "the live set loads clean with the authored dossier set (errors: %s)" % str(result.errors))
 	var lib: ContentLibrary = result.library
-	assert_true(lib.objectives.is_empty(),
-		"T23 ships objectives.json EMPTY — the schema + engine; T25 authors >= 20/skill")
 	assert_eq(lib.zones.size(), 2, "both run-3 zone ids ship in zones.json")
 	assert_not_null(lib.zone("dusty_flats"), "dusty_flats resolves")
-	assert_not_null(lib.zone("gift_court"),
-		"the reserved gift_court id resolves from day one (T24 fills fauna)")
+	assert_not_null(lib.zone("gift_court"), "gift_court resolves with T24 fauna")
+	# THE Scope Amendment 2 hard acceptance: >= 20 per skill, >= 100 total
+	# (probe-pinned too; this is the suite-side contract).
+	assert_gte(lib.objectives.size(), 100, "the shipped set carries >= 100 objectives (got %d)" % lib.objectives.size())
+	for skill in lib.skills.values():
+		assert_gte(lib.objectives_for_skill(skill.id).size(), 20,
+			"dossier '%s' carries >= 20 objectives (got %d)" % [skill.id, lib.objectives_for_skill(skill.id).size()])
+	# Voice rules as loader law, swept test-side on every description: <= 6
+	# words, no "!", plate idiom (stencil caps — lowercase prose is the banned
+	# pattern's first symptom). Verb-first + bible names are the §13.1
+	# Class-A registration claim (naming-bible §10 T25 row).
+	for obj in lib.objectives.values():
+		var description := String(obj.description)
+		assert_lte(description.split(" ", false).size(), 6,
+			"<= 6 words ('%s' — Addendum 2 hard cap)" % description)
+		assert_false(description.contains("!", ), "no exclamation point ('%s')" % description)
+		assert_eq(description, description.to_upper(), "plate idiom: stencil caps ('%s')" % description)
+
+
+# ---------------------------------------------------------------------------
+# (h) T25 spot tests — the authored set through the real engine
+# ---------------------------------------------------------------------------
+
+## Pacing sanity: the early rungs stamp within MINUTES of simulated fresh
+## play on one posting — rungs, not walls. The staged checks ride the §3
+## hook arithmetic (first level-up 6 s; clearance 5 at 425 XP ~= minute 2.2;
+## 100 actions of tier-1 gathering by minute 5).
+func test_shipped_early_rungs_stamp_within_first_minutes() -> void:
+	var tm: Variant = _make_tm(_fixture_lib(_fixture_dir("shipped_pacing", _shipped_objectives())))
+	assert_true(tm.start_activity("sort_scrap_pile")["ok"], "fresh posting on tier 1")
+	# 6 s — the hook's own pace: 2 actions x 10 XP crosses level 2 (20 XP).
+	_pump(tm, 6_000)
+	assert_true(tm.is_objective_stamped("scav_clearance_2"),
+		"EARN CLEARANCE 2 stamped at the 6-s first-level-up pace")
+	# 90 s — 30 actions: the first count rung lands in ~75 s of duty.
+	_pump(tm, 84_000)
+	assert_true(tm.is_objective_stamped("scav_sort_25"),
+		"SORT THE SCRAP PILE 25 stamped inside the first 2 minutes")
+	# 5 min — 100 actions = 1,000 XP = level 6 (the §3 five-level hook).
+	_pump(tm, 210_000)
+	assert_true(tm.is_objective_stamped("scav_clearance_5"),
+		"EARN CLEARANCE 5 stamped by minute 5 of tier-1 duty")
+	assert_eq(int(tm.state.skills_level["scavenging"]), 6, "1,000 XP = level 6, the hook arithmetic intact")
+	# The next rung is honestly open at exactly 100/250 — a rung, not a wall.
+	assert_eq(tm.objectives.progress(tm.state, "scav_sort_250"), {"current": 100, "target": 250, "stamped": false},
+		"the 250 rung reads exactly 100/250 at minute 5")
+	# Honesty sweep: nothing outside the played dossier moved; the tier-5
+	# material rung reads a true 0 (no tier-1 table yields Girderling).
+	assert_false(tm.is_objective_stamped("forage_clearance_2"), "an unplayed dossier stamps nothing")
+	assert_eq(tm.objectives.progress(tm.state, "scav_girderling_100")["current"], 0,
+		"GATHER 100 GIRDERLING reads 0 at tier 1 — the counter tracks yields, not wishes")
+	assert_eq(int(tm.state.crowns), 30 + 25 + 50,
+		"three MERIT PAY legs posted exactly (grade 2, sort 25, grade 5)")
+
+
+## The meta cascade across a REAL skill's set: every one of scavenging's 23
+## authored objectives stamps through real engine seams (level crossings via
+## grant_xp's level_up hook; gather counts + item yields through the shared
+## _execute_action on offline windows — counters exact by construction; the
+## sale through depot_sell), and the 22nd stamp cascades STAMP 22 RECLAMATION
+## DUTIES in the same evaluation pass.
+func test_shipped_full_dossier_cascade_across_real_set() -> void:
+	var dir := _fixture_dir("shipped_cascade", _shipped_objectives())
+	var lib := _fixture_lib(dir)
+	var tm: Variant = _make_tm(lib)
+	var dossiers: Array = []
+	tm.dossier_completed.connect(func(payload: Dictionary) -> void: dossiers.append(payload))
+
+	# The 8-rung ladder (clearances 2..70): every crossing feeds the max-grade
+	# counter through the real level_up hook.
+	tm.engine.grant_xp(tm.state, "scavenging", lib.xp_curve("standard_99").total_xp_to_reach(70), true)
+	for grade in [2, 5, 10, 16, 30, 41, 54, 70]:
+		assert_true(tm.is_objective_stamped("scav_clearance_%d" % grade),
+			"the clearance-%d ladder rung stamped on the level-up path" % grade)
+
+	# The 10 activity counts + 2 item-yield counts: one offline window per
+	# activity (target actions + slack; the sump/signal windows are sized for
+	# the Girderling/Counterweight item rungs on their rich tables). Offline
+	# settlement maintains counters inside the shared _execute_action — the
+	# live/offline twin-exactness seam T23 pinned.
+	var windows := [
+		["sort_scrap_pile", 765_000],       # 250 rung (>= 255 actions)
+		["strip_wreck", 260_000],           # 50 rung
+		["drain_the_sump", 6_000_000],      # 40 rung + 100 Girderling (15%/action)
+		["unbuild_the_overpass", 465_000],  # 60 rung
+		["sweep_service_corridors", 654_500],  # 75 rung
+		["pry_mezzanine_lockers", 1_020_000],  # 100 rung
+		["deconstruct_signal_tower", 4_200_000],  # 150 rung + 250 Counterweights
+		["excavate_foundation_grid", 2_626_000],  # 200 rung
+		["audit_archive_vault", 3_795_000],       # 250 rung
+	]
+	for pair in windows:
+		tm.stop_skill("scavenging")  # one posting on the record; rotate it
+		assert_true(tm.start_activity(pair[0])["ok"], "posting rotates to %s" % pair[0])
+		tm.apply_offline_elapsed(pair[1])
+	for rung in ["scav_sort_25", "scav_sort_250", "scav_strip_50", "scav_sump_40",
+			"scav_overpass_60", "scav_corridors_75", "scav_lockers_100", "scav_signal_150",
+			"scav_foundation_200", "scav_strongroom_250", "scav_girderling_100",
+			"scav_counterweight_250"]:
+		assert_true(tm.is_objective_stamped(rung), "%s stamped by its window" % rung)
+	# Lifetime Crowns crossed 5,000 on MERIT PAY alone (~8,800 posted by now).
+	assert_true(tm.is_objective_stamped("scav_crowns_5000"),
+		"EARN 5,000 CROWNS stamped — merit pay is earned income")
+	assert_true(int(tm.state.objectives["counters"].get("crowns", 0)) >= 5_000,
+		"the crowns counter reads the honest lifetime total")
+
+	# The 22nd stamp — the sale — cascades the set-completion meta in the SAME
+	# evaluation pass (21 stamped before it: 8 ladder + 10 counts + 2 items
+	# + the crowns rung).
+	tm.stop_skill("scavenging")
+	var stash := int(tm.state.inventory.get("scrap_metal", 0))
+	assert_gt(stash, 0, "the windows banked a real Scrapnel surplus")
+	if stash < 1_000:
+		tm.state.add_item("scrap_metal", 1_000 - stash)
+	assert_true(tm.depot_sell("scrap_metal", 1_000)["ok"], "the final event: a 1,000-unit tender")
+	assert_true(tm.is_objective_stamped("scav_sell_scrap_1000"), "SELL 1,000 SCRAPNEL stamped")
+	assert_true(tm.is_objective_stamped("scav_stamped_22"),
+		"the meta rung cascaded in the same pass — the 22nd stamp completes the set")
+	assert_eq(dossiers.size(), 1, "dossier_completed fired once for scavenging")
+	assert_eq(String(dossiers[0]["skill"]), "scavenging", "completion payload names the dossier")
+	assert_eq(int(dossiers[0]["total"]), 23, "total from data (23 authored objectives)")
+	assert_eq(String(dossiers[0]["stamp_line"]), "ALL 23 STAMPED · FORM R-1", "the T22 completion stamp, count from data")
+	assert_eq(int(tm.state.objectives["counters"].get("stamped:scavenging", 0)), 23,
+		"the derived per-skill stamp counter rebuilt to 23")
+	assert_eq(tm.state.objectives["rewards_granted"], tm.state.objectives["stamped"],
+		"every stamp in the completed dossier granted its rewards")
+	# Other dossiers stay honestly open — their sets were never touched.
+	assert_false(tm.is_objective_stamped("forage_stamped_22"),
+		"the foraging meta rung stays open (its set untouched)")
+
+
+## The loader drill against the SHIPPED set: a deliberately unresolvable
+## condition ref is rejected in the T2 error grammar (record id + field +
+## reason), and a stamped_count target over the real per-skill ceiling is
+## unreachable by construction.
+func test_shipped_set_rejects_unresolvable_ref_and_unreachable_set() -> void:
+	var ghost := _shipped_objectives()
+	for obj in ghost:
+		if String(obj["id"]) == "scav_sort_25":
+			obj["condition"]["ref"] = "ghost_pile"
+	_drill_error("shipped_ghost_ref", ghost,
+		"condition.ref: references unknown activities/items id 'ghost_pile'")
+	var over := _shipped_objectives()
+	for obj in over:
+		if String(obj["id"]) == "scav_stamped_22":
+			obj["condition"]["target"] = 23  # 23 objectives in the skill -> ceiling 22
+	_drill_error("shipped_set_ceiling", over, "the set can never complete")
 
 
 func test_fixture_grouping_per_skill_in_file_order() -> void:

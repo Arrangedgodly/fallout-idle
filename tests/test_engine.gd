@@ -21,6 +21,7 @@ extends GutTest
 ## never fires and advance_wall_ms() is the only clock input.
 
 const TickManagerScript := preload("res://scripts/autoload/tick_manager.gd")
+const ObjectiveFreeLib := preload("res://tests/objective_free_lib.gd")
 
 const SEED_A := 424242
 const SEED_6H := 90210
@@ -32,9 +33,9 @@ const TICK_MS := 100
 
 
 func _lib() -> ContentLibrary:
-	var result = ContentLoader.load_all()
-	assert_not_null(result.library, "content loads (engine tests run on live data)")
-	return result.library
+	# T25: exact engine-math pins boot on the objective-free fixture (see
+	# tests/objective_free_lib.gd) — dossier income no longer perturbs them.
+	return ObjectiveFreeLib.load("engine")
 
 
 func _make_tm(seed: int) -> Variant:

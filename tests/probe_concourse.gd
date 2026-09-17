@@ -683,6 +683,10 @@ func _check_t10a_dockets() -> void:
 		"UNEQUIP returns the unit to the Manifest")
 
 	# -- Depot: currency plate, buy/sell update wallet + inventory, gates. --
+	# T25: wallet pins DERIVE from state (the journey's earlier gathering now
+	# earns dossier MERIT PAY from the shipped objectives set, and the plate's
+	# contract is equality with the wallet — grouping included — not any
+	# particular literal; reward values are T27-tunable data).
 	_concourse.select_department("requisition_depot", true)
 	await _frames(2)
 	var depot := _concourse.docket_controller("requisition_depot") as DocketDepot
@@ -690,16 +694,18 @@ func _check_t10a_dockets() -> void:
 	tm.batcher.mark("inventory")
 	tm.batcher.force_flush(tm.sim_time_ms)
 	await _frames(1)
-	_check(depot.crowns_read.text == "1,000", "currency plate reads the wallet in mono digits (got '%s')" % depot.crowns_read.text)
+	var crowns_at_depot := int(tm.state.crowns)
+	_check(crowns_at_depot >= 1_000 and depot.crowns_read.text == SignageFmt.num(crowns_at_depot),
+		"currency plate reads the wallet in mono digits (got '%s' for %d)" % [depot.crowns_read.text, crowns_at_depot])
 	var buy1 := depot.find_child("Buy1_glowshroom", true, false) as Button
 	_check(buy1 != null and not buy1.disabled, "ungated stock line carries a live BUY 1 button")
 	buy1.grab_focus()
 	await _frames(1)
 	_push_action("ui_accept")
 	await _frames(1)
-	_check(tm.state.crowns == 994 and int(tm.state.inventory.get("glowshroom", 0)) == 1,
+	_check(tm.state.crowns == crowns_at_depot - 6 and int(tm.state.inventory.get("glowshroom", 0)) == 1,
 		"keyboard BUY 1 tenders 6 Crowns and stocks one unit")
-	_check(depot.crowns_read.text == "994", "currency plate updated via the batched signal")
+	_check(depot.crowns_read.text == SignageFmt.num(crowns_at_depot - 6), "currency plate updated via the batched signal")
 	# R3 (critique P3 minor, sell-rate affordance — verified satisfied, now
 	# pinned): BOTH prices post per line at a glance — the stock (buy) line
 	# carries buy price AND the honest sell rate; the disposal (sell) line
@@ -730,7 +736,7 @@ func _check_t10a_dockets() -> void:
 	await _frames(1)
 	_push_action("ui_accept")
 	await _frames(1)
-	_check(tm.state.crowns == 996 and int(tm.state.inventory.get("glowshroom", 0)) == 0,
+	_check(tm.state.crowns == crowns_at_depot - 4 and int(tm.state.inventory.get("glowshroom", 0)) == 0,
 		"keyboard SELL 1 tenders back at the honest value (+2 Crowns)")
 
 	# -- MAIL CALL: real offline payload renders + keyboard acknowledge. --

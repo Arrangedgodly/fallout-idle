@@ -575,6 +575,33 @@ the Gift Court set; the boss was pre-cleared in T22):
 | Restless Escalator | fauna | Generic adjective + generic retail fixture | **PASS** |
 | Hanger Flock | fauna | Generic household object + bird-collective noun | **PASS** |
 
+### T25-authored objective descriptions (Run 3, applied 2026-09-15 under the §13.1 protocol — one Class A row)
+
+The 115 DEPARTMENTAL DOSSIER lines in `data/objectives.json` (23 per skill ×
+5) register as **one Class-A row per the §13.1 protocol**: every description
+is built only from checklist-cleared display names (verbatim or regular
+plural — "plural-item objective lines" are the protocol's own Class-A
+example) plus generic bureau verbs, under the design-brief Addendum 2 voice
+rules that are LOADER LAW in `ContentLoader._validate_objective` — plate
+idiom (stencil caps, no terminal punctuation), **verb-first** (EARN / SORT /
+STRIP / DRAIN / UNBUILD / SWEEP / PRY / DECONSTRUCT / EXCAVATE / AUDIT /
+GATHER / WALK / HARVEST / DIG / FORAGE / PRUNE / REAP / TEND / WORK / SMELT /
+DRAW / BRAID / FORGE / PRESS / RAISE / ENACT / BATCH / GRIND / BAKE / SIMMER
+/ FRY / JAR / MILL / STEEP / CHURN / PLATE / REISSUE / BULK / MASS-PRODUCE /
+CLEAR / EQUIP / SECURE / SELL / STAMP), **≤ 6 words** (loader-enforced hard
+cap), mono numerals in plain grouped digits ("SELL 1,000 SCRAPNEL"), no
+exclamation (loader-enforced). **Zero new nouns of any class** — no Class B
+rows, nothing pulled through registration; the only quasi-new coinage is the
+regular plural of a cleared name (COUNTERWEIGHTS, SKYLIGHT BLOOMS, LINE-ITEM
+VETOES, NIGHTLIGHT CAPS …), exactly the §13.1 Class-A plural pattern. Dossier
+title words inside set-completion lines (RECLAMATION / GROUNDSKEEPING /
+FABRICATION / MESS / EXTERIOR DUTIES) reuse the T22-cleared per-skill titles
+verbatim. Codebase grepped before shipping: no description collides with any
+other shipped display string; §9 pattern gate walked clean (no banned
+construct — lowercase prose, "Rad-" coinages, "caps", payment-in-line, and
+exclamations are all structurally impossible under the loader's caps/no-"!"
+law plus the suite-side stencil-caps sweep in `tests/test_objectives.gd`).
+
 ## 11. Carried-over descriptive names — re-verified (all PASS)
 
 These pre-existing approved/generic names were re-run through the same

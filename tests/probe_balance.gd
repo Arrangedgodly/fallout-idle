@@ -114,7 +114,7 @@ const BIBLE_NAMES := {
 	"turnpike_aegis": "Turnpike Aegis",
 }
 
-const EXPECTED_RECORD_COUNT := 203  # 47 items + 5 skills + 18 activities + 40 recipes + 29 tables + 11 monsters + 12 equipment + 34 shop lines + 1 curve + 4 T17 deputy rungs + 2 T23 zones (objectives ship EMPTY until T25)
+const EXPECTED_RECORD_COUNT := 318  # 47 items + 5 skills + 18 activities + 40 recipes + 29 tables + 11 monsters + 12 equipment + 34 shop lines + 1 curve + 4 T17 deputy rungs + 2 T23 zones + 115 T25 objectives (23/skill)
 
 var lib: ContentLibrary
 var checks := 0

@@ -41,6 +41,7 @@ extends GutTest
 ## discipline as test_acceptance/test_staffing/test_orientation).
 
 const ConcourseScene := preload("res://scenes/main.tscn")
+const ObjectiveFreeLib := preload("res://tests/objective_free_lib.gd")
 const TickManagerScript := preload("res://scripts/autoload/tick_manager.gd")
 const SaveStoreScript := preload("res://scripts/autoload/save_store.gd")
 
@@ -71,9 +72,11 @@ const SKILL_DEPTS := ["scavenging", "foraging", "junksmithing", "cooking"]
 # ------------------------------------------------------------------ helpers --
 
 func _lib() -> ContentLibrary:
-	var result = ContentLoader.load_all()
-	assert_not_null(result.library, "content loads (run-2 acceptance runs on live data)")
-	return result.library
+	# T25: the run-2 journeys certify the run-2 amendment criteria (earned-
+	# economy deputize with ZERO grants on the earning path) — booting on the
+	# objective-free fixture keeps those certifications exact against the
+	# run-3 dossier economy (T27-safe).
+	return ObjectiveFreeLib.load("run2_acceptance")
 
 
 func _make_tm(seed: int = SEED) -> Variant:

@@ -62,6 +62,7 @@ var kind: String  ## One of KINDS.
 var target: int  ## The threshold the lifetime counter must reach (>= 1).
 var ref: String  ## Content id for REF_KINDS, "" otherwise.
 var gather_ref_is_activity := false  ## gather_count only: ref resolved to an activity (vs an item).
+var counter_key := ""  ## Loader-computed (T25): the exact lifetime-counter key this condition reads ("activity:<id>", "level:<skill>", "crowns", ...). Hydrated in ContentLoader._cross_check alongside gather_ref_is_activity — keeps ObjectivesTracker.count_for a single dict get and builds the tracker's key->objectives index (no per-action full-set walk).
 var reward_crowns := 0  ## MERIT PAY leg (0 = no leg).
 var reward_xp_skill := ""  ## COMMENDATION leg skill id ("" = no leg).
 var reward_xp_amount := 0  ## COMMENDATION leg XP amount.

@@ -211,9 +211,15 @@ func _refresh_board() -> void:
 		_rebuild_rows(rows)
 
 	# -- purchase line (hidden at the full establishment) --
+	# T25 no-change-signature guard (the T24 FaunaCard._applied precedent):
+	# the rendered segments + button text depend ONLY on the price and the
+	# posting count — never on the wallet's value. The old signature folded
+	# in state().crowns, so every Crown posted (objective MERIT PAY stamps
+	# included) rebuilt identical segments; now identical state writes
+	# nothing. The wallet readout above is the separate _set_label guard.
 	var price: int = tm.next_deputy_price()
 	var purchasable := price > 0
-	var purchase_sig := "%d|%s" % [price, SignageFmt.num(state().crowns)]
+	var purchase_sig := "%d|%d" % [price, tm.posting_slots()]
 	if purchase_sig != _purchase_sig:
 		_purchase_sig = purchase_sig
 		if purchasable:

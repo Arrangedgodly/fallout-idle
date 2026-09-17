@@ -31,6 +31,7 @@ extends GutTest
 ##       content-bearing gallery plate lays out with real height
 
 const SaveStoreScript := preload("res://scripts/autoload/save_store.gd")
+const ObjectiveFreeLib := preload("res://tests/objective_free_lib.gd")
 const TickManagerScript := preload("res://scripts/autoload/tick_manager.gd")
 const GalleryScene := preload("res://scenes/dev/theme_gallery.tscn")
 
@@ -52,9 +53,9 @@ const DST_FALL_MS := 1_793_512_800_000
 # ------------------------------------------------------------------ helpers --
 
 func _lib() -> ContentLibrary:
-	var result = ContentLoader.load_all()
-	assert_not_null(result.library, "content loads (resilience tests run on live data")
-	return result.library
+	# T25: the clamp/round-trip exactness pins boot on the objective-free
+	# fixture — commendation XP legs no longer perturb them (T27-safe).
+	return ObjectiveFreeLib.load("resilience")
 
 
 func _make_tm() -> Variant:
