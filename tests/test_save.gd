@@ -841,6 +841,7 @@ func test_concourse_save_and_quit_controls_wired() -> void:
 	store._boot(dir, tm, NOW)
 
 	var concourse: Control = ConcourseScene.instantiate()
+	concourse.set("auto_reveal", false)  # T33 seam: the save-chain pins stay hermetic
 	autofree(concourse)
 	add_child(concourse)
 	store.connect_concourse(concourse)

@@ -159,6 +159,15 @@ func active_tab() -> String:
 	return _active_tab
 
 
+## T33 reveal: the first sellable line's item id ("" when nothing held —
+## the honest prerequisite path cues the stock's source instead).
+func first_sellable_id() -> String:
+	if tm == null or state() == null:
+		return ""
+	var ids := _sellable_ids()
+	return ids[0] if ids.size() > 0 else ""
+
+
 ## Post one tab's content. Idempotent + guarded (safe from refresh paths and
 ## from _build_content, before the tree exists). Order-preserving: BUY is the
 ## first tab, SELL the second — the tab row never reorders.

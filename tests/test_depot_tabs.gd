@@ -518,6 +518,7 @@ func _boot_concourse(seed: int = SEED) -> Variant:
 	_concourse = ConcourseScene.instantiate() as Concourse
 	assert_not_null(_concourse, "concourse instantiates")
 	_vp.add_child(_concourse)
+	_concourse.auto_reveal = false  # T33 seam: this suite pins the depot shell, not the tutorial
 	_concourse.bind_engines(tm)
 	await wait_frames(4)
 	return tm

@@ -25,6 +25,25 @@ extends Control
 ## the O-1 cue, which walks with the resident step by step instead of
 ## pointing once).
 ##
+## T33 — TUTORIAL DEEP-LINKING (run-5 Scope Amendment 3, complaint #4: the
+## resident spent five minutes hunting for where to sell). Every step now
+## carries a REVEAL: select the target department card, switch the right tab
+## (FILE A CROWNS CLAIM posts the Depot's SELL board), scroll the docket so
+## the target control is fully in view, and mark it with ONE settle pulse
+## (a bounded ~0.5 s emphasis — the orient_arrow cue is the non-color cue;
+## the pulse never repeats). The reveal fires when a step becomes current
+## (a stamp or a boot into an incomplete tutorial) and when the resident
+## presses the step's wayfinding row on the form; Esc returns to the
+## department the jump departed from. A step whose action is not yet
+## reachable cues its honest SOURCE instead and the step line on the form
+## gains the prerequisite suffix (WORK FOR INVENTORY FIRST / GATHER
+## SUPPLIES FIRST — registered wording, naming-bible §10 T33 rows). The
+## whole map lives in step_reveal_resolution(); the acceptance walkthrough
+## (tests/test_tutorial_reveal.gd) drives a fresh save through all seven
+## steps on the machinery alone within a bounded action budget. Harnesses
+## that pin pre-T33 shell geometry set auto_reveal = false (the seam; the
+## wayfinding row press always reveals — it is explicit resident intent).
+##
 ## Everything is built from the T8 signage theme (installed via the UiTheme
 ## autoload) — plates, panels, notices, vents and gauges are theme variations,
 ## never ad-hoc styleboxes. The bulkhead-slide is the one authored motion:
@@ -127,6 +146,20 @@ const TRANSITION_OPEN_S := 0.34
 const SWELL := 1.05
 const FONT_STEPS := [1.0, 1.5, 2.0]
 
+## T33 reveal pulse — ONE bounded emphasis per reveal (motion discipline:
+## brief, never looping; the orient_arrow plate cue is the non-color cue,
+## the pulse is emphasis). A warm lift toward the amber signal color plus a
+## 2% settle swell, back to rest inside REVEAL_PULSE_S.
+const REVEAL_PULSE_S := 0.5
+const REVEAL_PULSE_TINT := Color(1.35, 1.15, 0.72)
+
+## T33 honest prerequisite suffixes (naming-bible §10 T33 rows — registered
+## wording; generic institutional phrases, verb-first). They post on the
+## CURRENT step's line when the step's action is not yet reachable, and the
+## reveal cues the action's honest SOURCE instead.
+const SUFFIX_INVENTORY := "WORK FOR INVENTORY FIRST"
+const SUFFIX_SUPPLIES := "GATHER SUPPLIES FIRST"
+
 ## Department hotkeys (R3): the digit row and the keypad both select; the
 ## index is the plate's position + 1 (the designation digit it posts).
 ## T17: the eighth plate — PERSONNEL, digit 8, D-08.
@@ -174,6 +207,15 @@ var _cards_hooked := false
 var _mail_hooked := false
 var _orientation_hooked := false
 var _objectives_hooked := false
+# T33 deep-linking: the auto (stamp/boot-triggered) reveals — harnesses pinning
+# pre-T33 shell geometry set this false (the wayfinding row press always
+# reveals; it is explicit resident intent, not the passive machinery).
+var auto_reveal := true
+var _pending_reveal := {}   # reveal deferred until the bulkhead finishes
+var _revealed_step := ""    # the last AUTO-revealed current step (no repeat)
+var _reveal_return := ""    # the department a deep-link jumped FROM (Esc returns)
+var _boot_reveal_done := false  # the boot reveal fires once per concourse
+var _reveal_seq := 0        # reveal token: a newer reveal supersedes older landings
 
 func _ready() -> void:
 	_ui_theme = get_node_or_null("/root/UiTheme")
@@ -211,6 +253,14 @@ func _settle_boot_swell() -> void:
 	if is_inside_tree() and not _transitioning and _plates.has(_active_id):
 		_set_plate_state(_plates[_active_id], true, false)
 		_position_orientation_cue()
+	# T33: a boot into an incomplete tutorial reveals the current step's
+	# target — the five-second contract ends at a control, not a department.
+	if auto_reveal and not _boot_reveal_done:
+		_boot_reveal()
+		var cur := String(_tm.orientation_progress()["current"])
+		if cur != "":
+			_revealed_step = cur
+			reveal_step(cur)
 
 # ------------------------------------------------------------------ public API
 ## Press-free programmatic entry (probe + future hotkeys). Emits the same
@@ -366,6 +416,11 @@ func bind_engines(p_tm: Node = null, p_save: Node = null) -> void:
 	save_board.bind(new_save)
 	if rebound:
 		_refresh_orientation_cue()
+		# T33: the boot reveal deferred to the first idle frame — the docket's
+		# first layout must land before scroll math means anything (the settle
+		# pass calls this too; the guard makes it once per concourse).
+		if not _boot_reveal_done:
+			_boot_reveal.call_deferred()
 		var cached: Dictionary = _tm.state.last_mail_call
 		# T17: a staffing-migration notice is presentable even at a zero
 		# offline gap (the notice IS the mail) — see TickManager's contract.
@@ -384,8 +439,18 @@ func _on_mail_call_ready(payload: Dictionary) -> void:
 # ------------------------------------------------------------------ T18 orientation
 ## Every stamp re-aims the plate cue (a step change is the one authored
 ## moment: a bounded arrival swell — never a looping pulse).
+## T33: the stamp that advances the current step also REVEALS the new
+## current step's target (department -> tab -> scroll -> settle pulse) —
+## the tutorial walks the resident to the next control, not just the next
+## department. Reveals coalesce: a newer current replaces a pending reveal.
 func _on_orientation_step(_step_id: String) -> void:
 	_refresh_orientation_cue(true)
+	if not auto_reveal or _tm == null:
+		return
+	var cur := String(_tm.orientation_progress()["current"])
+	if cur != "" and cur != _revealed_step:
+		_revealed_step = cur
+		reveal_step(cur)
 
 
 ## The seventh stamp: the cue retires with the tutorial (the arrow class
@@ -403,12 +468,367 @@ func _on_orientation_complete(payload: Dictionary) -> void:
 func _refresh_orientation_cue(animate := false) -> void:
 	if _tm == null or orientation_cue == null:
 		return
-	var target := ""
-	if _tm.has_method("orientation_progress"):
-		target = String(_tm.orientation_progress()["target"])
+	var progress: Dictionary = _tm.orientation_progress()
+	var target := String(progress["target"])
+	# T33: while the current step's action is not yet reachable, the plate
+	# cue follows the honest fallback department (the stock's source) — the
+	# arrow never points where the resident cannot yet act.
+	var cur := String(progress["current"])
+	if cur != "":
+		var resolved := String(step_reveal_resolution(cur).get("dept", ""))
+		if resolved != "":
+			target = resolved
 	orientation_cue.visible = target != ""
 	if target != "" and _plates.has(target):
 		orientation_cue.aim(_plates[target], animate)
+
+
+# ------------------------------------------------------- T33 deep-linking
+## The per-step reveal (run-5 Scope Amendment 3, complaint #4 — the
+## resident spent five minutes hunting for where to sell). Resolution map,
+## the documented target per step (engine truth decides the exact control
+## at reveal time):
+##
+##   WORK A POSTED SHIFT   scavenging · the first card the resident can work
+##                         (tier-1 SORT THE SCRAP PILE on a fresh save)
+##   EARN A CLEARANCE      scavenging · the docket's clearance gauge (the
+##                         active docket's XP meter + read)
+##   FILE A CROWNS CLAIM   requisition_depot · SELL tab · the first sellable
+##                         row — with nothing held: the earliest SOURCE of
+##                         saleable stock instead (scavenging tier-1 fresh)
+##                         + the WORK FOR INVENTORY FIRST suffix
+##   PROCESS A PRODUCT     junksmithing · first craftable recipe card — with
+##                         none craftable: the first missing input's earliest
+##                         source + the GATHER SUPPLIES FIRST suffix
+##   PROVISION THE PATROL  Manifest equip leg when gear is on hand (the
+##                         EQUIP control, gear line pre-selected) — else the
+##                         cook leg (first craftable food recipe; missing
+##                         inputs -> source + suffix). The engine stamps
+##                         EITHER leg; the reveal cues the reachable one
+##                         (documented split-legs choice).
+##   CLEAR A NUISANCE      wasteland_patrol · the designated fauna card while
+##                         the patrol fights, else the first engageable card
+##   DEPUTIZE A RESIDENT   personnel · the purchase row (the cap line at a
+##                         full establishment — documented edge)
+func reveal_step(step_id: String) -> Dictionary:
+	if _tm == null or not OrientationTracker.STEPS.has(step_id):
+		return {}
+	var res := step_reveal_resolution(step_id)
+	var dept := String(res.get("dept", ""))
+	if dept == "" or not _plates.has(dept):
+		return res
+	_refresh_orientation_cue(false)  # the arrow follows the honest fallback too
+	_reveal_seq += 1
+	res["seq"] = _reveal_seq
+	# Tab and zone posts ride immediately (docket-own state; the docket
+	# instance survives the bulkhead, so the board is already posted on
+	# arrival).
+	if not String(res.get("tab", "")).is_empty():
+		var depot := _controllers.get("requisition_depot") as DocketDepot
+		if depot != null:
+			depot.select_tab(String(res["tab"]))
+	if not String(res.get("zone", "")).is_empty():
+		var patrol := _controllers.get("wasteland_patrol") as DocketPatrol
+		if patrol != null:
+			patrol.select_zone(String(res["zone"]))
+	if dept != _active_id:
+		if _reveal_return.is_empty() and not _active_id.is_empty():
+			_reveal_return = _active_id  # remember the way back (Esc returns)
+		_pending_reveal = res  # lands at _on_transition_done
+		if not _transitioning:
+			select_department(dept, false)
+	elif _transitioning:
+		_pending_reveal = res
+	else:
+		_finish_reveal(res)
+	return res
+
+
+## Pure resolution (no side effects — the form's suffix callable reads it on
+## the 4 Hz refresh): department, target control, tab/zone, equip selection
+## and the honest prerequisite suffix for one step. `control` is null when
+## the step is complete or the engines are unbound.
+func step_reveal_resolution(step_id: String) -> Dictionary:
+	var res := {"step": step_id, "dept": "", "control": null, "suffix": "",
+		"tab": "", "select_item": "", "zone": ""}
+	if _tm == null or _tm.state == null or not OrientationTracker.STEPS.has(step_id):
+		return res
+	if bool(_tm.orientation_progress()["complete"]):
+		return res
+	res["dept"] = OrientationTracker.step_target(step_id)
+	match step_id:
+		OrientationTracker.STEP_WORK_SHIFT:
+			_reveal_tier_card(res, String(res["dept"]))
+		OrientationTracker.STEP_EARN_CLEARANCE:
+			var controller: Docket = _controllers.get(String(res["dept"]))
+			if controller is DocketSkill:
+				res["control"] = (controller as DocketSkill).gauge_vent
+		OrientationTracker.STEP_FILE_CROWNS_CLAIM:
+			var depot := _controllers.get("requisition_depot") as DocketDepot
+			var first := depot.first_sellable_id() if depot != null else ""
+			if first != "":
+				res["tab"] = DocketDepot.TAB_SELL
+				if depot != null:
+					res["control"] = depot.find_child("SellRow_" + first, true, false)
+			else:
+				# Honest prerequisite: the counter has nothing to tender —
+				# cue the earliest SOURCE of saleable stock instead, and the
+				# step line states what comes first.
+				res["suffix"] = SUFFIX_INVENTORY
+				var src := _earliest_inventory_source()
+				if not src.is_empty():
+					res["dept"] = src
+				_reveal_tier_card(res, String(res["dept"]))
+		OrientationTracker.STEP_PROCESS_PRODUCT:
+			_resolve_recipe_step(res, "junksmithing")
+		OrientationTracker.STEP_PROVISION_PATROL:
+			var manifest := _controllers.get("manifest") as DocketManifest
+			var gear := manifest.first_equippable_id() if manifest != null else ""
+			if gear != "":
+				res["dept"] = "manifest"
+				res["select_item"] = gear
+				res["control"] = manifest.equip_button
+			else:
+				_resolve_recipe_step(res, "cooking")
+		OrientationTracker.STEP_CLEAR_NUISANCE:
+			var patrol := _controllers.get("wasteland_patrol") as DocketPatrol
+			if patrol != null:
+				var card: Control = null
+				if String(_tm.state.combat.get("phase", "")) == "fighting":
+					var designated := String(_tm.state.combat.get("monster_id", ""))
+					if designated != "":
+						card = patrol.find_child("Fauna_" + designated, true, false)
+						if card != null:
+							res["zone"] = patrol.zone_of(designated)
+				if card == null:
+					var id := patrol.first_engageable_id()
+					if id != "":
+						card = patrol.find_child("Fauna_" + id, true, false)
+						res["zone"] = patrol.zone_of(id)
+				res["control"] = card
+		OrientationTracker.STEP_DEPUTIZE_RESIDENT:
+			var personnel := _controllers.get("personnel") as DocketPersonnel
+			if personnel != null:
+				res["control"] = personnel.purchase_plate \
+					if _tm.next_deputy_price() > 0 else personnel.cap_line
+	return res
+
+
+## The form's per-step reveal info (the CURRENT step only — the callable
+## OrientationForm carries; a pure resolution read): the honest prerequisite
+## suffix plus the department the reveal actually cues (the SOURCE on the
+## fallback paths — the tooltip and the plate cue follow it, never the
+## nominal department the step cannot yet use).
+func reveal_info_for(step_id: String) -> Dictionary:
+	if _tm == null or not OrientationTracker.STEPS.has(step_id):
+		return {"suffix": "", "dept": ""}
+	if String(_tm.orientation_progress()["current"]) != step_id:
+		return {"suffix": "", "dept": ""}
+	var res := step_reveal_resolution(step_id)
+	return {"suffix": String(res.get("suffix", "")), "dept": String(res.get("dept", ""))}
+
+
+## Recipe-department steps (PROCESS A PRODUCT, the cook leg of PROVISION):
+## the first craftable card, else the honest source of the first missing
+## input + the prerequisite suffix.
+func _resolve_recipe_step(res: Dictionary, dept_id: String) -> void:
+	res["dept"] = dept_id
+	var controller := _controllers.get(dept_id) as DocketProcessing
+	if controller == null:
+		return
+	var craftable: Control = controller.first_craftable_card()
+	if craftable != null:
+		res["control"] = craftable
+		return
+	res["suffix"] = SUFFIX_SUPPLIES
+	var r: RecipeDef = controller.first_uncraftable_recipe()
+	var item_id := ""
+	if r != null:
+		for input in r.inputs:
+			if _tm.state.item_count(input.item) < input.qty:
+				item_id = input.item
+				break
+	var src := _item_source(item_id) if item_id != "" else {}
+	if not src.is_empty():
+		res["dept"] = String(src["skill"])
+	_reveal_tier_card(res, String(res["dept"]))
+
+
+## A workshop step's first workable card (gate order).
+func _reveal_tier_card(res: Dictionary, dept: String) -> void:
+	var controller: Docket = _controllers.get(dept)
+	if controller is DocketSkill:
+		res["control"] = (controller as DocketSkill).first_unlocked_card()
+
+
+## The earliest-reachable source of an item: the lowest-gate gathering
+## activity whose drop table yields it (else the lowest-gate recipe that
+## crafts it), as {skill, gate} — {} when the item has no posted source.
+func _item_source(item_id: String) -> Dictionary:
+	var lib: ContentLibrary = _tm.engine.lib
+	if lib == null:
+		return {}
+	var best := {}
+	for a_id in lib.activities:
+		var a: ActivityDef = lib.activities[a_id]
+		var table: DropTableDef = lib.drop_table(a.drop_table)
+		if table == null:
+			continue
+		for entry in table.entries:
+			if entry.item == item_id and (best.is_empty()
+					or a.level_gate < int(best["gate"])):
+				best = {"skill": a.skill, "gate": a.level_gate}
+	for r_id in lib.recipes:
+		var r: RecipeDef = lib.recipes[r_id]
+		if r.output.item == item_id and (best.is_empty()
+				or r.level_gate < int(best["gate"])):
+			best = {"skill": r.skill, "gate": r.level_gate}
+	return best
+
+
+## The earliest SOURCE of saleable stock the resident does not yet hold
+## (the FILE A CROWNS CLAIM honest fallback): the unheld positive-value
+## item whose source gate is lowest, ties by item id.
+func _earliest_inventory_source() -> String:
+	var lib: ContentLibrary = _tm.engine.lib
+	if lib == null:
+		return ""
+	var best_gate := 1 << 30
+	var best_skill := ""
+	var best_item := ""
+	for item_id in lib.items:
+		var item: ItemDef = lib.items[item_id]
+		if item.value <= 0 or _tm.state.item_count(String(item_id)) > 0:
+			continue
+		var src := _item_source(String(item_id))
+		if src.is_empty():
+			continue
+		var gate := int(src["gate"])
+		if gate < best_gate or (gate == best_gate and String(item_id) < best_item):
+			best_gate = gate
+			best_skill = String(src["skill"])
+			best_item = String(item_id)
+	return best_skill
+
+
+## The boot reveal (once per concourse): a boot into an incomplete tutorial
+## walks the resident straight to the current step's control.
+func _boot_reveal() -> void:
+	if _boot_reveal_done or not auto_reveal:
+		return
+	_boot_reveal_done = true
+	if _tm == null or not _tm.has_method("orientation_progress"):
+		return
+	var cur := String(_tm.orientation_progress()["current"])
+	if cur != "":
+		_revealed_step = cur
+		reveal_step(cur)
+
+
+## The arrival half of a reveal: arm the equip selection when the target
+## needs it, wait (bounded) for the docket's flush/layout to land — a stamp
+## fires mid-engine-event, its batched flush may follow a frame later —
+## re-resolving against engine truth each frame, then scroll the target
+## fully into view and settle-pulse it. A newer reveal's token supersedes
+## this landing; the retry never outlives its reveal.
+const REVEAL_LAND_FRAMES := 10
+
+func _finish_reveal(res: Dictionary) -> void:
+	if not is_inside_tree():
+		return
+	var seq := int(res.get("seq", 0))
+	for _i in REVEAL_LAND_FRAMES:
+		await get_tree().process_frame
+		if not is_inside_tree() or _transitioning or seq != _reveal_seq:
+			return
+		if String(res.get("dept", "")) != _active_id:
+			return  # a newer reveal superseded this one
+		# Variant read first: a control freed by an intermediate rebuild must
+		# never be assigned to a typed variable (that aborts the coroutine).
+		var ctrl_v: Variant = res.get("control")
+		if ctrl_v == null or not is_instance_valid(ctrl_v) \
+				or not (ctrl_v as Control).is_visible_in_tree():
+			res = step_reveal_resolution(String(res.get("step", "")))
+			res["seq"] = seq  # the fresh truth is the SAME reveal
+		if res.get("control", null) != null:
+			break
+	if not is_inside_tree() or _transitioning or seq != _reveal_seq:
+		return
+	var select_item := String(res.get("select_item", ""))
+	if not select_item.is_empty():
+		var manifest := _controllers.get("manifest") as DocketManifest
+		if manifest != null:
+			manifest.select_line_for(select_item)  # arms the EQUIP control
+	var target_v: Variant = res.get("control")
+	if target_v == null or not is_instance_valid(target_v):
+		return
+	var target := target_v as Control
+	if not target.is_visible_in_tree():
+		return
+	_scroll_reveal_target(target)
+	_pulse(target)
+	# The docked strip's body budget re-flows the region as content settles
+	# (the intake serial tier stands down, the viewport resizes) — re-assert
+	# the scroll one pass later so the target ends fully in view. A no-op
+	# when the layout held.
+	await get_tree().process_frame
+	if is_inside_tree() and not _transitioning and seq == _reveal_seq \
+			and is_instance_valid(target) \
+			and String(res.get("dept", "")) == _active_id:
+		_scroll_reveal_target(target)
+
+
+## Scroll every ancestor scroll region so the target control is FULLY in
+## view — the amendment's own words (the T15 keyboard focus-follow walks
+## the same ancestry).
+func _scroll_reveal_target(ctrl: Control) -> void:
+	var cur: Node = ctrl.get_parent()
+	while cur != null:
+		if cur is ScrollContainer:
+			var sc := cur as ScrollContainer
+			sc.ensure_control_visible(ctrl)
+			# A target taller than the viewport can never be fully in view
+			# (the 200% geometry) — ensure's minimal scroll aligns the END,
+			# stranding the head above the fold. Post the LEADING edge at the
+			# viewport top instead: the resident reads the row from its head.
+			var port := sc.get_global_rect()
+			var rect := ctrl.get_global_rect()
+			if rect.size.y > port.size.y and rect.position.y < port.position.y:
+				sc.scroll_vertical += int(rect.position.y - port.position.y)
+		cur = cur.get_parent()
+
+
+## ONE bounded settle pulse on the revealed target: a warm lift toward the
+## amber signal tint plus a 2% settle swell, back to rest within
+## REVEAL_PULSE_S. Token-guarded: a re-reveal restarts ONE pulse, never
+## stacks (the T31 denial-flash discipline; motion stays brief, bounded,
+## never looping).
+func _pulse(target: Control) -> void:
+	if target == null or not is_instance_valid(target) or not target.is_inside_tree():
+		return
+	var seq := int(target.get_meta("reveal_pulse_seq", 0)) + 1
+	target.set_meta("reveal_pulse_seq", seq)
+	target.set_meta("reveal_pulses", int(target.get_meta("reveal_pulses", 0)) + 1)
+	if target.has_meta("reveal_pulse_tween"):
+		var old := target.get_meta("reveal_pulse_tween") as Tween
+		if old != null and old.is_valid():
+			old.kill()
+	target.pivot_offset = target.size * 0.5
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(target, "modulate", REVEAL_PULSE_TINT, REVEAL_PULSE_S * 0.4) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(target, "scale", Vector2(1.02, 1.02), REVEAL_PULSE_S * 0.4) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.chain().tween_property(target, "modulate", Color.WHITE, REVEAL_PULSE_S * 0.6) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(target, "scale", Vector2.ONE, REVEAL_PULSE_S * 0.6) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	# No completion callback: a finished tween auto-frees (is_valid() reads
+	# false), and a lambda capture of a control that a later rebuild freed
+	# would log an engine error. A re-pulse overwrites the meta and kills the
+	# old tween; a freed target takes the stale meta with it.
+	target.set_meta("reveal_pulse_tween", tw)
 
 
 # ---------------------------------------------------------------- T26 dossier
@@ -446,6 +866,18 @@ func _unhandled_input(event: InputEvent) -> void:
 	var focused := get_viewport().gui_get_focus_owner()
 	if focused is LineEdit or focused is TextEdit:
 		return
+	# T33: Esc returns to the department the last tutorial deep-link jumped
+	# from — the keyboard way back (the same guards above protect a posted
+	# MAIL CALL and a focused text field).
+	if key.keycode == KEY_ESCAPE:
+		if _reveal_return != "" and not _transitioning \
+				and _plates.has(_reveal_return) and _reveal_return != _active_id:
+			var back := _reveal_return
+			_reveal_return = ""
+			_plates[back].grab_focus()
+			select_department(back, false)
+			get_viewport().set_input_as_handled()
+		return
 	var idx := HOTKEY_KEYS.find(key.keycode)
 	if idx < 0:
 		return
@@ -455,6 +887,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not _plates.has(id) or id == _active_id or _transitioning:
 		return
 	_plates[id].grab_focus()
+	_reveal_return = ""  # a manual hotkey jump steers — clear the way back
 	select_department(id, false)
 	get_viewport().set_input_as_handled()
 
@@ -725,7 +1158,7 @@ func _make_card(d: Dictionary, index: int) -> Button:
 	card.tooltip_text = "Open the %s docket (press %d)" % [d.plate.capitalize(), index + 1]
 	card.set_meta("dept_id", d.id)
 	card.set_meta("dept_index", index)
-	card.pressed.connect(select_department.bind(d.id, false))
+	card.pressed.connect(_on_plate_pressed.bind(d.id))
 
 	var col := VBoxContainer.new()
 	col.name = "CardBox"
@@ -809,6 +1242,14 @@ func _make_card(d: Dictionary, index: int) -> Button:
 func _plate_text(d: Dictionary, index: int) -> String:
 	return "%s · %d" % [d.short, index + 1]
 
+
+## A manual plate press navigates — it clears the T33 Esc-return memory
+## (the resident has steered themselves; the tutorial jump's way back is no
+## longer pending), then selects exactly as before.
+func _on_plate_pressed(id: String) -> void:
+	_reveal_return = ""
+	select_department(id, false)
+
 func _build_docket_region() -> Control:
 	# T29 — the docket region is a DOCKED column: the O-1 form strip posts at
 	# its top (intake paperwork leads, and since the blockade report it TAKES
@@ -824,6 +1265,7 @@ func _build_docket_region() -> Control:
 	orientation_form = OrientationForm.new()
 	orientation_form.name = "OrientationForm"
 	orientation_form.dept_label = _dept_hint_for
+	orientation_form.reveal_info = reveal_info_for
 	orientation_form.step_activated.connect(_on_orientation_step_activated)
 	region.add_child(orientation_form)
 
@@ -1087,14 +1529,25 @@ func _on_transition_done(id: String) -> void:
 	shutter.visible = false
 	_transitioning = false
 	department_changed.emit(id)
+	# T33: a reveal parked for the bulkhead lands now (or chains one more
+	# transition if the state moved while the shutter was up).
+	if not _pending_reveal.is_empty():
+		var res := _pending_reveal
+		_pending_reveal = {}
+		var dept := String(res.get("dept", ""))
+		if dept != "" and dept != _active_id and _plates.has(dept):
+			select_department(dept, false)
+			_pending_reveal = res
+		else:
+			_finish_reveal(res)
 
 # ------------------------------------------------------------- T18 O-1 form
-## A pressed step row is a wayfinding control: open that step's department
-## (the same transition a plate press drives).
+## A pressed step row is a wayfinding control: reveal that step's target —
+## open the department (the same transition a plate press drives), post the
+## right tab, scroll the target into view, settle-pulse it (T33; the press
+## is explicit intent, so it reveals regardless of the auto_reveal seam).
 func _on_orientation_step_activated(step_id: String) -> void:
-	var target := OrientationTracker.step_target(step_id)
-	if target != "":
-		select_department(target, false)
+	reveal_step(step_id)
 
 
 ## Department hint for the form's tooltips ("SCAVENGING · 1" — plate + key).
@@ -1114,6 +1567,11 @@ func _position_orientation_cue() -> void:
 	var target := ""
 	if _tm != null and _tm.has_method("orientation_progress"):
 		target = String(_tm.orientation_progress()["target"])
+		var cur := String(_tm.orientation_progress()["current"])
+		if cur != "":
+			var resolved := String(step_reveal_resolution(cur).get("dept", ""))
+			if resolved != "":
+				target = resolved
 	if target != "" and _plates.has(target):
 		orientation_cue.aim(_plates[target], false)
 

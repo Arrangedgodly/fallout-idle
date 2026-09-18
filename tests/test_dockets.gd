@@ -51,6 +51,7 @@ func _make_concourse(tm: Variant) -> Concourse:
 	var c := ConcourseScene.instantiate() as Concourse
 	assert_not_null(c, "concourse scene instantiates")
 	add_child_autofree(c)
+	c.auto_reveal = false  # T33 seam: this suite pins pre-deep-link shell behavior
 	c.bind_engines(tm)
 	await wait_frames(2)
 	return c
@@ -388,6 +389,7 @@ func test_mail_call_presents_cached_payload_at_bind() -> void:
 	tm.start_activity("sort_scrap_pile")
 	tm.apply_offline_elapsed(600_000)
 	var c := ConcourseScene.instantiate() as Concourse
+	c.auto_reveal = false  # T33 seam: this suite pins pre-deep-link shell behavior
 	add_child_autofree(c)
 	await wait_frames(2)  # _ready runs bind_engines() against the autoload...
 	assert_false(c.mail_call.is_presenting(), "no presentation from the production autoload (fresh twin state)")

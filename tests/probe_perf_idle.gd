@@ -87,6 +87,7 @@ func _initialize() -> void:
 		_finish()
 		return
 	_concourse = packed.instantiate() as Concourse
+	_concourse.auto_reveal = false  # T33 seam: the probe pins the shell; the deep links have their own suite
 	if _concourse == null:
 		_fail("concourse root is the Concourse script")
 		_finish()

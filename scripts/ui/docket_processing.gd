@@ -77,6 +77,29 @@ func craftable_count(r: RecipeDef) -> int:
 	return maxi(affordable, 0)
 
 
+## T33 reveal targets: the first card whose recipe the LIVE stock actually
+## affords (gate order), and — when nothing is craftable — the first recipe
+## in gate order whose inputs fall short (the honest prerequisite's read).
+func first_craftable_card() -> Control:
+	if tm == null or state() == null:
+		return null
+	for id in _content_order:
+		var r: RecipeDef = lib().recipe(id)
+		if r != null and craftable_count(r) >= 1:
+			return (_cards[id] as Card).button
+	return null
+
+
+func first_uncraftable_recipe() -> RecipeDef:
+	if tm == null or state() == null:
+		return null
+	for id in _content_order:
+		var r: RecipeDef = lib().recipe(id)
+		if r != null and craftable_count(r) < 1:
+			return r
+	return null
+
+
 ## Live craftable counts refresh with every inventory flush. The rebuilt
 ## segments inherit the card's CURRENT label variation (an inventory-only
 ## flush does not re-run the activity pass that sets it).

@@ -23,6 +23,7 @@ var status_line: Label
 var status_serial: Label
 var gauge: ProgressBar
 var gauge_read: Label
+var gauge_vent: Control  # T33 deep-link target: the clearance gauge block
 var cards_box: VBoxContainer
 var log: ItemList
 var primary_button: Button  # the shell's BEGIN/END SHIFT plate (shell assigns)
@@ -93,6 +94,8 @@ func _build_content() -> void:
 	add_child(status_plate)
 
 	var vent := panel_box("VentHousing")
+	vent.name = "ClearanceGaugeVent"
+	gauge_vent = vent
 	var vcol := vbox(8)
 	vcol.add_child(micro("CLEARANCE GAUGE · POSTED RATES ARE THE HONEST RATES"))
 	gauge = ProgressBar.new()
@@ -160,6 +163,18 @@ func _build_cards() -> void:
 		_cards[card.id] = card
 		_content_order.append(card.id)
 		cards_box.add_child(card.button)
+
+
+## T33 reveal target: the first card the resident can actually work (gate
+## order — the tier ladder's teaching order). Tier 1 gates at clearance 1,
+## so a fresh resident always resolves a card.
+func first_unlocked_card() -> Control:
+	if tm == null or state() == null:
+		return null
+	for id in _content_order:
+		if tm.engine.is_unlocked(state(), id):
+			return (_cards[id] as Card).button
+	return null
 
 
 func _make_card(def: RefCounted) -> Card:

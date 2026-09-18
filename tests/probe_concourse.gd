@@ -124,6 +124,7 @@ func _run() -> void:
 		await _capture_t30_sets()
 		await _capture_t31_sets()
 		await _capture_t32_sets()
+		await _capture_t33_sets()
 		if _capture_unsupported:
 			_done = true
 			return  # already quitting CAPTURE_UNSUPPORTED_EXIT for the runner
@@ -140,6 +141,7 @@ func _setup() -> bool:
 	if packed == null:
 		return false
 	_concourse = packed.instantiate() as Concourse
+	_concourse.auto_reveal = false  # T33 seam: the probe pins the shell; the deep links have their own suite
 	_check(_concourse != null, "concourse root is the Concourse script")
 	if _concourse == null:
 		return false
@@ -2665,6 +2667,161 @@ func _validate_t32_pngs() -> void:
 	}
 	for file_name: String in expects:
 		var path := T32_DIR + "/" + file_name
+		var fa := FileAccess.open(path, FileAccess.READ)
+		_check(fa != null and fa.get_length() > 1000, "%s saved with real content" % file_name)
+		if fa == null:
+			continue
+		fa.close()
+		var img := Image.load_from_file(path)
+		_check(img != null, "%s is a loadable image" % file_name)
+		if img == null:
+			continue
+		_check(Vector2i(img.get_width(), img.get_height()) == expects[file_name],
+			"%s dimensions %dx%d" % [file_name, img.get_width(), img.get_height()])
+		var colors := {}
+		for x in range(0, img.get_width(), 12):
+			for y in range(0, img.get_height(), 12):
+				colors[img.get_pixel(x, y).to_html(true)] = true
+		_check(colors.size() >= 12, "%s renders real content (%d distinct sampled colors)" % [
+			file_name, colors.size()])
+
+
+# ------------------------------------------------------- T33 capture set
+## The run-5 tutorial deep-linking (the user's words: "Tutorial was very
+## unclear, especially for FILE A CROWN CLAIM that you had to scroll to the
+## bottom of a very large window to sell a product. It took me over 5
+## minutes to figure out what the fuck the game wanted me to do."): the FILE
+## A CROWNS CLAIM reveal moment — the Depot posted on the SELL board with the
+## first disposal row scrolled into view and the settle pulse mid-flight —
+## at 100% and 200%; plus the honest prerequisite state (an empty counter
+## cues the stock's SOURCE and the step line carries the registered suffix).
+## All states are LIVE engine truth through the bound TickManager; the
+## reveals run the production machinery (the harness seam is re-armed here).
+const T33_DIR := "res://.impeccable/review/t33"
+
+func _capture_t33_sets() -> void:
+	if DirAccess.make_dir_recursive_absolute(T33_DIR) != OK:
+		_check(false, "t33 review dir created")
+		return
+	var tm: Node = _concourse.bound_tick_manager()
+	if tm == null:
+		_check(false, "t33 capture: engine bound")
+		return
+	_concourse.auto_reveal = true  # the capture IS the machinery
+	_vp.size = Vector2i(1280, 720)
+	_concourse.font_slider.value = 0.0
+	tm.new_game(20260933)
+	_concourse.set_first_run(false)
+	_concourse.orientation().expand()  # the first-session moment: checklist posted
+	# A real first-session beat: the pile worked (step 1), a clearance earned
+	# (step 2), scrap on hand — FILE A CROWNS CLAIM is the current step.
+	tm.start_activity("sort_scrap_pile")
+	tm.engine.grant_xp(tm.state, "scavenging", 25)
+	tm.stop_skill("scavenging")
+	tm.state.add_item("scrap_metal", 30)
+	tm.batcher.mark("inventory")
+	tm.batcher.mark("orientation")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	await _frames(4)
+	_check(String(tm.orientation_progress()["current"]) == "file_crowns_claim",
+		"t33 capture: FILE A CROWNS CLAIM is the current step")
+	# THE reveal — the exact machinery the walkthrough pins.
+	_concourse.reveal_step("file_crowns_claim")
+	var n := 0
+	while n < 240 and _concourse.is_transitioning():
+		await _frames(1)
+		n += 1
+	await _frames(8)  # the landing (scroll + settle pulse) rides the next frames
+	var depot := _concourse.docket_controller("requisition_depot") as DocketDepot
+	var sell_row := depot.find_child("SellRow_scrap_metal", true, false) as Control
+	_check(_concourse.active_department() == "requisition_depot",
+		"t33 capture: the reveal opened the Depot")
+	_check(depot.active_tab() == "sell", "t33 capture: the SELL board is posted")
+	_check(sell_row != null and _concourse.docket_scroll.get_global_rect()
+		.encloses(sell_row.get_global_rect().grow(-2.0)),
+		"t33 capture: the disposal row is fully in view")
+	_check(int(sell_row.get_meta("reveal_pulses", 0)) == 1,
+		"t33 capture: the settle pulse fired once")
+	if not _snap_t33("t33_crowns_claim_reveal_1280x720.png"):
+		return
+	# 200% font scale: the same reveal, re-armed.
+	_concourse.font_slider.value = 2.0
+	await _frames(4)
+	_concourse.reveal_step("file_crowns_claim")
+	n = 0
+	while n < 240 and _concourse.is_transitioning():
+		await _frames(1)
+		n += 1
+	await _frames(8)
+	# At 200% the wrapped ladder makes the row taller than the docket
+	# viewport (the accepted 200% geometry, the T32 SELL-leg precedent) — the
+	# honest claim is the reveal's min-scroll: the row's leading edge posted
+	# in view (never below the fold).
+	var vr200 := _concourse.docket_scroll.get_global_rect()
+	var rr200 := sell_row.get_global_rect()
+	_check(vr200.intersects(rr200) and rr200.position.y >= vr200.position.y - 2.0,
+		"t33 capture: the disposal row's leading edge in view at 200%")
+	if not _snap_t33("t33_crowns_claim_reveal_1280x720_200pct.png"):
+		return
+	# The honest prerequisite: the stock leaves (EVERYTHING — earlier capture
+	# sets staged sellables), the suffix posts on the step line, and the
+	# reveal cues the stock's SOURCE (Scavenging) instead.
+	_concourse.font_slider.value = 0.0
+	await _frames(4)
+	for item_id in (tm.state.inventory as Dictionary).keys():
+		tm.state.inventory.erase(item_id)
+	tm.state.inventory = {}
+	tm.batcher.mark("inventory")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	await _frames(4)
+	var form := _concourse.orientation()
+	# Present the posted state (the probe's shared autoload runs a live sim
+	# under the capture sets; the flush-path machinery itself is pinned by
+	# tests/test_tutorial_reveal.gd).
+	form.refresh()
+	var title: Label = form.row_for("file_crowns_claim").get_node("Row/Title")
+	_check(title.text == "FILE A CROWNS CLAIM — WORK FOR INVENTORY FIRST",
+		"t33 capture: the step line states the prerequisite")
+	_concourse.reveal_step("file_crowns_claim")
+	n = 0
+	while n < 240 and _concourse.is_transitioning():
+		await _frames(1)
+		n += 1
+	await _frames(8)
+	var sort_card := _concourse.docket_controller("scavenging").find_child(
+		"Card_sort_scrap_pile", true, false) as Control
+	_check(_concourse.active_department() == "scavenging",
+		"t33 capture: the fallback cues the stock's source")
+	_check(_concourse.docket_scroll.get_global_rect()
+		.encloses(sort_card.get_global_rect().grow(-2.0)),
+		"t33 capture: the source card is fully in view")
+	if not _snap_t33("t33_crowns_claim_prerequisite_1280x720.png"):
+		return
+	_validate_t33_pngs()
+
+
+func _snap_t33(file_name: String) -> bool:
+	var img := _vp.get_texture().get_image()
+	if img == null:
+		print("HEADLESS_CAPTURE_UNSUPPORTED (dummy rasterizer returned no image)")
+		_capture_unsupported = true
+		quit(CAPTURE_UNSUPPORTED_EXIT)
+		_done = true
+		return false
+	var path := T33_DIR + "/" + file_name
+	var err := img.save_png(path)
+	_check(err == OK, "captured %s (err=%d)" % [path, err])
+	return true
+
+
+func _validate_t33_pngs() -> void:
+	var expects := {
+		"t33_crowns_claim_reveal_1280x720.png": Vector2i(1280, 720),
+		"t33_crowns_claim_reveal_1280x720_200pct.png": Vector2i(1280, 720),
+		"t33_crowns_claim_prerequisite_1280x720.png": Vector2i(1280, 720),
+	}
+	for file_name: String in expects:
+		var path := T33_DIR + "/" + file_name
 		var fa := FileAccess.open(path, FileAccess.READ)
 		_check(fa != null and fa.get_length() > 1000, "%s saved with real content" % file_name)
 		if fa == null:

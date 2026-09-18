@@ -423,6 +423,21 @@ func _gift_court_cleared() -> bool:
 	return int(counters.get("zone:%s" % ZONE_GIFT, 0)) >= 1
 
 
+## T33 reveal helpers: the zone a fauna designation posts on, and the first
+## engageable designation (gate order — the patrol ladder's teaching order;
+## tier 1 gates at clearance 1, so a fresh resident always resolves one).
+func zone_of(monster_id: String) -> String:
+	var mdef: MonsterDef = lib().monster(monster_id) if lib() != null else null
+	return mdef.zone if mdef != null else active_zone
+
+
+func first_engageable_id() -> String:
+	for id in _content_order:
+		if _gate_ok(id):
+			return id
+	return ""
+
+
 func _make_gauge(height := 20.0) -> ProgressBar:
 	var g := ProgressBar.new()
 	g.show_percentage = false

@@ -160,6 +160,7 @@ func _setup() -> bool:
 	root.add_child(_vp)
 	var packed := load("res://scenes/main.tscn") as PackedScene
 	_concourse = packed.instantiate() as Concourse
+	_concourse.auto_reveal = false  # T33 seam: the probe pins the shell; the deep links have their own suite
 	if _concourse == null:
 		_check(false, "concourse instantiates")
 		return false

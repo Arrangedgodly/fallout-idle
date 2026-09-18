@@ -127,6 +127,7 @@ func _boot(seed := SEED) -> Variant:
 	_concourse = ConcourseScene.instantiate() as Concourse
 	assert_not_null(_concourse, "concourse instantiates")
 	_vp.add_child(_concourse)
+	_concourse.auto_reveal = false  # T33 seam: the keyboard/a11y pins predate the deep links
 	_concourse.bind_engines(tm)
 	await wait_frames(3)
 	return tm

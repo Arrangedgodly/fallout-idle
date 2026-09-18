@@ -242,6 +242,7 @@ func _boot_concourse(seed := SEED) -> Variant:
 	_concourse = ConcourseScene.instantiate() as Concourse
 	assert_not_null(_concourse, "concourse instantiates")
 	_vp.add_child(_concourse)
+	_concourse.auto_reveal = false  # T33 seam: the refusal pins stay hermetic
 	_concourse.bind_engines(tm)
 	await wait_frames(4)
 	return tm

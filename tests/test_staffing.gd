@@ -383,6 +383,7 @@ func test_personnel_board_and_refusal_directive_wiring() -> void:
 	var c := ConcourseScene.instantiate() as Concourse
 	assert_not_null(c)
 	add_child_autofree(c)
+	c.auto_reveal = false  # T33 seam: this suite pins pre-deep-link shell behavior
 	c.bind_engines(tm)
 	await wait_frames(2)
 

@@ -465,6 +465,7 @@ func _boot_concourse(seed := SEED) -> Variant:
 	_concourse = ConcourseScene.instantiate() as Concourse
 	assert_not_null(_concourse, "concourse instantiates")
 	_vp.add_child(_concourse)
+	_concourse.auto_reveal = false  # T33 seam: the form/cue pins stay hermetic; reveals live in test_tutorial_reveal.gd
 	_concourse.bind_engines(tm)
 	await wait_frames(4)
 	return tm
@@ -553,11 +554,18 @@ func test_form_follows_steps_cue_walks_and_retires() -> void:
 	assert_true(_stamp_visible(form.row_for("work_shift")), "done row shows the stamp glyph")
 	assert_true(_arrow_visible(form.row_for("file_crowns_claim")),
 		"the current row moved to FILE A CROWNS CLAIM")
-	var depot_plate: Control = _concourse.plates()["requisition_depot"]
+	# T33 evolution: the counter holds NOTHING here, so the cue follows the
+	# honest fallback department — the stock's SOURCE (Scavenging), not the
+	# nominal Depot the step cannot yet use. The pin's intent stands: the
+	# cue follows the current step's reachable target.
+	var resolved: String = String(_concourse.step_reveal_resolution("file_crowns_claim")["dept"])
+	assert_eq(resolved, "scavenging",
+		"an empty counter resolves the claim step to the stock's source")
+	var cue_plate: Control = _concourse.plates()[resolved]
 	var cue_rect := cue.get_global_rect()
 	assert_almost_eq(cue_rect.position.y + cue_rect.size.y * 0.5,
-		depot_plate.get_global_rect().get_center().y, 12.0,
-		"the cue followed the step to the DEPOT plate")
+		cue_plate.get_global_rect().get_center().y, 12.0,
+		"the cue follows the step's reachable target (T33 honest fallback)")
 	# Complete the form: the cue retires.
 	_stamp_all_but(tm, ["work_shift", "earn_clearance"])
 	_flush(tm)

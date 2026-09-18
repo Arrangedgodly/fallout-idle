@@ -65,6 +65,7 @@ func _make_concourse(tm: Variant) -> Concourse:
 	var c := ConcourseScene.instantiate() as Concourse
 	assert_not_null(c, "concourse scene instantiates")
 	add_child_autofree(c)
+	c.auto_reveal = false  # T33 seam: this suite pins pre-deep-link shell behavior
 	c.bind_engines(tm)
 	await wait_frames(2)
 	return c

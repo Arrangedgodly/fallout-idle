@@ -32,8 +32,10 @@ extends PanelContainer
 ## settles into the slip.
 ##
 ## LOW-TEXT PIN (the user's complaint is law): every visible word on the form
-## is budgeted — 33 expanded-incomplete, 18 expanded-complete, 4 on the slip
-## (word_count() walks it; tests/test_orientation.gd pins <= 40 per state).
+## is budgeted — 33 expanded-incomplete (37 worst case since T33, when the
+## current step carries its one honest prerequisite suffix), 18
+## expanded-complete, 4 on the slip (word_count() walks it;
+## tests/test_orientation.gd pins <= 40 per state).
 ##
 ## Update discipline: the Docket contract — rows are built once and restyled
 ## only through guarded setters; refreshes ride the 4 Hz "orientation" bulk
@@ -108,6 +110,15 @@ var _auto_folded := false  ## the >= 5 convenience fires once per tutorial
 var _complete_flag := false  ## last-read completion (drives the serial tier)
 ## Concourse callback (dept_id -> "SCAVENGING · 1"-style hint for tooltips).
 var dept_label: Callable = Callable()
+## T33 deep-linking: Concourse callback (step_id -> {"suffix": String,
+## "dept": String}) for the CURRENT step — the honest prerequisite suffix
+## when the step's action is not yet reachable (e.g. "WORK FOR INVENTORY
+## FIRST" while the counter has nothing to tender) and the department the
+## reveal actually cues (the action's honest SOURCE on the fallback paths).
+## Registered wording (naming-bible §10 T33 rows); the words ride the step
+## line itself, so the prerequisite is stated where the step is read, never
+## only in a tooltip.
+var reveal_info: Callable = Callable()
 
 
 func _init() -> void:
@@ -367,9 +378,16 @@ func refresh() -> void:
 	if complete:
 		_set_stipend(int(p["stipend"]))
 	for step_id: String in _row_order:
+		var suffix := ""
+		var hint := _dept_hint(OrientationTracker.step_target(step_id))
+		if step_id == current and reveal_info.is_valid():
+			var info: Dictionary = reveal_info.call(step_id)
+			suffix = String(info.get("suffix", ""))
+			var resolved := String(info.get("dept", ""))
+			if resolved != "":
+				hint = _dept_hint(resolved)
 		(_rows[step_id] as StepRow).apply(
-			bool(done.get(step_id, false)), step_id == current,
-			_dept_hint(OrientationTracker.step_target(step_id)))
+			bool(done.get(step_id, false)), step_id == current, hint, suffix)
 		(_mini_marks[step_id] as MiniMark).set_stamped(bool(done.get(step_id, false)))
 	_apply_body_budget()
 
@@ -547,6 +565,7 @@ class StepRow:
 	extends "res://scripts/ui/docket.gd".CardButton
 
 	var step_id := ""
+	var base_title := ""
 	var arrow: TextureRect
 	var stamp: TextureRect
 	var empty_box: Control
@@ -554,10 +573,12 @@ class StepRow:
 	var title: Label
 
 	var _kind := ""  # "", "future", "current", "done" — guards restyle churn
+	var _key := ""  # kind + "|" + suffix — the full guarded restyle key
 
 
 	func _init(p_step: String, p_title: String, p_icon: String) -> void:
 		step_id = p_step
+		base_title = p_title
 		name = "Step_" + p_step
 		focus_mode = Control.FOCUS_ALL
 		tooltip_text = "Orientation step: %s" % p_title
@@ -630,24 +651,39 @@ class StepRow:
 	## Restyle to the state (guarded — a no-change refresh touches nothing).
 	## done dims the title to the registered NAVY_DIM-on-paper pair (T8's
 	## contrast table carries it; never a mid-air alpha guess).
-	func apply(done: bool, current: bool, dept_hint: String) -> void:
+	## T33: `suffix` is the honest prerequisite line ("" mostly) — appended to
+	## the CURRENT row's stencil title when the step's action is not yet
+	## reachable (the naming-bible titles stay verbatim; the suffix is the
+	## registered mechanism that states what must happen FIRST).
+	func apply(done: bool, current: bool, dept_hint: String, suffix := "") -> void:
 		var kind := "done" if done else ("current" if current else "future")
-		if kind == _kind:
+		var key := kind + "|" + suffix
+		if key == _key:
 			return
+		_key = key
 		_kind = kind
 		arrow.visible = kind == "current"
 		stamp.visible = kind == "done"
 		empty_box.visible = kind == "future"
 		var ink: Color = SignageTokens.NAVY_DIM if done else SignageTokens.INSTITUTIONAL_NAVY
 		title.add_theme_color_override("font_color", ink)
-		var t := String(title.text)
+		var shown := base_title
+		if not done and current and not suffix.is_empty():
+			shown = "%s — %s" % [base_title, suffix]
+		title.text = shown
 		if done:
-			tooltip_text = "Stamped: %s — verified complete." % t
+			tooltip_text = "Stamped: %s — verified complete." % base_title
 		elif current:
-			tooltip_text = "Do this now: open %s." % dept_hint if dept_hint != "" \
-				else "Do this now: %s." % t
+			if suffix.is_empty():
+				tooltip_text = "Do this now: open %s." % dept_hint if dept_hint != "" \
+					else "Do this now: %s." % base_title
+			elif dept_hint != "":
+				tooltip_text = "Do this first: %s — then open %s." % [
+					suffix.to_lower(), dept_hint]
+			else:
+				tooltip_text = "Do this first: %s." % suffix.to_lower()
 		else:
-			tooltip_text = "Queued orientation step: %s." % t
+			tooltip_text = "Queued orientation step: %s." % base_title
 
 
 	## The unstamped slot: a drawn navy outline box (the empty half of the

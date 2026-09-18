@@ -602,6 +602,23 @@ construct — lowercase prose, "Rad-" coinages, "caps", payment-in-line, and
 exclamations are all structurally impossible under the loader's caps/no-"!"
 law plus the suite-side stencil-caps sweep in `tests/test_objectives.gd`).
 
+### T33-authored tutorial reveal copy (Run 5, applied 2026-09-18 under the §13.1 protocol — two Class A rows)
+
+The O-1 deep-linking (Scope Amendment 3) adds exactly two new player-facing
+strings — the honest prerequisite suffixes that post on the CURRENT step's
+stencil line when its action is not yet reachable. Both are generic
+institutional phrases, verb-first, stencil caps, no new nouns: **auto-PASS
+with a row** (§13.1 Class A; generic words / verb + generic object, no
+protected root — §9 pattern gate walked, clean; no web scan — no Class A row
+has ever needed one). The naming-bible §10 step titles themselves are
+UNTOUCHED (verbatim pins held; the suffix is the registered mechanism that
+appends the prerequisite — "FILE A CROWNS CLAIM — WORK FOR INVENTORY FIRST").
+
+| String | Kind | Proximity |
+|---|---|---|
+| WORK FOR INVENTORY FIRST | Class A — generic institutional phrase (verb + generic object) | generic words, no protected root; zero collisions with Fallout / Vault-Tec / Melvor surfaces or §9 patterns |
+| GATHER SUPPLIES FIRST | Class A — generic institutional phrase (verb + generic object) | generic words, no protected root; "supplies" is shipped T31 refusal vocabulary (INSUFFICIENT SUPPLIES), re-used verbatim |
+
 ## 11. Carried-over descriptive names — re-verified (all PASS)
 
 These pre-existing approved/generic names were re-run through the same

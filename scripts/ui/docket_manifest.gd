@@ -266,3 +266,15 @@ func select_line_for(item_id: String) -> bool:
 			_on_line_selected(i)
 			return true
 	return false
+
+
+## T33 reveal: the first equipment line the resident could actually equip
+## (category order, count on hand). "" when no gear is held — the honest
+## prerequisite path cues the gear's or a meal's source instead.
+func first_equippable_id() -> String:
+	if tm == null or state() == null:
+		return ""
+	for item_id in _row_items:
+		if lib().equipment_for(item_id) != null and state().item_count(item_id) >= 1:
+			return String(item_id)
+	return ""
