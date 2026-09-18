@@ -3,3 +3,4 @@ docs/ultron/
 # Godot editor cache
 .godot/
 .DS_Store
+.impeccable/

@@ -71,6 +71,8 @@ All game content — items, skills, activities, recipes, drop tables, monsters, 
 
 ## Assets & licenses
 
+Project code and original assets are MIT-licensed — see [`LICENSE`](LICENSE).
+
 Every shipped file under `assets/` has a provenance row in [`ASSETS.md`](ASSETS.md):
 
 - Fonts (Big Shoulders Stencil Display, Public Sans, Courier Prime) are SIL OFL-1.1 licensed from [google/fonts](https://github.com/google/fonts), with each family's `OFL.txt` bundled beside it.
@@ -79,7 +81,7 @@ Every shipped file under `assets/` has a provenance row in [`ASSETS.md`](ASSETS.
 
 ## Status
 
-Hobby project; vertical slice plus the run-2 systems (orientation form, personnel postings, expanded icon language) and the run-3 depth + objectives expansion complete, pre-release. The code itself has no distribution license yet (all rights reserved for now). The subtitle word "Wasteland" is queued for a naming/licensing review before any wider distribution.
+Hobby project; vertical slice plus the run-2 systems (orientation form, personnel postings, expanded icon language) and the run-3 depth + objectives expansion complete, pre-release. The subtitle word "Wasteland" is queued for a naming/licensing review before any wider distribution.
 
 ## Documentation
 
