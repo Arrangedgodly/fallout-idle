@@ -193,7 +193,11 @@ func test_depot_prices_carry_crowns_mark() -> void:
 			assert_eq(_glyph_count(row, "crowns"), 1,
 				"stock row %s posts the Crowns mark beside its price" % row.name)
 	assert_gt(stock_rows, 0, "stock rows rendered")
-	# Every disposal (sell) row carries it too.
+	# Every disposal (sell) row carries it too — T32: the disposal board is
+	# its own tab now, so post the SELL tab to sweep it (the glyph discipline
+	# is unchanged; the rows simply hide with the BUY tab).
+	depot.select_tab(DocketDepot.TAB_SELL)
+	await wait_frames(1)
 	var sell_rows := 0
 	for row in depot.sell_box.get_children():
 		if row.name.begins_with("SellRow_"):
@@ -201,6 +205,9 @@ func test_depot_prices_carry_crowns_mark() -> void:
 			assert_eq(_glyph_count(row, "crowns"), 1,
 				"disposal row %s posts the Crowns mark beside the tender" % row.name)
 	assert_gt(sell_rows, 0, "disposal rows rendered")
+	# Back to the stock counter for the gated row + the ledger-stamp presses.
+	depot.select_tab(DocketDepot.TAB_BUY)
+	await wait_frames(1)
 	# Gated stock row: staircase on the clearance plate.
 	var gated_row: Control = depot.find_child("BuyRow_scrap_metal", true, false)
 	assert_not_null(gated_row, "gated stock line rendered")

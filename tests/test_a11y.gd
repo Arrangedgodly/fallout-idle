@@ -252,6 +252,17 @@ func test_cold_boot_keyboard_only_full_journey() -> void:
 				assert_eq(int(tm.state.inventory.get("glowshroom", 0)), 1,
 					"keyboard BUY 1 stocks one unit")
 				assert_eq(int(tm.state.crowns), 994, "keyboard BUY tenders 6 Crowns")
+				# T32: the SELL board is its own tab now — the keyboard journey
+				# walks to the tab plate, posts it with ui_accept, and only
+				# then reaches the disposal buttons.
+				var sell_tab := await _tab_until(func(c: Control) -> bool:
+					return c.name == "DepotTab_Sell")
+				assert_not_null(sell_tab, "tab reaches the SELL tab plate")
+				_push("ui_accept")
+				await wait_frames(1)
+				var depot_c := _concourse.docket_controller("requisition_depot") as DocketDepot
+				assert_true(depot_c.sell_region.visible and not depot_c.buy_region.visible,
+					"keyboard accept posts the SELL board")
 				var sell := await _tab_until(func(c: Control) -> bool:
 					return c.name == "Sell1_glowshroom")
 				assert_not_null(sell, "tab reaches SELL 1")
@@ -367,6 +378,22 @@ func test_focus_ring_lit_on_every_focusable_every_department() -> void:
 				"%s shows the amber focus ring in %s" % [c.name, id])
 			checked += 1
 		assert_gt(checked, 7 + 4, "%s mounts docket focusables beyond shell+console" % id)
+		# T32: the depot's SELL board is its own tab — sweep BOTH boards so
+		# neither side's focusables ever escape the ring/name contract.
+		if id == "requisition_depot":
+			var depot_c := _concourse.docket_controller(id) as DocketDepot
+			depot_c.select_tab(DocketDepot.TAB_SELL)
+			await wait_frames(2)
+			for c in _concourse.focusable_controls():
+				if not depot_c.sell_region.is_ancestor_of(c):
+					continue
+				c.grab_focus()
+				await wait_frames(1)
+				assert_eq(_focus_owner(), c, "%s holds focus on the SELL board" % c.name)
+				assert_true(_concourse.focus_ring_lit(c),
+					"%s shows the amber focus ring on the SELL board" % c.name)
+			depot_c.select_tab(DocketDepot.TAB_BUY)
+			await wait_frames(2)
 
 	# The modal's ack button while presenting.
 	_concourse.mail_call.present({"elapsed_ms": 60_000, "skills_xp": {}, "items": {},

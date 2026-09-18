@@ -123,6 +123,7 @@ func _run() -> void:
 		await _capture_t29_sets()
 		await _capture_t30_sets()
 		await _capture_t31_sets()
+		await _capture_t32_sets()
 		if _capture_unsupported:
 			_done = true
 			return  # already quitting CAPTURE_UNSUPPORTED_EXIT for the runner
@@ -782,12 +783,29 @@ func _check_t10a_dockets() -> void:
 			sell_text += (l as Label).text + " "
 	_check("×1 ON HAND · 2 CROWNS EA" in sell_text,
 		"disposal line posts the per-unit tender at a glance (got '%s')" % sell_text)
+	# T32: the disposal board is its own tab — post it through the tab plate
+	# (the radio grammar: ">> " + Energized on the active plate), then walk.
+	var sell_tab := depot.find_child("DepotTab_Sell", true, false) as Button
+	var buy_tab := depot.find_child("DepotTab_Buy", true, false) as Button
+	_check(sell_tab != null and buy_tab != null, "the depot posts a BUY/SELL tab pair (T32)")
+	sell_tab.grab_focus()
+	await _frames(1)
+	_push_action("ui_accept")
+	await _frames(1)
+	_check(depot.active_tab() == "sell" and depot.sell_region.visible
+		and not depot.buy_region.visible, "keyboard accept posts the SELL board (T32)")
+	_check(sell_tab.text == ">> SELL" and sell_tab.theme_type_variation == "Energized",
+		"the active tab carries >> + Energized (never color alone)")
+	_check(buy_tab.text == "BUY" and buy_tab.theme_type_variation == "",
+		"the inactive tab drops every cue")
 	sell1.grab_focus()
 	await _frames(1)
 	_push_action("ui_accept")
 	await _frames(1)
 	_check(tm.state.crowns == crowns_at_depot - 4 and int(tm.state.inventory.get("glowshroom", 0)) == 0,
 		"keyboard SELL 1 tenders back at the honest value (+2 Crowns)")
+	depot.select_tab("buy")
+	await _frames(1)
 
 	# -- MAIL CALL: real offline payload renders + keyboard acknowledge. --
 	tm.start_activity("sort_scrap_pile")
@@ -2549,3 +2567,118 @@ func _report_and_quit() -> void:
 		for f in failures:
 			printerr("  - " + f)
 		quit(1)
+
+
+# ------------------------------------------------------- T32 capture set
+## The run-5 Depot split (the user's words: "sell screens should be on a
+## separate screen from the buy screens"): the BUY tab (the stock counter
+## as shipped), the SELL tab (the PLAYER's holdings with the 1 / 10% / 25% /
+## 50% / 100% ladder and live values — no stock-list scroll), and the CUSTOM
+## field state (validated amount + exact proceeds). All states are LIVE
+## engine truth through the bound TickManager.
+const T32_DIR := "res://.impeccable/review/t32"
+
+func _capture_t32_sets() -> void:
+	if DirAccess.make_dir_recursive_absolute(T32_DIR) != OK:
+		_check(false, "t32 review dir created")
+		return
+	var tm: Node = _concourse.bound_tick_manager()
+	if tm == null:
+		_check(false, "t32 capture: engine bound")
+		return
+	var depot := _concourse.docket_controller("requisition_depot") as DocketDepot
+	_vp.size = Vector2i(1280, 720)
+	_concourse.font_slider.value = 0.0
+	tm.new_game(20260932)
+	_concourse.set_first_run(false)
+	tm.state.add_crowns(850)
+	tm.state.add_item("glowshroom", 125)
+	tm.state.add_item("duskcorn", 38)
+	tm.state.add_item("cloth_scraps", 64)
+	tm.state.add_item("scrap_metal", 40)
+	tm.state.add_item("copper_wiring", 27)
+	# Raw state staging marks its regions explicitly (the t10a set's rule —
+	# engine paths mark themselves, hand staging must too).
+	tm.batcher.mark("inventory")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	_concourse.select_department("requisition_depot", true)
+	await _frames(2)
+	_check(depot.active_tab() == "buy", "t32 capture: the BUY tab leads")
+	if not _snap_t32("t32_depot_buy_tab_1280x720.png"):
+		return
+	# The SELL tab: the resident's own holdings + the honest quantity ladder.
+	# The capture frames the ladder (the T33 deep link will scroll the target
+	# line into view the same way); the docket's shared scroll is the only
+	# scroll — the sell board adds none of its own.
+	depot.select_tab("sell")
+	tm.batcher.mark("inventory")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	await _frames(4)
+	_check(depot.sell_region.visible and not depot.buy_region.visible,
+		"t32 capture: the SELL board is the one posted")
+	_check((depot._sell_rows as Dictionary).size() == 5,
+		"t32 capture: the five staged stacks rendered as disposal lines")
+	var custom_btn := depot.find_child("SellCustom_glowshroom", true, false) as Button
+	_check(custom_btn != null, "t32 capture: the glowshroom ladder rendered")
+	if custom_btn == null:
+		return
+	_concourse.docket_scroll.ensure_control_visible(
+		depot.find_child("SellRow_cloth_scraps", true, false) as Control)
+	await _frames(2)
+	if not _snap_t32("t32_depot_sell_tab_1280x720.png"):
+		return
+	# CUSTOM: the validated inline field with a live, exact proceeds readout.
+	custom_btn.pressed.emit()
+	var field := depot.find_child("CustomField_glowshroom", true, false) as LineEdit
+	field.text = "42"
+	depot._on_custom_text_changed("42", "glowshroom")
+	_concourse.docket_scroll.ensure_control_visible(
+		depot.find_child("CustomRow_glowshroom", true, false) as Control)
+	await _frames(2)
+	_check((field.get_parent() as Control).visible, "t32 capture: the custom row is open")
+	_check((depot.find_child("CustomPreview_glowshroom", true, false) as Label).text
+		== "TENDER 42 · 84 CROWNS", "t32 capture: the proceeds preview is exact")
+	if not _snap_t32("t32_depot_custom_field_1280x720.png"):
+		return
+	_validate_t32_pngs()
+
+
+func _snap_t32(file_name: String) -> bool:
+	var img := _vp.get_texture().get_image()
+	if img == null:
+		print("HEADLESS_CAPTURE_UNSUPPORTED (dummy rasterizer returned no image)")
+		_capture_unsupported = true
+		quit(CAPTURE_UNSUPPORTED_EXIT)
+		_done = true
+		return false
+	var path := T32_DIR + "/" + file_name
+	var err := img.save_png(path)
+	_check(err == OK, "captured %s (err=%d)" % [path, err])
+	return true
+
+
+func _validate_t32_pngs() -> void:
+	var expects := {
+		"t32_depot_buy_tab_1280x720.png": Vector2i(1280, 720),
+		"t32_depot_sell_tab_1280x720.png": Vector2i(1280, 720),
+		"t32_depot_custom_field_1280x720.png": Vector2i(1280, 720),
+	}
+	for file_name: String in expects:
+		var path := T32_DIR + "/" + file_name
+		var fa := FileAccess.open(path, FileAccess.READ)
+		_check(fa != null and fa.get_length() > 1000, "%s saved with real content" % file_name)
+		if fa == null:
+			continue
+		fa.close()
+		var img := Image.load_from_file(path)
+		_check(img != null, "%s is a loadable image" % file_name)
+		if img == null:
+			continue
+		_check(Vector2i(img.get_width(), img.get_height()) == expects[file_name],
+			"%s dimensions %dx%d" % [file_name, img.get_width(), img.get_height()])
+		var colors := {}
+		for x in range(0, img.get_width(), 12):
+			for y in range(0, img.get_height(), 12):
+				colors[img.get_pixel(x, y).to_html(true)] = true
+		_check(colors.size() >= 12, "%s renders real content (%d distinct sampled colors)" % [
+			file_name, colors.size()])

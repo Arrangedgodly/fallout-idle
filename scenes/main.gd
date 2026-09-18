@@ -439,6 +439,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if key.is_command_or_control_pressed() or key.is_alt_pressed():
 		return
+	# T32: a focused text field owns the digits — normally the LineEdit
+	# consumes the key in the GUI phase and _unhandled_input never fires, but
+	# a text-bearing event that slips through (unusual input pipelines) must
+	# never teleport the resident to another department mid-posting.
+	var focused := get_viewport().gui_get_focus_owner()
+	if focused is LineEdit or focused is TextEdit:
+		return
 	var idx := HOTKEY_KEYS.find(key.keycode)
 	if idx < 0:
 		return

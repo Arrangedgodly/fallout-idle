@@ -484,14 +484,20 @@ func test_a3_icon_coverage_stats_gates_logs_and_prices() -> void:
 			buy_rows += 1
 			assert_eq(_glyph_count(row, "crowns"), 1,
 				"%s posts the crown mark beside its price" % row.name)
+	assert_gt(buy_rows, 5, "the whole stock ledger swept (%d rows)" % buy_rows)
+	# T32: the disposal board is its own tab — post the SELL tab to sweep it
+	# (the glyph discipline is unchanged; the rows hide with the BUY tab).
+	depot.select_tab(DocketDepot.TAB_SELL)
+	await wait_frames(1)
 	var sell_rows := 0
 	for row in depot.sell_box.get_children():
 		if row.name.begins_with("SellRow_"):
 			sell_rows += 1
 			assert_eq(_glyph_count(row, "crowns"), 1,
 				"%s posts the crown mark beside its tender" % row.name)
-	assert_gt(buy_rows, 5, "the whole stock ledger swept (%d rows)" % buy_rows)
 	assert_gte(sell_rows, 1, "disposal rows swept")
+	depot.select_tab(DocketDepot.TAB_BUY)
+	await wait_frames(1)
 	assert_eq(_glyph_count(depot.find_child("BuyRow_scrap_metal", true, false), "clearance_step"), 1,
 		"the gated stock line carries the staircase beside its grade")
 

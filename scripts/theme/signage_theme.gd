@@ -246,13 +246,16 @@ static func build() -> Theme:
 	th.set_color("selection_color", "LineEdit", Color(t.SIGNAL_AMBER, 0.30))
 	th.set_color("font_selected_color", "LineEdit", t.BONE_ENAMEL)
 	th.set_stylebox("normal", "LineEdit", _inset())
-	th.set_stylebox("focus", "LineEdit", _inset_focus())
+	# T32: the recessed field's focus state joins the shared focus contract —
+	# the same amber ring every other control draws (drawn OVER the inset
+	# normal, so the field keeps its recess and the ring keeps its halo).
+	th.set_stylebox("focus", "LineEdit", _focus_ring())
 	th.set_stylebox("read_only", "LineEdit", _disabled_plate(12, 8))
 	th.set_font("font", "TextEdit", f_body)
 	th.set_color("font_color", "TextEdit", t.BONE_ENAMEL)
 	th.set_color("caret_color", "TextEdit", t.SIGNAL_AMBER)
 	th.set_stylebox("normal", "TextEdit", _inset())
-	th.set_stylebox("focus", "TextEdit", _inset_focus())
+	th.set_stylebox("focus", "TextEdit", _focus_ring())
 
 	# -- ProgressBar (enamel gauge) ---------------------------------------------
 	th.set_stylebox("background", "ProgressBar", _gauge_track())
@@ -492,13 +495,6 @@ static func _inset(extra: int = 0) -> StyleBoxFlat:
 	sb.border_width_right = 1
 	sb.set_corner_radius_all(2)
 	return _margins(sb, 10, 7)
-
-static func _inset_focus() -> StyleBoxFlat:
-	var t := SignageTokens
-	var sb := _inset()
-	sb.border_color = t.SIGNAL_AMBER
-	sb.set_border_width_all(2)
-	return sb
 
 static func _chrome(bg: Color = Color(0, 0, 0, 0)) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()

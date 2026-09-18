@@ -563,6 +563,29 @@ func _font_scale_200_sweep() -> void:
 				printerr("  200%% %s focus not visible: %s %s" % [id, f.name, r])
 		_check(offscreen == 0, "200%% %s: focus scrolls every control into view" % id)
 
+		# T32: the depot's SELL tab is its own board — sweep it at 200% too
+		# (the quantity ladder, the custom field and their labels hide with
+		# the BUY tab, so the default-state sweep never sees them).
+		if id == "requisition_depot":
+			var depot_c := _concourse.docket_controller(id) as DocketDepot
+			_tm().state.add_item("glowshroom", 125)
+			_tm().batcher.mark("inventory")
+			_tm().batcher.force_flush(_tm().sim_time_ms)
+			depot_c.select_tab(DocketDepot.TAB_SELL)
+			await _frames(2)
+			var need_sell: float = depot_c.get_combined_minimum_size().x
+			_check(need_sell <= budget,
+				"200%% docket %s/SELL fits (%.0f <= %.0f)" % [id, need_sell, budget])
+			_collapse_sweep(_concourse, "200%% dept %s/SELL" % id)
+			(depot_c.find_child("SellCustom_glowshroom", true, false) as Button).pressed.emit()
+			await _frames(2)
+			var field: LineEdit = depot_c.find_child("CustomField_glowshroom", true, false)
+			_sweep_contrast(depot_c, "200%% depot SELL")
+			_check(field.get_global_rect().end.x <= 1280.5,
+				"200%% SELL: the custom field fits on window (%s)" % field.get_global_rect())
+			depot_c.select_tab(DocketDepot.TAB_BUY)
+			await _frames(1)
+
 	# The console stays fully on window (the flow-wrap fix).
 	var quit: Control = _concourse.quit_button
 	_check(quit.get_global_rect().end.x <= 1280.0 and quit.get_global_rect().position.y < 720.0,
