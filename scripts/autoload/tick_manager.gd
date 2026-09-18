@@ -299,6 +299,31 @@ func stop_skill(skill_id: String) -> void:
 	batcher.force_flush(sim_time_ms)
 
 
+# -- T31 REASSIGN façade (run-5: the refusal strip's one-press swap) --
+
+## The engine's validate-then-cease+start swap. Refusals return BEFORE any
+## mutation (never strands the resident); success adds "ceased" describing
+## the posting that made room ({} when none was ceased).
+func swap_posting(content_id: String, cease_skill_id := "") -> Dictionary:
+	var result: Dictionary = engine.swap_posting(state, content_id, sim_time_ms, cease_skill_id)
+	batcher.force_flush(sim_time_ms)
+	return result
+
+
+## The patrol's swap: cease a skill posting (or reuse a free one / switch
+## in-slot) and engage — the same validate-first, no-strand contract.
+func swap_engage(monster_id: String, cease_skill_id := "") -> Dictionary:
+	var result: Dictionary = combat.swap_engage(state, monster_id, sim_time_ms, cease_skill_id)
+	batcher.force_flush(sim_time_ms)
+	return result
+
+
+## The oldest held posting ({"skill_id"} / {"combat": true} / {}) — the
+## refusal strip's default cease target for the REASSIGN restatement.
+func oldest_posting() -> Dictionary:
+	return engine.oldest_posting(state)
+
+
 # -- T17 staffing façade (the PERSONNEL docket calls these) --
 
 ## Posting-board readouts for the UI (single source: the engine).

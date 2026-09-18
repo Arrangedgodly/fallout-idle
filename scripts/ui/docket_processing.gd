@@ -97,13 +97,24 @@ func _refresh_inventory_dependent() -> void:
 
 
 ## Refuse to post a dry recipe BEFORE the engine spins a doomed slot — the
-## stamp names exactly which lines came up short (mono counts).
+## T31 strip carries the refusal at the docket's top with the missing inputs
+## named (kind resources_refused, the engine's own validator voice), the
+## clicked card flashes its denial cue, and the log stamps the lines.
 func select_content(content_id: String) -> void:
 	var r: RecipeDef = lib().recipe(content_id)
 	if r != null and craftable_count(r) < 1:
 		var gate: Dictionary = tm.engine.gate_of(content_id)
 		if int(state().skills_level.get(gate["skill"], 1)) >= int(gate["level"]):
 			selected_id = content_id
+			var missing: Array = tm.engine.missing_inputs(state(), r)
+			present_refusal({
+				"ok": false,
+				"reason": "INSUFFICIENT SUPPLIES: %s" % ActivityEngine.missing_voice(missing),
+				"kind": ActivityEngine.KIND_RESOURCES,
+				"content_id": content_id,
+				"missing": missing,
+			})
+			_flash_card_denial(content_id)
 			stamp(log, "NOTHING TO WORK WITH · " + _inputs_missing_text(r))
 			_refresh({"activity": true, "inventory": true, "xp": true})
 			return

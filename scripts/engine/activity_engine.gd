@@ -47,6 +47,16 @@ const REFUSAL_KIND := "posting_refused"  ## refusal payload kind string
 const STOP_POSTING_SUSPENDED := "posting_suspended"  ## mail-call stopped reason
 const SUSPENDED_NOTICE := "POSTINGS SUSPENDED — PERSONNEL SHORTAGE"
 const MAX_DEPUTIES := 4  ## 1 resident + 4 deputies = 5 postings (all skills)
+## T31 refusal kinds (run-5 Scope Amendment 3: reason attribution must be
+## truthful). The slot-full refusal KEEPS the §14 machine id (posting_refused
+## — pinned by test_staffing); the other refusal families get their own kind
+## so the UI strip and tests can attribute the reason without parsing prose.
+const KIND_CLEARANCE := "clearance_refused"
+const KIND_RESOURCES := "resources_refused"
+## T31: the stopped reason when a posting is ceased by a REASSIGN swap (the
+## docket logs stamp it; distinct from "replaced" — the player asked for the
+## new posting, the engine made room).
+const STOP_REASSIGNED := "reassigned"
 ## CombatSession.PHASE_FIGHTING's value, spelled here because ActivityEngine
 ## and CombatSession statically type each other (a literal avoids the parse
 ## cycle); pinned equal by tests/test_staffing.gd.
@@ -215,6 +225,154 @@ func is_unlocked(state: PlayerState, content_id: String) -> bool:
 	return int(state.skills_level.get(gate["skill"], 1)) >= int(gate["level"])
 
 
+## T31 — the slot-independent start validator (every check that does not
+## depend on a posting being free). Returns {} when the content would pass
+## all of them, else the refusal result the swap path (and the UI strip)
+## posts: kind "clearance_refused" on gates, "resources_refused" when a
+## recipe's inputs fall short (missing named with counts). `start` itself
+## keeps its documented permissiveness (a dry recipe may be posted and stops
+## itself with STOP_INPUTS) — ONLY the swap demands the strict form, because
+## a swap that ceases first and fails second would strand the resident.
+func validate_start(state: PlayerState, content_id: String) -> Dictionary:
+	var def := def_of(content_id)
+	if def == null:
+		return {"ok": false, "reason": "unknown activity '%s'" % content_id,
+			"kind": "", "content_id": content_id}
+	var skill_id: String
+	if def is ActivityDef:
+		skill_id = (def as ActivityDef).skill
+	else:
+		skill_id = (def as RecipeDef).skill
+	var skill := lib.skill(skill_id)
+	if skill == null:
+		return {"ok": false, "reason": "activity '%s' references unknown skill '%s'" % [content_id, skill_id],
+			"kind": "", "content_id": content_id}
+	if skill.is_combat():
+		return {"ok": false, "reason": "combat is engaged from the Wasteland, not started here",
+			"kind": "", "content_id": content_id}
+	var gate_level := _gate_level_of(def)
+	if int(state.skills_level.get(skill_id, 1)) < gate_level:
+		return {"ok": false, "reason": "CLEARANCE %d REQUIRED (%s)" % [gate_level, skill.name],
+			"kind": KIND_CLEARANCE, "content_id": content_id,
+			"gate": {"skill": skill_id, "level": gate_level}}
+	if def is RecipeDef:
+		var missing := missing_inputs(state, def as RecipeDef)
+		if not missing.is_empty():
+			return {"ok": false, "reason": "INSUFFICIENT SUPPLIES: %s" % missing_voice(missing),
+				"kind": KIND_RESOURCES, "content_id": content_id, "missing": missing}
+	return {}
+
+
+## A recipe's short inputs as [{item, name, have, need}] (display name from
+## content; "" when the item record is gone). Public: the UI's honest-math
+## refusal strip names the same lines the swap validator refused on.
+func missing_inputs(state: PlayerState, rdef: RecipeDef) -> Array:
+	var out: Array = []
+	for input in rdef.inputs:
+		var have := state.item_count(input.item)
+		if have < input.qty:
+			var item: ItemDef = lib.item(input.item)
+			out.append({
+				"item": input.item,
+				"name": (item.name if item != null else input.item),
+				"have": have,
+				"need": int(input.qty),
+			})
+	return out
+
+
+## The supplies refusal's voice line: "2× ALMOST BULLION · 1× COMPLIANT WIRE"
+## (need × display name, plate idiom, no exclamation).
+static func missing_voice(missing: Array) -> String:
+	var parts: Array[String] = []
+	for m in missing:
+		parts.append("%d× %s" % [int(m["need"]), String(m["name"]).to_upper()])
+	return " · ".join(parts)
+
+
+## T31 REASSIGN — the engine swap path (run-5 Scope Amendment 3: a refused
+## start offers a one-press swap; "validated atomically"). Order of operations
+## is the whole contract:
+##   1. VALIDATE the new activity's slot-independent checks (validate_start:
+##      existence, clearance, recipe supplies). Any refusal returns BEFORE
+##      any mutation — the resident's current postings are untouched (never
+##      stranded mid-swap).
+##   2. Cease nothing when no cease is needed: the target skill's own slot
+##      reuses its posting, and a free posting opens directly (plain start).
+##   3. Otherwise cease the chosen posting — `cease_skill_id` when it still
+##      holds one, else the OLDEST held posting (the enforce_staffing order:
+##      skills on anchor_ms, an engaged patrol on engage_ms; ceasing the
+##      patrol withdraws it alive with its designation preserved) — then
+##      start into the freed posting. After step 1 the start cannot fail a
+##      non-slot check (proven) nor the slot check (a posting is free by
+##      construction), so the swap lands or nothing moved.
+## Success adds "ceased" = {"skill_id", "content_id"} or {"combat": true,
+## "content_id"} describing what made room ({} when none was ceased).
+func swap_posting(state: PlayerState, content_id: String, now_ms: int, cease_skill_id := "") -> Dictionary:
+	var veto := validate_start(state, content_id)
+	if not veto.is_empty():
+		return veto
+	var def := def_of(content_id)
+	var skill_id := (def as ActivityDef).skill if def is ActivityDef else (def as RecipeDef).skill
+	if state.active.has(skill_id) or free_postings(state) > 0:
+		var plain := start(state, content_id, now_ms)
+		if bool(plain.get("ok", false)):
+			plain["ceased"] = {}
+		return plain
+	var target := oldest_posting(state)
+	if cease_skill_id != "" and state.active.has(cease_skill_id):
+		target = {"skill_id": cease_skill_id}
+	var ceased := {}
+	if bool(target.get("combat", false)):
+		ceased = {"combat": true, "content_id": str(state.combat.get("monster_id", ""))}
+		cease_combat_posting(state)
+	elif target.has("skill_id"):
+		var victim := String(target["skill_id"])
+		ceased = {"skill_id": victim, "content_id": String(state.active[victim].content_id)}
+		cease_posting(state, victim)
+	var result := start(state, content_id, now_ms)
+	if bool(result.get("ok", false)):
+		result["ceased"] = ceased
+	return result
+
+
+## The oldest held posting: {"skill_id"} for a skill slot, {"combat": true}
+## for an engaged patrol (competing on engage_ms — the enforce_staffing
+## order), {} when nothing is held. The swap's default cease target.
+func oldest_posting(state: PlayerState) -> Dictionary:
+	var best_ms := 0
+	var best := {}
+	for skill_id in state.active:
+		var slot: PlayerState.ActiveSlot = state.active[skill_id]
+		if best.is_empty() or int(slot.anchor_ms) < best_ms:
+			best_ms = int(slot.anchor_ms)
+			best = {"skill_id": String(skill_id)}
+	if str(state.combat.get("phase", "idle")) == COMBAT_FIGHTING_PHASE:
+		var engaged := int(state.combat.get("engage_ms", 0))
+		if best.is_empty() or engaged < best_ms:
+			best = {"combat": true}
+	return best
+
+
+## Cease a named skill posting with the reassignment stop reason (public: the
+## CombatSession swap path ceases through the same seam — one stop id).
+func cease_posting(state: PlayerState, skill_id: String) -> void:
+	if state.active.has(skill_id):
+		_stop_slot(state, state.active[skill_id], STOP_REASSIGNED)
+
+
+## The patrol's cease twin: withdraw alive, pendings cleared, designation
+## preserved (state.combat.monster_id) — the same withdrawal shape
+## enforce_staffing applies to an over-subscribed patrol. Not a
+## combat_ended outcome (no victory/death occurred; the T17 precedent).
+func cease_combat_posting(state: PlayerState) -> void:
+	if str(state.combat.get("phase", "idle")) == COMBAT_FIGHTING_PHASE:
+		state.combat["phase"] = "idle"
+		state.combat["p_next_ms"] = 0
+		state.combat["m_next_ms"] = 0
+		batcher.mark("combat")
+
+
 ## Start (or switch) the skill's active slot. Replaces any current slot on
 ## that skill (emits activity_stopped STOP_REPLACED). Returns
 ## {"ok": bool, "reason": ""} — gate failures carry CLEARANCE wording for T10;
@@ -241,7 +399,9 @@ func start(state: PlayerState, content_id: String, now_ms: int) -> Dictionary:
 		return {"ok": false, "reason": "combat is engaged from the Wasteland, not started here"}
 	var gate_level := _gate_level_of(def)
 	if int(state.skills_level.get(skill_id, 1)) < gate_level:
-		return {"ok": false, "reason": "CLEARANCE %d REQUIRED (%s)" % [gate_level, skill.name]}
+		return {"ok": false, "reason": "CLEARANCE %d REQUIRED (%s)" % [gate_level, skill.name],
+			"kind": KIND_CLEARANCE, "content_id": content_id,
+			"gate": {"skill": skill_id, "level": gate_level}}
 	# T17 posting board: switching THIS skill's own slot keeps its posting
 	# (occupied count unchanged); opening a posting on a new skill with none
 	# free is REFUSED — no state change, never silent preemption.

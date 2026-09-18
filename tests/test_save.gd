@@ -648,104 +648,178 @@ func test_p0_legacy_bare_number_rng_exact_clamped_and_notice() -> void:
 
 
 ## (d) The REAL user chain: read-only COPIES of the actual user:// records
-## (the quarantined primary + the 3-slot ring, ~20 min of play, v1->v2
-## migrated with a suspended foraging posting) load green through the
-## tolerant loader. Binding discipline: no store EVER points at the real
-## user:// — every load runs against an OS temp copy — and the test pins
-## byte-equality of the real files before/after as the read-only proof. The
-## chain is machine-local evidence; where it is absent the test passes with
-## an explicit marker (nothing to pin elsewhere).
+## (the live primary + the 3-slot ring + the quarantined predecessor) load
+## green through the tolerant loader. T31 RE-PIN (run 5): the assertions are
+## STRUCTURAL, keyed to each record's OWN parsed contents — identity (the
+## loaded active/suspended/xp state equals the file's), load mechanics
+## (newest-good wins, ring walk lands on bak1, repair cycle), and shape
+## sanity (orientation/suspended/active well-typed) — never stale literals.
+## The user's save advances every session; a pinned action count or a pinned
+## legacy-rng shape would fail the day after it was written (proven
+## environmental at T30: bak1 completed=58865 vs the T28-era 10237 pin).
+## Binding discipline: no store EVER points at the real user:// — every load
+## runs against an OS temp copy — and the test pins byte-equality of the
+## real files before/after as the read-only proof. The chain is
+## machine-local evidence; where it is absent the test passes with an
+## explicit marker (nothing to pin elsewhere).
 func test_p0_real_user_chain_loads_from_read_only_temp_copy() -> void:
 	var user_dir := ProjectSettings.globalize_path("user://")
 	var chain := [
-		"save.json.corrupt-1789605304",  # the quarantined primary (the newest record)
+		"save.json",                     # the live primary (the newest record)
 		"save.json.bak1", "save.json.bak2", "save.json.bak3",
+		"save.json.corrupt-1789605304",  # the quarantined P0-era primary
 	]
 	for fname in chain:
 		if not FileAccess.file_exists(user_dir.path_join(String(fname))):
 			assert_true(true, "real user chain absent on this machine — the copy proof only runs where it exists")
 			return
 	var bytes_before := {}
+	var docs := {}
 	for fname in chain:
 		bytes_before[String(fname)] = _read(user_dir.path_join(String(fname)))
+		docs[String(fname)] = JSON.parse_string(bytes_before[String(fname)])
+		assert_true(docs[String(fname)] is Dictionary, "%s parses (the chain is loadable evidence)" % fname)
 
-	# Each record alone, as the primary of its own temp base dir.
-	# NOTE on xp: a load also SETTLES pending objective stamps (ObjectivesTracker
-	# .settle_offline evaluates at every load, zero gap included — these
-	# records carry satisfied counters with stamped:[]), so loaded xp == file
-	# xp + the deterministic reward legs (a uniform +75 scavenging COMMENDATION
-	# at current content). Record IDENTITY is pinned by the completed-action
-	# count, which a zero-gap load never moves; the xp delta is asserted to
-	# ride exactly the mail payload's reward leg.
+	# Each record alone, as the primary of its own temp base dir: the loaded
+	# state equals THE FILE'S OWN contents (identity, not literals).
 	for fname in chain:
+		var doc: Dictionary = docs[String(fname)]
 		var solo := _tmp_dir("p0usersolo")
 		DirAccess.make_dir_recursive_absolute(solo)
 		DirAccess.copy_absolute(user_dir.path_join(String(fname)), solo.path_join("save.json"))
-		var source_doc: Dictionary = JSON.parse_string(_read(user_dir.path_join(String(fname))))
-		var expected_xp := int(source_doc["engine"]["skills_xp"]["scavenging"])
-		var expected_completed := int(source_doc["engine"]["active"]["scavenging"]["completed"])
 		var tm: Variant = _make_tm()
 		var store: Variant = _make_store(solo, tm, NOW)
 		assert_eq(String(store.load_report["loaded_from"]), "save.json",
 			"%s loads as its own primary through the tolerant loader" % fname)
 		assert_eq(store.notice, {}, "%s: clean load — repair, not a corruption event" % fname)
-		assert_eq(int(tm.state.active["scavenging"].completed), expected_completed,
-			"%s: its OWN record landed (completed identity, %d)" % [fname, expected_completed])
-		var xp_gain := int((tm.state.last_mail_call.get("skills_xp", {}) as Dictionary).get("scavenging", 0))
-		assert_eq(int(tm.state.skills_xp["scavenging"]), expected_xp + xp_gain,
-			"%s: file xp + exactly the mail payload's reward leg (settle-at-load)" % fname)
+		# Active identity: every skill the file runs, loaded with its own
+		# content id and its own completed count (a zero-gap load never moves
+		# completed).
+		var doc_active: Dictionary = doc["engine"]["active"]
+		assert_eq(tm.state.active.keys().size(), doc_active.keys().size(),
+			"%s: the file's own active slots landed" % fname)
+		for skill_id in doc_active:
+			assert_true(tm.state.active.has(String(skill_id)),
+				"%s: active %s landed" % [fname, skill_id])
+			assert_eq(str(tm.state.active[String(skill_id)].get("content_id")),
+				str(doc_active[skill_id]["content_id"]),
+				"%s: %s runs its own posting" % [fname, skill_id])
+			assert_eq(int(tm.state.active[String(skill_id)].get("completed")),
+				int(doc_active[skill_id]["completed"]),
+				"%s: %s keeps its own completed count (identity, %d)" % [
+					fname, skill_id, int(doc_active[skill_id]["completed"])])
+		# XP: file value + exactly the mail payload's settle legs (a zero-gap
+		# load still settles pending objective stamps — reward legs ride the
+		# payload, so the sum pins attribution without pinning amounts).
+		var doc_xp: Dictionary = doc["engine"]["skills_xp"]
+		for skill_id in doc_xp:
+			var gain := int((tm.state.last_mail_call.get("skills_xp", {}) as Dictionary).get(String(skill_id), 0))
+			assert_eq(int(tm.state.skills_xp[String(skill_id)]), int(doc_xp[skill_id]) + gain,
+				"%s: %s xp == file xp + exactly the settle leg" % [fname, skill_id])
 		assert_eq(int(tm.state.last_mail_call.get("elapsed_ms", -1)), 0,
 			"%s: zero away gap — nothing but the settle ran" % fname)
-		assert_eq((tm.state.orientation.get("steps_done", []) as Array).size(), 2,
-			"%s: orientation 2/7 steps" % fname)
-		var suspended_r: Dictionary = tm.state.staffing["suspended"]
-		assert_true(suspended_r.has("foraging"), "%s: the foraging posting stays parked" % fname)
-		assert_eq(int(suspended_r["foraging"]["rng_seed"]), -9007199254740991,
-			"%s: legacy parked seed clamps to the negative bound" % fname)
-		assert_eq(int(suspended_r["foraging"]["rng_state"]), 9007199254740991,
-			"%s: legacy parked state clamps to the positive bound" % fname)
-		assert_true(tm.state.staffing.has("rng_legacy_clamped"), "%s: the repair notice is present" % fname)
-		assert_eq(str(tm.state.active["scavenging"].content_id), "sort_scrap_pile",
-			"%s: the active posting is the scrap sort" % fname)
+		# Orientation shape: the file's own step list, valid ids, sane bounds.
+		var doc_steps: Array = doc["engine"].get("orientation", {}).get("steps_done", [])
+		var loaded_steps: Array = tm.state.orientation.get("steps_done", [])
+		assert_eq(loaded_steps, doc_steps, "%s: the form carries its own stamps" % fname)
+		assert_true(loaded_steps.size() <= 7, "%s: step count within the form's 7 rows" % fname)
+		for sid in loaded_steps:
+			assert_true(OrientationTracker.STEPS.has(str(sid)),
+				"%s: step id '%s' is a real form row" % [fname, sid])
+		# Suspended shape + rng form: parked postings keep their own record;
+		# string rng loads EXACTLY, legacy bare numbers (the pre-P0 shape)
+		# clamp to the exact-representable bound with the one-line repair
+		# notice — and the notice appears IFF the record actually shipped
+		# legacy fields.
+		var doc_susp: Dictionary = doc["engine"]["staffing"]["suspended"]
+		var loaded_susp: Dictionary = tm.state.staffing["suspended"]
+		assert_eq(loaded_susp.keys().size(), doc_susp.keys().size(),
+			"%s: parked postings exactly as the file holds" % fname)
+		var legacy := false
+		for skill_id in doc_susp:
+			assert_true(loaded_susp.has(String(skill_id)),
+				"%s: %s stays parked" % [fname, skill_id])
+			var parked: Dictionary = loaded_susp[String(skill_id)]
+			var doc_slot: Dictionary = doc_susp[skill_id]
+			assert_eq(str(parked.get("content_id")), str(doc_slot.get("content_id")),
+				"%s: parked %s keeps its selection" % [fname, skill_id])
+			assert_eq(int(parked.get("completed")), int(doc_slot.get("completed")),
+				"%s: parked %s keeps its own completed" % [fname, skill_id])
+			for rng_key in ["rng_seed", "rng_state"]:
+				var rv: Variant = doc_slot.get(rng_key)
+				if rv is String:
+					assert_eq(int(parked[rng_key]), int(str(rv)),
+						"%s: parked %s.%s loads EXACTLY through the string form" % [fname, skill_id, rng_key])
+				else:
+					legacy = true
+					var f := float(rv)
+					# INT arithmetic for the bound: the FLOAT literal
+					# 9007199254740991.0 rounds to ...990 in GDScript — the
+					# loader clamps to the int bound ±(2^53−1) exactly.
+					var expected := int(f) if absf(f) < 9007199254740992.0 \
+						else int(signf(f)) * 9007199254740991
+					assert_eq(int(parked[rng_key]), expected,
+						"%s: parked %s.%s coerces (clamped past the 2^53 cliff)" % [fname, skill_id, rng_key])
+		assert_eq(tm.state.staffing.has("rng_legacy_clamped"), legacy,
+			"%s: the repair notice posts exactly when legacy bare rng shipped" % fname)
+		assert_eq(int(tm.state.staffing["deputies"]), int(doc["engine"]["staffing"]["deputies"]),
+			"%s: the establishment size is the file's own" % fname)
 
-	# The whole chain in one base dir (primary restored from quarantine +
-	# ring): newest-good wins — the restored primary IS the newest record.
+	# The whole chain in one base dir (primary + ring): newest-good wins —
+	# the live primary IS the newest record, and the walk takes it.
 	var together := _tmp_dir("p0userchain")
 	DirAccess.make_dir_recursive_absolute(together)
 	for bak in ["save.json.bak3", "save.json.bak2", "save.json.bak1"]:  # oldest first: copy order == mtime order
 		DirAccess.copy_absolute(user_dir.path_join(bak), together.path_join(bak))
-	DirAccess.copy_absolute(user_dir.path_join("save.json.corrupt-1789605304"), together.path_join("save.json"))
+	DirAccess.copy_absolute(user_dir.path_join("save.json"), together.path_join("save.json"))
 	var tm_c: Variant = _make_tm()
 	var store_c: Variant = _make_store(together, tm_c, NOW)
 	assert_eq(String(store_c.load_report["loaded_from"]), "save.json",
-		"newest-good wins: the restored primary (the file HEAD quarantined) loads")
-	assert_eq(int(tm_c.state.active["scavenging"].completed), 10277,
-		"the primary's own record (completed identity) — not a ring fallback")
-	assert_true((tm_c.state.staffing["suspended"] as Dictionary).has("foraging"), "foraging parked")
+		"newest-good wins: the live primary loads, not a ring fallback")
+	var primary_doc: Dictionary = docs["save.json"]
+	for skill_id in primary_doc["engine"]["active"]:
+		assert_eq(int(tm_c.state.active[String(skill_id)].get("completed")),
+			int(primary_doc["engine"]["active"][skill_id]["completed"]),
+			"the primary's OWN record landed (identity, not a ring member)")
 	assert_eq(_count_files(together, "save.json.corrupt-"), 0, "no new quarantine in the temp copy")
 
 	# Ring-only (primary removed from the TEMP copy): bak1 is the newest
-	# last-good and wins the walk.
+	# last-good and wins the walk — carrying ITS OWN record.
 	DirAccess.remove_absolute(together.path_join("save.json"))
 	var tm_b: Variant = _make_tm()
 	var store_b: Variant = _make_store(together, tm_b, NOW)
-	assert_eq(String(store_b.load_report["loaded_from"]), "save.json.bak1", "ring walk lands on bak1 (newest last-good)")
-	assert_eq(int(tm_b.state.active["scavenging"].completed), 10237, "bak1's own record (completed identity)")
+	assert_eq(String(store_b.load_report["loaded_from"]), "save.json.bak1",
+		"ring walk lands on bak1 (newest last-good)")
+	var bak1_doc: Dictionary = docs["save.json.bak1"]
+	for skill_id in bak1_doc["engine"]["active"]:
+		assert_eq(int(tm_b.state.active[String(skill_id)].get("completed")),
+			int(bak1_doc["engine"]["active"][skill_id]["completed"]),
+			"bak1's OWN record landed (identity, not the primary's)")
 
-	# The repair cycle on a solo copy: load -> re-file -> reload clean.
+	# The repair cycle on a solo copy of the quarantined P0-era record:
+	# load -> re-file -> reload clean; a legacy bare-number record re-files
+	# as clean strings (the transient notice drops after one cycle).
 	var repaired := _tmp_dir("p0userrepair")
 	DirAccess.make_dir_recursive_absolute(repaired)
 	DirAccess.copy_absolute(user_dir.path_join("save.json.corrupt-1789605304"), repaired.path_join("save.json"))
 	var tm_x: Variant = _make_tm()
 	var store_x: Variant = _make_store(repaired, tm_x, NOW)
-	assert_true(store_x.save_now(NOW + 1_000)["ok"], "the repaired record re-files (in the temp copy)")
+	assert_true(store_x.save_now(NOW + 1_000)["ok"], "the loaded record re-files (in the temp copy)")
+	var corrupt_doc: Dictionary = docs["save.json.corrupt-1789605304"]
+	var corrupt_legacy := false
+	for skill_id in corrupt_doc["engine"]["staffing"]["suspended"]:
+		for rng_key in ["rng_seed", "rng_state"]:
+			if not (corrupt_doc["engine"]["staffing"]["suspended"][skill_id][rng_key] is String):
+				corrupt_legacy = true
+	var refiled_doc: Dictionary = JSON.parse_string(_read(repaired.path_join("save.json")))
+	if corrupt_legacy:
+		assert_true(typeof(refiled_doc["engine"]["staffing"]["suspended"]["foraging"]["rng_state"]) == TYPE_STRING,
+			"the re-filed parked rng is a clean string (legacy shape repaired)")
 	var tm_y: Variant = _make_tm()
 	var store_y: Variant = _make_store(repaired, tm_y, NOW + 1_000)
 	assert_eq(String(store_y.load_report["loaded_from"]), "save.json", "the re-filed record reloads clean")
-	assert_false(tm_y.state.staffing.has("rng_legacy_clamped"), "the transient notice is gone after one cycle")
-	var refiled_doc: Dictionary = JSON.parse_string(_read(repaired.path_join("save.json")))
-	assert_true(typeof(refiled_doc["engine"]["staffing"]["suspended"]["foraging"]["rng_state"]) == TYPE_STRING,
-		"the re-filed parked rng is a clean string")
+	assert_false(tm_y.state.staffing.has("rng_legacy_clamped"),
+		"the transient notice is gone after one clean re-file")
 
 	# The read-only proof: the real dir is byte-identical after everything
 	# (copies only; the .corrupt quarantine itself is deliberately left as-is).

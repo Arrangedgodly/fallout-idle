@@ -69,6 +69,7 @@ const FONT_SIZE_BASES := [
 	["PaperTitle", "Label", 24],
 	["FormTitle", "Label", 18],
 	["FormTitleEnergized", "Label", 18],
+	["FormTitleDanger", "Label", 18],
 	["MonoValue", "Label", 17],
 	["MonoValueEnergized", "Label", 17],
 	["MonoBig", "Label", 26],
@@ -126,6 +127,12 @@ static func build() -> Theme:
 	_label_var(th, "PaperTitle", f_plate_title, t.INSTITUTIONAL_NAVY)
 	_label_var(th, "FormTitle", f_plate, t.INSTITUTIONAL_NAVY)
 	_label_var(th, "FormTitleEnergized", f_plate, t.SIGNAL_AMBER)
+	# T31 refusal feedback: the inline card denial cue — red ink on the bone
+	# card ground, the REGISTERED "red ink on bone enamel" body pair (same
+	# stencil face as FormTitle). The cue is never color-alone: the title
+	# carries a "× " prefix for the flash's duration (the T31 strip carries
+	# the reason; the flash only marks the clicked card).
+	_label_var(th, "FormTitleDanger", f_plate, t.SAFETY_RED)
 	_label_var(th, "MonoValue", f_mono, t.BONE_ENAMEL)
 	_label_var(th, "MonoValueEnergized", f_mono_b, t.SIGNAL_AMBER)
 	_label_var(th, "MonoBig", f_mono_b, t.BONE_ENAMEL)

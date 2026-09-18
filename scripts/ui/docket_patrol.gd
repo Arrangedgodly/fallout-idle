@@ -187,6 +187,11 @@ class FaunaCard:
 func _build_content() -> void:
 	add_theme_constant_override("separation", 14)
 
+	# T31: the refusal strip posts at the TOP of the docket (child index 0,
+	# in-flow — the run-5 amendment; a refused ENGAGE answers where the
+	# resident is looking, with the REASSIGN path on posting refusals).
+	add_child(build_refusal_strip())
+
 	# ZONE SECURED — the win-moment certificate, posted once the boss falls
 	# (state.combat.zone_clear; persistent through save/load).
 	zone_plate = panel_box("PaperNotice")
@@ -637,6 +642,11 @@ func _on_card_pressed(monster_id: String) -> void:
 	_engage(monster_id)
 
 
+## Engage a designation. Every refusal answers in three places at once (T31):
+## the notice strip at the docket's top states the reason in voice with
+## truthful attribution, the clicked fauna card flashes its "× " denial cue
+## at the click point, and the patrol log carries the stamp. A successful
+## engage clears any standing strip.
 func _engage(monster_id: String) -> void:
 	if tm == null or state() == null:
 		return
@@ -646,13 +656,46 @@ func _engage(monster_id: String) -> void:
 	if bool(result["ok"]):
 		_stamp("PATROL ENGAGED — %s" % mname,
 			icon_texture(mdef.icon) if mdef != null else null)
+		clear_refusal_strip()
 	elif str(result.get("kind", "")) == "posting_refused":
-		_stamp("POSTING REFUSED — ALL DEPUTIES ARE ASSIGNED. THE DIRECTIVE IS POSTED BELOW.",
+		present_refusal(result, "ZONE")
+		_flash_card_denial(monster_id)
+		_stamp("POSTING REFUSED — ALL POSTINGS ASSIGNED. THE NOTICE ABOVE OFFERS REASSIGN.",
 			icon_texture(GLYPH_BADGE))
 	else:
+		present_refusal(result, "ZONE")
+		_flash_card_denial(monster_id)
 		_stamp("%s · ELEVATION IS EARNED, NOT REQUESTED" % str(result["reason"]).to_upper(),
 			icon_texture(GLYPH_CLEARANCE))
 	_refresh({"combat": true, "inventory": true, "xp": true})
+
+
+## T31: the patrol's REASSIGN routes to the combat swap (validate-first,
+## never strands a fighting patrol).
+func _perform_reassign() -> Dictionary:
+	return tm.swap_engage(_strip_content_id, _strip_cease_skill)
+
+
+## T31: the patrol docket's content names are monsters (the base def_of
+## lookup covers activities + recipes only).
+func _strip_content_name(content_id: String) -> String:
+	var mdef: MonsterDef = lib().monster(content_id) if lib() != null else null
+	return mdef.name.to_upper() if mdef != null else content_id.to_upper()
+
+
+## T31: a successful patrol REASSIGN through the strip.
+func _on_reassign_success(result: Dictionary) -> void:
+	if log == null:
+		return
+	var mdef: MonsterDef = lib().monster(_strip_content_id)
+	_stamp("PATROL ENGAGED — %s" % _strip_content_name(_strip_content_id),
+		icon_texture(mdef.icon) if mdef != null else null)
+	var ceased: Dictionary = result.get("ceased", {})
+	if ceased.is_empty():
+		return
+	var ceased_id := str(ceased.get("content_id", ""))
+	var ceased_name := _strip_content_name(ceased_id) if not ceased_id.is_empty() else "WASTELAND PATROL"
+	_stamp("ROOM MADE — %s CEASED BY REASSIGNMENT." % ceased_name, icon_texture(GLYPH_BADGE))
 
 
 ## The shell's big stencled button: ENGAGE PATROL <-> WITHDRAW PATROL.
@@ -715,6 +758,7 @@ func _refresh(changes: Dictionary) -> void:
 	if changes.has("inventory"):
 		_refresh_food()
 	refresh_refusal_plate()
+	refresh_refusal_strip()
 	# T26: the EXTERIOR DOSSIER re-reads on stamps (objectives region) and,
 	# while expanded, on the live-counter regions (kill/equip/zone counters
 	# move with combat + inventory + xp flushes) — folded, it shows only
@@ -891,6 +935,50 @@ func _apply_card_state(card: FaunaCard, mdef: MonsterDef, energized: bool, locke
 	# dockets' "EARNED BY WORKING THIS DEPARTMENT'S POSTED SHIFTS".
 	card.gate_text.text = gate_line
 	card.gate_plate.visible = locked
+	if bool(_deny_active.get(card.id, false)):
+		# T31: a live denial flash owns the title (the click point is
+		# answering); the canonical re-write happens at the flash's revert.
+		card.title.theme_type_variation = "FormTitleDanger"
+		card.title.text = "× " + _strip_content_name(card.id)
+
+
+# ------------------------------------------------------- T31 denial flash
+## The clicked fauna card answers AT the click point: a "× " prefix in red
+## ink (FormTitleDanger — the registered red-on-bone pair; the prefix is the
+## non-color cue) for one bounded flash, then the canonical state re-applies.
+## Token-guarded (one flash, never stacked). The FaunaCard._applied signature
+## guard happens to protect the flash: a flush whose canonical state is
+## unchanged writes nothing, so only the revert restores the title.
+const DENIAL_FLASH_S := 0.45
+
+var _deny_active := {}  # monster_id -> true while the flash is live
+
+
+func _flash_card_denial(monster_id: String) -> void:
+	var card: FaunaCard = _cards.get(monster_id)
+	if card == null or not card.button.is_inside_tree():
+		return
+	_deny_active[monster_id] = true
+	card.title.theme_type_variation = "FormTitleDanger"
+	card.title.text = "× " + _strip_content_name(monster_id)
+	var token := _deny_token(monster_id) + 1
+	card.button.set_meta("deny_token", token)
+	get_tree().create_timer(DENIAL_FLASH_S).timeout.connect(func() -> void:
+		if not is_inside_tree():
+			_deny_active.erase(monster_id)
+			return
+		if int(card.button.get_meta("deny_token", -1)) != token:
+			return  # superseded by a newer flash
+		_deny_active.erase(monster_id)
+		var mdef: MonsterDef = lib().monster(monster_id)
+		if mdef == null or tm == null or state() == null:
+			return
+		_apply_card_state(card, mdef, str(state().combat.get("monster_id", "")) == monster_id,
+			_combat_level() < mdef.level_gate))
+
+
+func _deny_token(monster_id: String) -> int:
+	return int(_cards[monster_id].button.get_meta("deny_token", -1)) if _cards.has(monster_id) else -1
 
 
 func _refresh_slots(stats: Dictionary) -> void:

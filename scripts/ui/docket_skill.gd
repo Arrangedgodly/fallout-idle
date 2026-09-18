@@ -68,6 +68,11 @@ const STAMP_CAP := 60
 func _build_content() -> void:
 	add_theme_constant_override("separation", 14)
 
+	# T31: the refusal strip posts at the TOP of the docket (child index 0,
+	# in-flow — the run-5 amendment: refused clicks answer where the resident
+	# is looking, never below the fold).
+	add_child(build_refusal_strip())
+
 	status_plate = panel_box("EnergizedPlate")
 	status_plate.visible = false
 	# T15 fix round: the running-status line + serial STACK as full-width
@@ -247,18 +252,26 @@ func _on_card_pressed(content_id: String) -> void:
 
 
 ## Post a shift: select + start through the engine façade (the engine owns
-## every rule; the docket only renders results). A gate denial stamps the
-## clearance line; a POSTING REFUSED result stamps the fact and leaves the
-## directive plate standing (it withdraws when a posting frees).
+## every rule; the docket only renders results). EVERY refusal answers in
+## three places at once (T31 — the run-5 amendment: feedback the resident
+## cannot miss): the notice strip at the docket's top states the REASON in
+## voice with truthful attribution (the result's actual kind), the clicked
+## card flashes its "× " denial cue at the click point, and the log carries
+## the stamp. A successful post clears any standing strip.
 func select_content(content_id: String) -> void:
 	selected_id = content_id
 	var result: Dictionary = tm.start_activity(content_id)
 	if bool(result["ok"]):
 		stamp(log, _start_stamp_text(content_id), _start_stamp_icon(content_id))
+		clear_refusal_strip()
 	elif str(result.get("kind", "")) == "posting_refused":
-		stamp(log, "POSTING REFUSED — ALL DEPUTIES ARE ASSIGNED. THE DIRECTIVE IS POSTED BELOW.",
+		present_refusal(result)
+		_flash_card_denial(content_id)
+		stamp(log, "POSTING REFUSED — ALL POSTINGS ASSIGNED. THE NOTICE ABOVE OFFERS REASSIGN.",
 			icon_texture(GLYPH_BADGE))
 	else:
+		present_refusal(result)
+		_flash_card_denial(content_id)
 		stamp(log, _denied_stamp_text(str(result["reason"])), icon_texture(GLYPH_CLEARANCE))
 	_refresh({"activity": true, "inventory": true, "xp": true})
 
@@ -345,6 +358,7 @@ func _refresh(changes: Dictionary) -> void:
 		_stamp_inventory_deltas()
 		_refresh_inventory_dependent()
 	refresh_refusal_plate()
+	refresh_refusal_strip()
 	# T26: the dossier register re-reads engine truth when its rows can have
 	# moved — ALWAYS on a stamp (the objectives region: summary + dimming),
 	# and while EXPANDED on the live-counter regions (the row readouts read
@@ -403,6 +417,7 @@ func _refresh_activity() -> void:
 func _apply_card_state(card: Card, energized: bool, locked: bool) -> void:
 	var def: RefCounted = tm.engine.def_of(card.id)
 	var display_name: String = str(def.get("name")) if def != null else card.id
+	var deny_live: bool = bool(_deny_active.get(card.id, false))
 	if energized:
 		card.button.theme_type_variation = "Energized"
 		card.title.theme_type_variation = "FormTitleEnergized"
@@ -415,8 +430,50 @@ func _apply_card_state(card: Card, energized: bool, locked: bool) -> void:
 		card.title.text = display_name
 		set_flow_variation(card.rate_line, "PlateSerialNavy")
 		set_flow_variation(card.yields_line, "PlateSerialNavy")
+	if deny_live:
+		# T31: a live denial flash owns the title (the click point is
+		# answering); the canonical re-write happens at the flash's revert.
+		card.title.theme_type_variation = "FormTitleDanger"
+		card.title.text = "× " + display_name.to_upper()
 	card.gate_text.text = _gate_text(card.id)
 	card.gate_plate.visible = locked
+
+
+# ------------------------------------------------------- T31 denial flash
+## The clicked card answers AT the click point: its title carries a "× "
+## prefix in red ink (FormTitleDanger — the registered red-on-bone pair; the
+## prefix is the non-color cue) for one bounded flash, then the card reverts
+## to its canonical state. Token-guarded: a second refusal restarts one
+## flash, never stacks. While the flash is live, _apply_card_state leaves the
+## title alone (a 4 Hz flush must not cut the answer short).
+const DENIAL_FLASH_S := 0.45
+
+var _deny_active := {}  # content_id -> true while the flash is live
+
+
+func _flash_card_denial(content_id: String) -> void:
+	var card: Card = _cards.get(content_id)
+	if card == null or not card.button.is_inside_tree():
+		return
+	_deny_active[content_id] = true
+	card.title.theme_type_variation = "FormTitleDanger"
+	card.title.text = "× " + _content_name(content_id).to_upper()
+	var token := _deny_token(content_id) + 1
+	card.button.set_meta("deny_token", token)
+	get_tree().create_timer(DENIAL_FLASH_S).timeout.connect(func() -> void:
+		if not is_inside_tree():
+			_deny_active.erase(content_id)
+			return
+		if int(card.button.get_meta("deny_token", -1)) != token:
+			return  # superseded by a newer flash
+		_deny_active.erase(content_id)
+		var slot = state().active.get(skill_id) if state() != null else null
+		var running := slot != null and String(slot.get("content_id")) == content_id
+		_apply_card_state(card, running, not tm.engine.is_unlocked(state(), content_id)))
+
+
+func _deny_token(content_id: String) -> int:
+	return int(_cards[content_id].button.get_meta("deny_token", -1)) if _cards.has(content_id) else -1
 
 
 func _gate_text(content_id: String) -> String:
@@ -504,6 +561,22 @@ func _on_dossier_completed(payload: Dictionary) -> void:
 		stamp(log, str(payload.get("stamp_line", "")), icon_texture(GLYPH_STAMP))
 
 
+## T31: a successful REASSIGN through the strip — the log carries the fact
+## (the strip carries the confirmation).
+func _on_reassign_success(result: Dictionary) -> void:
+	if log == null:
+		return
+	stamp(log, _start_stamp_text(_strip_content_id), _start_stamp_icon(_strip_content_id))
+	var ceased: Dictionary = result.get("ceased", {})
+	if ceased.is_empty():
+		return
+	var ceased_id := str(ceased.get("content_id", ""))
+	var ceased_name: String = _content_name(ceased_id).to_upper() if not ceased_id.is_empty() \
+		else "WASTELAND PATROL"
+	stamp(log, "ROOM MADE — %s CEASED BY REASSIGNMENT." % ceased_name,
+		icon_texture(GLYPH_BADGE))
+
+
 func _on_activity_stopped(skill: String, _content_id: String, reason: String) -> void:
 	if skill != skill_id:
 		return
@@ -512,4 +585,7 @@ func _on_activity_stopped(skill: String, _content_id: String, reason: String) ->
 			stamp(log, "SUPPLIES EXHAUSTED · SHIFT ENDED. REQUISITION MORE.")
 		"content_missing":
 			stamp(log, "POSTING WITHDRAWN BY THE DEPARTMENT.")
+		ActivityEngine.STOP_REASSIGNED:
+			stamp(log, "POSTING CEASED BY REASSIGNMENT — ROOM MADE FOR ANOTHER DEPARTMENT.",
+				icon_texture(GLYPH_BADGE))
 	super._on_activity_stopped(skill, _content_id, reason)

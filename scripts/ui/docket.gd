@@ -344,6 +344,276 @@ func glyph_beside(glyph_id: String, wrapped: Label, glyph_size := GLYPH_READ) ->
 	return row
 
 
+# ------------------------------------------------- T31 refusal strip (run 5)
+## The IMMEDIATE refusal feedback (Scope Amendment 3: "there is no UI
+## feedback when you click a skill and it doesn't engage"). A stamped notice
+## strip pinned at the TOP of the docket — child index 0, in-flow, taking
+## layout space (the T29 docked-strip discipline; never below the fold, never
+## an overlay) — stating the refusal's REASON in voice with truthful
+## attribution (the engine result's actual kind: postings / clearance /
+## supplies; supplies name the missing inputs with counts).
+##
+## On posting refusals the strip carries a one-press REASSIGN (the engine's
+## validate-then-cease+start swap; the strip restates what will happen:
+## "REASSIGN — CEASE SCAVENGING, COMMENCE COOKING") and after the swap it
+## confirms ("POSTING REASSIGNED" + what actually ceased — engine truth, so
+## the line stays honest even when the named target aged out).
+##
+## Clearing rules (never a standing lie): truth-gated in the refresh (a
+## slot_full strip withdraws when a posting frees, a clearance strip when the
+## grade is earned, a supplies strip when the stock suffices), on the next
+## successful action from this docket, on the DISMISS control, and the
+## reassigned confirmation clears on a bounded timer. Keyboard: REASSIGN and
+## DISMISS are focusable Buttons in the tab cycle.
+const STRIP_SLOT_FULL := "ALL POSTINGS ASSIGNED — CEASE ONE OR REASSIGN"
+const STRIP_REASSIGN_PLAN := "REASSIGN — CEASE %s, COMMENCE %s"
+const STRIP_REASSIGNED_HEAD := "POSTING REASSIGNED"
+const STRIP_REASSIGNED_SERIAL := "CEASED %s · %s NOW HOLDS THE POSTING"
+const STRIP_CLEARANCE := "CLEARANCE %d REQUIRED — EARN IT IN THIS %s"
+const STRIP_SUPPLIES := "INSUFFICIENT SUPPLIES: %s"
+const STRIP_REFUSED_HEAD := "REQUEST REFUSED"
+const STRIP_CONFIRM_CLEAR_S := 3.0
+
+var refusal_strip: PanelContainer
+var strip_glyph: TextureRect
+var strip_head: Label
+var strip_serial: Label
+var strip_plan: Label
+var strip_reassign: Button
+var strip_dismiss: Button
+var _strip_kind := ""  ## "" | REFUSAL_KIND | KIND_CLEARANCE | KIND_RESOURCES | "reassigned" | "generic"
+var _strip_content_id := ""
+var _strip_cease_skill := ""
+var _strip_dept_word := "DEPARTMENT"  ## the clearance earning surface (DEPARTMENT / ZONE)
+var _strip_confirm_token := 0
+
+
+## Mount at the TOP of the docket (call FIRST in _build_content — index 0,
+## above the status/gauge/cards/log regions).
+func build_refusal_strip() -> PanelContainer:
+	refusal_strip = panel_box("DangerPlate")
+	refusal_strip.name = "RefusalStrip"
+	refusal_strip.visible = false
+	var col := vbox(4)
+	var head_row := hbox(8)
+	strip_glyph = icon_rect(GLYPH_BADGE, GLYPH_READ)
+	head_row.add_child(strip_glyph)
+	strip_head = label("PlateTitleDanger", REFUSAL_HEAD)
+	strip_head.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	strip_head.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head_row.add_child(strip_head)
+	strip_dismiss = Button.new()
+	strip_dismiss.name = "StripDismiss"
+	strip_dismiss.text = "DISMISS"
+	strip_dismiss.focus_mode = Control.FOCUS_ALL
+	strip_dismiss.tooltip_text = "Withdraw this notice (the fact stays true: the posting rules did not change)"
+	strip_dismiss.pressed.connect(clear_refusal_strip)
+	strip_dismiss.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	head_row.add_child(strip_dismiss)
+	col.add_child(head_row)
+	# T15 discipline: every wrapped serial is a full-width VBox row — no
+	# autowrap label ever sits beside a foreign EXPAND_FILL sibling.
+	# Ink discipline: on the DangerPlate's red ground only the registered
+	# bone-ink pairs post (the DECEASED phase plate's combos) — PlateTitleDanger
+	# head, MonoValue serial, BodyCopy plan line.
+	strip_serial = label("MonoValue", "")
+	strip_serial.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(strip_serial)
+	strip_plan = label("BodyCopy", "")
+	strip_plan.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	strip_plan.visible = false
+	col.add_child(strip_plan)
+	strip_reassign = Button.new()
+	strip_reassign.name = "StripReassign"
+	strip_reassign.text = "REASSIGN"
+	strip_reassign.focus_mode = Control.FOCUS_ALL
+	strip_reassign.tooltip_text = "Cease the posting named in this notice and commence the one you asked for — validated first; nothing ceases unless the new posting can start"
+	strip_reassign.pressed.connect(_on_strip_reassign_pressed)
+	strip_reassign.visible = false
+	col.add_child(strip_reassign)
+	refusal_strip.add_child(col)
+	return refusal_strip
+
+
+## Present a refused start/engage. `result` is the engine result (kind +
+## payload); `dept_word` voices the clearance earning surface ("DEPARTMENT"
+## on the workshop dockets, "ZONE" on the patrol). Reason attribution reads
+## the ACTUAL kind — never a guess.
+func present_refusal(result: Dictionary, dept_word := "DEPARTMENT") -> void:
+	if refusal_strip == null or tm == null:
+		return
+	_strip_dept_word = dept_word
+	_strip_content_id = str(result.get("content_id", ""))
+	_strip_cease_skill = ""
+	_strip_confirm_token += 1  # a fresh refusal cancels a pending confirmation clear
+	var kind := str(result.get("kind", ""))
+	if kind == ActivityEngine.REFUSAL_KIND:
+		_strip_kind = ActivityEngine.REFUSAL_KIND
+		strip_head.text = REFUSAL_HEAD  # naming-bible verbatim
+		strip_serial.text = STRIP_SLOT_FULL
+		var target: Dictionary = tm.oldest_posting()
+		_strip_cease_skill = str(target.get("skill_id", ""))
+		strip_plan.text = STRIP_REASSIGN_PLAN % [_posting_name(target), _strip_content_name(_strip_content_id)]
+		strip_plan.visible = true
+		strip_reassign.visible = true
+		_set_strip_glyph(GLYPH_BADGE)
+		refusal_strip.tooltip_text = "The posting board is full. REASSIGN ceases the posting named below and commences the one you asked for — validated before anything ceases."
+	elif kind == ActivityEngine.KIND_CLEARANCE:
+		_strip_kind = ActivityEngine.KIND_CLEARANCE
+		strip_head.text = "CLEARANCE REQUIRED"
+		var gate: Dictionary = result.get("gate", {})
+		strip_serial.text = STRIP_CLEARANCE % [int(gate.get("level", 0)), dept_word]
+		strip_plan.visible = false
+		strip_reassign.visible = false
+		_set_strip_glyph(GLYPH_CLEARANCE)
+		refusal_strip.tooltip_text = ""
+	elif kind == ActivityEngine.KIND_RESOURCES:
+		_strip_kind = ActivityEngine.KIND_RESOURCES
+		strip_head.text = "SUPPLIES MISSING"
+		strip_serial.text = STRIP_SUPPLIES % ActivityEngine.missing_voice(result.get("missing", []))
+		strip_plan.visible = false
+		strip_reassign.visible = false
+		var first_item := ""
+		var missing: Array = result.get("missing", [])
+		if not missing.is_empty():
+			first_item = str(missing[0].get("item", ""))
+		var item: ItemDef = lib().item(first_item) if lib() != null else null
+		_set_strip_glyph(item.icon if item != null else "")
+		refusal_strip.tooltip_text = ""
+	else:
+		# Kindless refusal (unknown content etc.): post the engine's own
+		# reason verbatim — feedback the player cannot miss, never silent.
+		_strip_kind = "generic"
+		strip_head.text = STRIP_REFUSED_HEAD
+		strip_serial.text = str(result.get("reason", "the request was refused")).to_upper()
+		strip_plan.visible = false
+		strip_reassign.visible = false
+		_set_strip_glyph(GLYPH_CLEARANCE)
+		refusal_strip.tooltip_text = ""
+	refusal_strip.visible = true
+
+
+## The swap's confirmation state ("POSTING REASSIGNED" + engine truth about
+## what actually ceased — the skill's voice name, THE PATROL for a withdrawn
+## patrol). Bounded auto-clear (a confirmation is not a standing notice);
+## dismiss works too; the next refusal replaces it.
+func present_reassigned(ceased: Dictionary, content_id: String) -> void:
+	if refusal_strip == null or tm == null:
+		return
+	_strip_kind = "reassigned"
+	strip_head.text = STRIP_REASSIGNED_HEAD
+	var cease_name := ""
+	if bool(ceased.get("combat", false)):
+		cease_name = "THE PATROL"
+	elif ceased.has("skill_id") and lib() != null:
+		var skill: SkillDef = lib().skill(str(ceased["skill_id"]))
+		cease_name = skill.name.to_upper() if skill != null else str(ceased["skill_id"]).to_upper()
+	if cease_name.is_empty():
+		cease_name = "THE OLD POSTING"
+	strip_serial.text = STRIP_REASSIGNED_SERIAL % [cease_name, _strip_content_name(content_id)]
+	strip_plan.visible = false
+	strip_reassign.visible = false
+	_set_strip_glyph(GLYPH_BADGE)
+	refusal_strip.tooltip_text = ""
+	refusal_strip.visible = true
+	if not is_inside_tree():
+		return  # confirmation auto-clear needs the tree timer; dismiss still works
+	var token := _strip_confirm_token + 1
+	_strip_confirm_token = token
+	get_tree().create_timer(STRIP_CONFIRM_CLEAR_S).timeout.connect(func() -> void:
+		if is_inside_tree() and _strip_confirm_token == token and _strip_kind == "reassigned":
+			clear_refusal_strip())
+
+
+## Withdraw the strip (dismiss button / next successful action / truth gate).
+func clear_refusal_strip() -> void:
+	_strip_kind = ""
+	_strip_content_id = ""
+	_strip_cease_skill = ""
+	if refusal_strip != null:
+		refusal_strip.visible = false
+
+
+## Truth gate (call from _refresh): the strip stands exactly while its fact
+## holds — copy never outlives its fact (refinement-2 discipline).
+func refresh_refusal_strip() -> void:
+	if refusal_strip == null or tm == null or _strip_kind.is_empty():
+		return
+	if _strip_kind == ActivityEngine.REFUSAL_KIND:
+		if tm.free_postings() > 0:
+			clear_refusal_strip()
+	elif _strip_kind == ActivityEngine.KIND_CLEARANCE:
+		if _strip_content_id != "" and tm.engine.is_unlocked(state(), _strip_content_id):
+			clear_refusal_strip()
+	elif _strip_kind == ActivityEngine.KIND_RESOURCES:
+		if _strip_content_id != "":
+			var r: RecipeDef = lib().recipe(_strip_content_id)
+			if r == null or tm.engine.missing_inputs(state(), r).is_empty():
+				clear_refusal_strip()
+	# "reassigned" clears on its bounded timer; "generic" on dismiss/success.
+
+
+func _set_strip_glyph(glyph_id: String) -> void:
+	var tex := icon_texture(glyph_id)
+	strip_glyph.visible = tex != null
+	strip_glyph.texture = tex
+
+
+## A held posting's voice name for the REASSIGN restatement ({"skill_id"} /
+## {"combat": true}).
+func _posting_name(target: Dictionary) -> String:
+	if bool(target.get("combat", false)):
+		return "WASTELAND PATROL"
+	var skill_id := str(target.get("skill_id", ""))
+	if skill_id.is_empty() or lib() == null:
+		return "THE OLDEST POSTING"
+	var skill: SkillDef = lib().skill(skill_id)
+	return skill.name.to_upper() if skill != null else skill_id.to_upper()
+
+
+## The requested content's display name (upper). Overridden by the patrol for
+## monsters (the base def_of lookup covers activities + recipes only).
+func _strip_content_name(content_id: String) -> String:
+	var def: RefCounted = tm.engine.def_of(content_id) if tm != null else null
+	if def != null and def.get("name") != null:
+		return String(def.get("name")).to_upper()
+	return content_id.to_upper()
+
+
+## The REASSIGN press: subclasses route to their engine swap (activity swap
+## here, the patrol's swap_engage in DocketPatrol). The requested content id
+## is captured BEFORE the swap — the engine's synchronous signals make room
+## mid-swap, and the strip's own truth gate may honestly withdraw the
+## refusal strip during that window; the confirmation still reads what was
+## asked. A stale restatement (the state moved between strip and press)
+## re-presents with fresh, truthful attribution; the engine falls back to
+## the oldest posting when the named target no longer holds.
+func _on_strip_reassign_pressed() -> void:
+	if tm == null or _strip_kind != ActivityEngine.REFUSAL_KIND or _strip_content_id.is_empty():
+		return
+	var content_id := _strip_content_id
+	var dept_word := _strip_dept_word
+	var result := _perform_reassign()
+	if bool(result.get("ok", false)):
+		result["content_id"] = content_id
+		_on_reassign_success(result)
+		present_reassigned(result.get("ceased", {}), content_id)
+		_refresh({"activity": true, "combat": true, "inventory": true, "xp": true, "staffing": true})
+	else:
+		present_refusal(result, dept_word)
+		_refresh({"activity": true, "combat": true, "inventory": true, "xp": true})
+
+
+## Subclass hook: the engine swap call for this docket's kind of request.
+func _perform_reassign() -> Dictionary:
+	return tm.swap_posting(_strip_content_id, _strip_cease_skill)
+
+
+## Subclass hook: stamp the log / re-energize after a successful swap.
+func _on_reassign_success(_result: Dictionary) -> void:
+	pass
+
+
 func vbox(sep: int) -> VBoxContainer:
 	var b := VBoxContainer.new()
 	b.add_theme_constant_override("separation", sep)

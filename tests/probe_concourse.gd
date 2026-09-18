@@ -122,6 +122,7 @@ func _run() -> void:
 		await _capture_t26_sets()
 		await _capture_t29_sets()
 		await _capture_t30_sets()
+		await _capture_t31_sets()
 		if _capture_unsupported:
 			_done = true
 			return  # already quitting CAPTURE_UNSUPPORTED_EXIT for the runner
@@ -2351,6 +2352,103 @@ func _validate_t30_pngs() -> void:
 	}
 	for file_name: String in expects:
 		var path := T30_DIR + "/" + file_name
+		var fa := FileAccess.open(path, FileAccess.READ)
+		_check(fa != null and fa.get_length() > 1000, "%s saved with real content" % file_name)
+		if fa == null:
+			continue
+		fa.close()
+		var img := Image.load_from_file(path)
+		_check(img != null, "%s is a loadable image" % file_name)
+		if img == null:
+			continue
+		_check(Vector2i(img.get_width(), img.get_height()) == expects[file_name],
+			"%s dimensions %dx%d" % [file_name, img.get_width(), img.get_height()])
+		var colors := {}
+		for x in range(0, img.get_width(), 12):
+			for y in range(0, img.get_height(), 12):
+				colors[img.get_pixel(x, y).to_html(true)] = true
+		_check(colors.size() >= 12, "%s renders real content (%d distinct sampled colors)" % [
+			file_name, colors.size()])
+
+
+# ------------------------------------------------------- T31 capture set
+## The run-5 refusal feedback (the user's words: "there is no UI feedback
+## when you click a skill and it doesn't engage"): the refusal strip pinned
+## at the docket's TOP with the reason in voice + the one-press REASSIGN
+## restatement, and the post-swap confirmation. All states are LIVE engine
+## truth through the bound TickManager.
+const T31_DIR := "res://.impeccable/review/t31"
+
+func _capture_t31_sets() -> void:
+	if DirAccess.make_dir_recursive_absolute(T31_DIR) != OK:
+		_check(false, "t31 review dir created")
+		return
+	var tm: Node = _concourse.bound_tick_manager()
+	if tm == null:
+		_check(false, "t31 capture: engine bound")
+		return
+	_vp.size = Vector2i(1280, 720)
+	_concourse.font_slider.value = 0.0
+	tm.new_game(20260931)
+	_concourse.set_first_run(false)
+	tm.start_activity("sort_scrap_pile")  # the one posting: the board is full
+	tm.batcher.force_flush(tm.sim_time_ms)
+	_concourse.select_department("foraging", true)
+	await _frames(2)
+	var forage: DocketGathering = _concourse.docket_controller("foraging")
+	forage.select_content("walk_the_glow_rows")  # refused: slot_full
+	tm.batcher.force_flush(tm.sim_time_ms)
+	await _frames(2)
+	_check(forage.refusal_strip.visible, "t31 capture: the refusal strip is posted")
+	_check(forage.strip_serial.text == "ALL POSTINGS ASSIGNED — CEASE ONE OR REASSIGN",
+		"t31 capture: the reason in voice")
+	if not _snap_t31("t31_refusal_strip_reassign_1280x720.png"):
+		return
+	# One press: the engine swap executes; the strip confirms.
+	forage.strip_reassign.pressed.emit()
+	tm.batcher.force_flush(tm.sim_time_ms)
+	await _frames(2)
+	_check(forage.strip_head.text == "POSTING REASSIGNED", "t31 capture: the swap confirmed")
+	_check((tm.state.active.keys() as Array) == ["foraging" as String], "t31 capture: the swap landed")
+	if not _snap_t31("t31_reassigned_confirm_1280x720.png"):
+		return
+	# A supplies refusal (the missing inputs named) on the Cooking docket.
+	tm.stop_skill("foraging")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	_concourse.select_department("cooking", true)
+	await _frames(2)
+	var cook: DocketProcessing = _concourse.docket_controller("cooking")
+	cook.select_content("grind_mandatory_grits")  # no Duskcorn in the manifest
+	tm.batcher.force_flush(tm.sim_time_ms)
+	await _frames(2)
+	_check(cook.refusal_strip.visible, "t31 capture: the supplies strip is posted")
+	if not _snap_t31("t31_supplies_strip_1280x720.png"):
+		return
+	_validate_t31_pngs()
+
+
+func _snap_t31(file_name: String) -> bool:
+	var img := _vp.get_texture().get_image()
+	if img == null:
+		print("HEADLESS_CAPTURE_UNSUPPORTED (dummy rasterizer returned no image)")
+		_capture_unsupported = true
+		quit(CAPTURE_UNSUPPORTED_EXIT)
+		_done = true
+		return false
+	var path := T31_DIR + "/" + file_name
+	var err := img.save_png(path)
+	_check(err == OK, "captured %s (err=%d)" % [path, err])
+	return true
+
+
+func _validate_t31_pngs() -> void:
+	var expects := {
+		"t31_refusal_strip_reassign_1280x720.png": Vector2i(1280, 720),
+		"t31_reassigned_confirm_1280x720.png": Vector2i(1280, 720),
+		"t31_supplies_strip_1280x720.png": Vector2i(1280, 720),
+	}
+	for file_name: String in expects:
+		var path := T31_DIR + "/" + file_name
 		var fa := FileAccess.open(path, FileAccess.READ)
 		_check(fa != null and fa.get_length() > 1000, "%s saved with real content" % file_name)
 		if fa == null:

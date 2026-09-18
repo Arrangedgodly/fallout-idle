@@ -251,7 +251,9 @@ static func hit_chance_bp(attacker_accuracy: int, defender_evasion: int) -> int:
 ## Posting rule (T17): a FIGHTING patrol holds one posting; engaging while
 ## already fighting keeps it (switch), engaging from any stopped phase with
 ## no free posting is REFUSED — {"ok": false, "kind": "posting_refused", ...},
-## no state change. Gate failures carry CLEARANCE wording as before.
+## no state change. Gate failures carry CLEARANCE wording and — since T31 —
+## the "clearance_refused" kind so the UI strip attributes the reason
+## truthfully (the slot-full refusal keeps the §14 id).
 func engage(state: PlayerState, monster_id: String, now_ms: int) -> Dictionary:
 	var mdef := lib.monster(monster_id)
 	if mdef == null:
@@ -259,7 +261,9 @@ func engage(state: PlayerState, monster_id: String, now_ms: int) -> Dictionary:
 	var gate_level := int(state.skills_level.get(combat_skill_id, 1))
 	if gate_level < mdef.level_gate:
 		return {"ok": false, "reason": "CLEARANCE %d REQUIRED (%s)" % [
-			mdef.level_gate, lib.skill(combat_skill_id).name]}
+			mdef.level_gate, lib.skill(combat_skill_id).name],
+			"kind": ActivityEngine.KIND_CLEARANCE,
+			"gate": {"skill": combat_skill_id, "level": mdef.level_gate}}
 	var c: Dictionary = state.combat
 	var switching := str(c.get("phase", PHASE_IDLE)) == PHASE_FIGHTING
 	if not switching and xp_engine != null and xp_engine.free_postings(state) <= 0:
@@ -282,6 +286,57 @@ func engage(state: PlayerState, monster_id: String, now_ms: int) -> Dictionary:
 	c["m_hits"] = 0
 	batcher.mark("combat")
 	return {"ok": true, "reason": ""}
+
+
+## T31 — the engage's slot-independent validator (existence + clearance; the
+## patrol carries no supply line). {} passes; else the refusal result the UI
+## strip posts. Mirrors ActivityEngine.validate_start's contract.
+func validate_engage(state: PlayerState, monster_id: String) -> Dictionary:
+	var mdef := lib.monster(monster_id)
+	if mdef == null:
+		return {"ok": false, "reason": "unknown monster '%s'" % monster_id,
+			"kind": "", "content_id": monster_id}
+	var gate_level := int(state.skills_level.get(combat_skill_id, 1))
+	if gate_level < mdef.level_gate:
+		return {"ok": false, "reason": "CLEARANCE %d REQUIRED (%s)" % [
+			mdef.level_gate, lib.skill(combat_skill_id).name],
+			"kind": ActivityEngine.KIND_CLEARANCE, "content_id": monster_id,
+			"gate": {"skill": combat_skill_id, "level": mdef.level_gate}}
+	return {}
+
+
+## T31 REASSIGN — the patrol's swap path (run-5 Scope Amendment 3): a refused
+## engage offers a one-press swap. Validate-then-cease+engage, the same
+## contract as ActivityEngine.swap_posting:
+##   1. validate_engage FIRST — any refusal returns before ANY mutation (a
+##      fighting patrol keeps fighting; nothing is stranded).
+##   2. A fighting patrol switches targets within its own posting (no cease).
+##   3. Otherwise cease nothing while a posting is free; with a full board,
+##      cease the named skill posting (or the oldest held one — the patrol
+##      itself is never its own cease target here: this branch only runs when
+##      NOT switching, and an idle patrol holds no posting), then engage into
+##      the freed posting. Step 1 proved the engage passes every non-slot
+##      check, so the swap lands or nothing moved.
+## Success adds "ceased" describing what made room ({} when none was).
+func swap_engage(state: PlayerState, monster_id: String, now_ms: int, cease_skill_id := "") -> Dictionary:
+	var veto := validate_engage(state, monster_id)
+	if not veto.is_empty():
+		return veto
+	var switching := str(state.combat.get("phase", PHASE_IDLE)) == PHASE_FIGHTING
+	var ceased := {}
+	if not switching and xp_engine != null and xp_engine.free_postings(state) <= 0:
+		var target := ""
+		if cease_skill_id != "" and state.active.has(cease_skill_id):
+			target = cease_skill_id
+		else:
+			target = String(xp_engine.oldest_posting(state).get("skill_id", ""))
+		if target != "":
+			ceased = {"skill_id": target, "content_id": String(state.active[target].content_id)}
+			xp_engine.cease_posting(state, target)
+	var result := engage(state, monster_id, now_ms)
+	if bool(result.get("ok", false)):
+		result["ceased"] = ceased
+	return result
 
 
 ## Manual retreat: the fight stops (phase idle). HP is not persisted across
