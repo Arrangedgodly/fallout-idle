@@ -386,10 +386,12 @@ func test_personnel_board_and_refusal_directive_wiring() -> void:
 	c.bind_engines(tm)
 	await wait_frames(2)
 
-	# The eighth plate: PERSONNEL, D-08, digit 8.
+	# The eighth plate: PERSONNEL, D-08, digit 8 (T30: the digit rides the
+	# compact card's stencil name label).
 	var plates: Array[Button] = c.plate_buttons_in_order()
 	assert_eq(plates.size(), 8, "eight department plates on the wall")
-	assert_eq(plates[7].text, "PERSONNEL · 8", "the eighth plate posts PERSONNEL with its designation digit")
+	var personnel_name: Label = c.plate_name_label("personnel")
+	assert_eq(personnel_name.text, "PERSONNEL · 8", "the eighth plate posts PERSONNEL with its designation digit")
 	assert_true(plates[7].tooltip_text.contains("press 8"), "the tooltip names hotkey 8")
 
 	# Keyboard: digit 8 routes through the concourse's hotkey handler.

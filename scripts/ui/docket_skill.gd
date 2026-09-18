@@ -95,7 +95,11 @@ func _build_content() -> void:
 	gauge.min_value = 0.0
 	gauge.max_value = 100.0
 	gauge.value = 0.0
-	gauge.custom_minimum_size = Vector2(0.0, 20.0)
+	# T30: the docket XP meters slim to 12 px (the run-5 amendment — the big
+	# enamel bars read as decoration at this height; the mono readout below
+	# keeps every digit). 20 -> 12 px, ~40% off, no clipping at 200% (the
+	# gauge carries no text of its own; the track scales not at all).
+	gauge.custom_minimum_size = Vector2(0.0, 12.0)
 	gauge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vcol.add_child(gauge)
 	gauge_read = label("MonoValue", "CLEARANCE 01 · 0/0 XP TO NEXT")

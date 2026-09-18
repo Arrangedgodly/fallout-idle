@@ -87,7 +87,7 @@ const T24_IDS := ["directive_cord", "survey_lens", "heritage_hardware", "counter
 	"tend_hydroponics_bay", "gather_greenhouse_span", "work_canopy_rows",
 	"runaway_cart", "directory_kiosk", "wet_floor_sentinel", "restless_escalator",
 	"hanger_flock", "regional_manager"]
-const EXPECTED_COUNT := 96  # T11 41 + T19 12 + T17 1 + T24 depth 42
+const EXPECTED_COUNT := 97  # T11 41 + T19 12 + T17 1 + T24 depth 42 + T30 1
 
 var checks := 0
 var failures: Array[String] = []

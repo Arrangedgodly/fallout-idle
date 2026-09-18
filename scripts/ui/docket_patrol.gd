@@ -278,7 +278,7 @@ func _build_content() -> void:
 	var gauge_label := label("MicroLabel", "WASTELAND COMBAT CLEARANCE · ELEVATION OPENS FAUNA POSTINGS")
 	gauge_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	xcol.add_child(gauge_label)
-	gauge = _make_gauge()
+	gauge = _make_gauge(12.0)  # T30: the XP meter slims with the skill dockets
 	xcol.add_child(gauge)
 	gauge_read = label("MonoValue", "CLEARANCE 01 · 0/0 XP TO NEXT")
 	gauge_read.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -418,13 +418,16 @@ func _gift_court_cleared() -> bool:
 	return int(counters.get("zone:%s" % ZONE_GIFT, 0)) >= 1
 
 
-func _make_gauge() -> ProgressBar:
+func _make_gauge(height := 20.0) -> ProgressBar:
 	var g := ProgressBar.new()
 	g.show_percentage = false
 	g.min_value = 0.0
 	g.max_value = 1.0
 	g.value = 0.0
-	g.custom_minimum_size = Vector2(0.0, 20.0)
+	# T30: the XP meter slims to 12 px (the run-5 amendment, matching the
+	# skill dockets); the condition/HP instruments keep their 20 px bodies —
+	# they are not XP meters.
+	g.custom_minimum_size = Vector2(0.0, height)
 	g.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return g
 

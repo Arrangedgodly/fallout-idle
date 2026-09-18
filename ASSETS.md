@@ -120,6 +120,7 @@
 | assets/icons/restless_escalator.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
 | assets/icons/hanger_flock.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
 | assets/icons/regional_manager.svg | icon | Valued Resident pipeline (T24, ZCode session) | original | original | 2026-09-15 | T24 agent |
+| assets/icons/manifest_board.svg | icon | Valued Resident pipeline (T30, ZCode session) | original | original | 2026-09-18 | T30 agent |
 
 ## Dev tooling (exempt from the shipped-asset gate)
 

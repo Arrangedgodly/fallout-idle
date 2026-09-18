@@ -174,21 +174,34 @@ func test_cold_boot_keyboard_only_full_journey() -> void:
 	await wait_frames(1)
 	assert_false(tm.state.active.has("scavenging"), "keyboard accept stops the shift")
 
-	# --- Walk the plate wall with arrows; visit EVERY department. ---
+	# --- Walk the card wall with arrows (T30 grid geometry: 2 columns,
+	# row-major reading order — within a row ui_right/ui_left, across rows
+	# ui_down/ui_up); visit EVERY department. ---
 	var walked := await _tab_until(func(c: Control) -> bool:
 		return c.name.begins_with("Plate_") and c.name != "Plate_scavenging")
-	assert_not_null(walked, "tab returns to the plate wall")
-	# Each leg re-anchors on the CURRENT department's plate first (arrow keys
-	# move geometrically — arrowing from a docket control lands in the
-	# console), then arrows DOWN exactly one plate to the next department.
+	assert_not_null(walked, "tab returns to the card wall")
+	# Each leg re-anchors on the CURRENT department's card first, then arrows
+	# one grid move to the next department in reading order: index i -> i+1
+	# is ui_right from an even index (row's left card), ui_down from an odd
+	# one (next row's first column).
 	var current := "scavenging"
 	for target in ["foraging", "junksmithing", "cooking", "wasteland_patrol",
 			"requisition_depot", "manifest"]:
 		var plate_name := "Plate_" + current
 		var anchor := await _tab_until(func(c: Control) -> bool: return c.name == plate_name)
 		assert_not_null(anchor, "tab anchors on %s" % plate_name)
-		if target != current:
+		var idx := DEPT_IDS.find(current)
+		if idx % 2 == 0:
+			# Left card of a row: the next department is one ui_right away.
+			_push("ui_right")
+			await wait_frames(1)
+		else:
+			# Right card of a row: the next department starts the next row —
+			# ui_down drops straight below (the row's right card), ui_left
+			# finishes the move onto it.
 			_push("ui_down")
+			await wait_frames(1)
+			_push("ui_left")
 			await wait_frames(1)
 		var owner := _focus_owner()
 		assert_eq(owner.name, "Plate_" + target, "arrow lands on %s" % target)
@@ -270,8 +283,10 @@ func test_cold_boot_keyboard_only_full_journey() -> void:
 
 	# --- Back up the wall to Scavenging for the MAIL CALL leg. ---
 	var manifest_plate := await _tab_until(func(c: Control) -> bool: return c.name == "Plate_manifest")
-	assert_not_null(manifest_plate, "tab returns to the plate wall")
-	for i in 6:
+	assert_not_null(manifest_plate, "tab returns to the card wall")
+	# Manifest sits at column 0, row 3 (grid index 6): three ui_up moves climb
+	# the column back to Scavenging (grid index 0).
+	for i in 3:
 		_push("ui_up")
 		await wait_frames(1)
 	assert_eq(_focus_owner().name, "Plate_scavenging", "arrow UP walks back to Scavenging")
@@ -441,13 +456,18 @@ func _collect_interactive(node: Node, out: Array[Control]) -> void:
 # ---------------------------------------------------------------------------
 func test_department_hotkeys_select_from_anywhere() -> void:
 	await _boot()
-	# Every plate posts its designation digit (also its D-0n serial digit).
+	# Every card posts its designation digit on its stencil name label (also
+	# its D-0n serial digit; T30 moved the text from the Button to the label
+	# stack).
 	var plates := _concourse.plate_buttons_in_order()
+	var all_ids := ["scavenging", "foraging", "junksmithing", "cooking",
+		"wasteland_patrol", "requisition_depot", "manifest", "personnel"]
 	for i in plates.size():
-		assert_true(plates[i].text.ends_with("· %d" % (i + 1)),
-			"plate %d posts its designation digit (got '%s')" % [i, plates[i].text])
+		var card_name: Label = _concourse.plate_name_label(all_ids[i])
+		assert_true(card_name.text.ends_with("· %d" % (i + 1)),
+			"card %d posts its designation digit (got '%s')" % [i, card_name.text])
 		assert_string_contains(plates[i].tooltip_text, "press %d" % (i + 1),
-			"plate %d tooltip names the key" % i)
+			"card %d tooltip names the key" % i)
 	# Park focus deep in the console and start AWAY from key 1's department —
 	# the shortcut must work from anywhere, and a digit pressed on the ACTIVE
 	# department is a guarded no-op (asserted below), not a focus jump.
@@ -487,11 +507,12 @@ func _push_key(code: int) -> void:
 
 func test_state_changes_not_color_alone() -> void:
 	var tm: Variant = await _boot()
-	# Plates: the active plate carries the prefix + variation, others don't.
+	# Cards: the active card carries the prefix + variation, others don't.
 	var plates := _concourse.plate_buttons_in_order()
-	assert_string_contains(plates[0].text, ">> ", "active plate prefixes")
-	assert_eq(plates[0].theme_type_variation, "Energized", "active plate variation")
-	assert_false(plates[3].text.begins_with(">> "), "inactive plate has no prefix")
+	var boot_name: Label = _concourse.plate_name_label("scavenging")
+	assert_string_contains(boot_name.text, ">> ", "active card prefixes")
+	assert_eq(plates[0].theme_type_variation, "SkillCardEnergized", "active card variation")
+	assert_false(_concourse.plate_name_label("cooking").text.begins_with(">> "), "inactive card has no prefix")
 
 	# Running gathering card: prefix + status plate + retext.
 	_concourse.select_department("scavenging", true)

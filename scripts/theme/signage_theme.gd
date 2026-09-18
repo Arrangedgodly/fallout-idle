@@ -172,6 +172,24 @@ static func build() -> Theme:
 	th.set_font("font", "Button", f_plate)
 	th.set_font("font", "Energized", f_plate)
 	th.set_font("font", "Danger", f_plate)
+	# T30 compact skill cards — the Button state pair at card margins. Same
+	# material law (machined rectangle, ink border, enamel lift, amber hover
+	# border), condensed padding so the two-column card wall breathes. The
+	# energized twin swaps to the navy/amber plate exactly like Energized.
+	_button_states(th, "SkillCard", {
+		normal_bg = t.BONE_ENAMEL, border = t.INSTITUTIONAL_NAVY, border_w = 2,
+		font_color = t.INSTITUTIONAL_NAVY,
+		shadow = Color(0.063, 0.094, 0.161, 0.35),
+	}, 10, 6)
+	_button_states(th, "SkillCardEnergized", {
+		normal_bg = t.INSTITUTIONAL_NAVY, border = t.SIGNAL_AMBER, border_w = 3,
+		font_color = t.SIGNAL_AMBER,
+		shadow = Color(t.SIGNAL_AMBER, 0.25),
+	}, 10, 6)
+	th.set_type_variation("SkillCard", "Button")
+	th.set_type_variation("SkillCardEnergized", "Button")
+	th.set_font("font", "SkillCard", f_plate)
+	th.set_font("font", "SkillCardEnergized", f_plate)
 
 	# -- CheckButton (toggle) --------------------------------------------------
 	th.set_font("font", "CheckButton", f_body)
@@ -235,6 +253,12 @@ static func build() -> Theme:
 	th.set_font("font", "ProgressBar", f_mono)
 	th.set_font_size("font_size", "ProgressBar", 13)
 	th.set_color("font_color", "ProgressBar", t.BONE_DIM)
+	# T30 micro gauge — the compact card wall's thin XP bar. Same recessed
+	# track + amber fill vocabulary, borderless hairline margins so the bar
+	# reads as a 3 px enamel line inside a 7 px instrument.
+	th.set_type_variation("MicroGauge", "ProgressBar")
+	th.set_stylebox("background", "MicroGauge", _micro_gauge_track())
+	th.set_stylebox("fill", "MicroGauge", _gauge_fill())
 
 	# -- ItemList (stamped drop lines) ------------------------------------------
 	th.set_font("font", "ItemList", f_mono)
@@ -494,6 +518,19 @@ static func _gauge_track() -> StyleBoxFlat:
 	sb.content_margin_bottom = 3
 	return sb
 
+## T30 micro gauge track: the recessed steel instrument at hairline margins —
+## a 3 px amber enamel line reads inside a 7 px bar.
+static func _micro_gauge_track() -> StyleBoxFlat:
+	var t := SignageTokens
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = t.STEEL_DEEP
+	sb.set_corner_radius_all(2)
+	sb.content_margin_left = 2
+	sb.content_margin_right = 2
+	sb.content_margin_top = 2
+	sb.content_margin_bottom = 2
+	return sb
+
 static func _gauge_fill() -> StyleBoxFlat:
 	var t := SignageTokens
 	var sb := StyleBoxFlat.new()
@@ -569,7 +606,8 @@ static func _tab_unselected(bg: Color = Color(0, 0, 0, 0)) -> StyleBoxFlat:
 
 # ------------------------------------------------------------------ buttons
 ## Default/Active(hover+pressed)/Disabled/focus state set for one button class.
-static func _button_states(th: Theme, type_name: String, cfg: Dictionary) -> void:
+static func _button_states(th: Theme, type_name: String, cfg: Dictionary,
+		margin_h := 18, margin_v := 10) -> void:
 	var t := SignageTokens
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = cfg.normal_bg
@@ -579,7 +617,7 @@ static func _button_states(th: Theme, type_name: String, cfg: Dictionary) -> voi
 	normal.shadow_color = cfg.shadow
 	normal.shadow_size = 8
 	normal.shadow_offset = Vector2(0, 4)
-	_margins(normal, 18, 10)
+	_margins(normal, margin_h, margin_v)
 
 	var hover := normal.duplicate() as StyleBoxFlat
 	hover.bg_color = cfg.get("hover_bg", cfg.normal_bg)
@@ -593,10 +631,10 @@ static func _button_states(th: Theme, type_name: String, cfg: Dictionary) -> voi
 	pressed.border_color = t.SIGNAL_AMBER
 	pressed.shadow_size = 4
 	pressed.shadow_offset = Vector2(0, 2)
-	pressed.content_margin_top = 12
-	pressed.content_margin_bottom = 8
+	pressed.content_margin_top = margin_v + 2
+	pressed.content_margin_bottom = margin_v - 2
 
-	var disabled := _disabled_plate(18, 10)
+	var disabled := _disabled_plate(margin_h, margin_v)
 
 	th.set_stylebox("normal", type_name, normal)
 	th.set_stylebox("hover", type_name, hover)

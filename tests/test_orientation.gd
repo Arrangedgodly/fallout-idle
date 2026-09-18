@@ -506,7 +506,8 @@ func test_form_first_run_expanded_step1_cued_five_second_contract() -> void:
 		"current row carries the orient_arrow glyph")
 	assert_false((row3.get_node("Row/ArrowGlyph") as Control).is_visible_in_tree(),
 		"a future row carries no arrow")
-	# The plate cue: visible, aiming at the SCAVENGING plate.
+	# The card cue: visible, aiming at the SCAVENGING card (T30: the arrow
+	# posts at the card's LEFT shoulder, tip touching the card it names).
 	var cue := _concourse.cue()
 	assert_true(cue.visible, "the step cue posts beside the destination plate")
 	var plate1: Control = _concourse.plates()["scavenging"]
@@ -514,9 +515,9 @@ func test_form_first_run_expanded_step1_cued_five_second_contract() -> void:
 	var plate_rect := plate1.get_global_rect()
 	assert_almost_eq(cue_rect.position.y + cue_rect.size.y * 0.5,
 		plate_rect.get_center().y, 12.0,
-		"cue vertically centered on the scavenging plate")
-	assert_almost_eq(cue_rect.position.x, plate_rect.end.x + 4.0, 10.0,
-		"cue sits at the plate's right shoulder, pointing into it")
+		"cue vertically centered on the scavenging card")
+	assert_almost_eq(cue_rect.end.x, plate_rect.position.x - 4.0, 10.0,
+		"cue tip touches the card's left shoulder, pointing into it")
 	# The form posts as a DOCKED strip in the docket region (T29: never an
 	# overlay again) — its rect never intersects the docket viewport, and it
 	# is fully on screen.

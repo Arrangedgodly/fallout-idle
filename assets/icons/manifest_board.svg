@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Valued Resident - Manifest board glyph (department mark, T30 compact card wall): a posted roster sheet with a header rule and four tally rows in two columns (line + count). Rule: this mark names the MANIFEST department on its concourse card only - it is a department role mark, never an item mark, and posts nowhere else. Original stencil-line signage icon (T11 grammar). -->
+  <rect x="6" y="6" width="116" height="116" rx="14" fill="#F2EDE3" stroke="#20334F" stroke-width="8"/>
+  <g fill="none" stroke="#20334F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="30" y="24" width="68" height="80" rx="4" fill="#F2EDE3"/>
+    <line x1="40" y1="42" x2="88" y2="42"/>
+    <line x1="40" y1="60" x2="66" y2="60" stroke-width="6"/>
+    <line x1="76" y1="60" x2="88" y2="60" stroke-width="6"/>
+    <line x1="40" y1="76" x2="66" y2="76" stroke-width="6"/>
+    <line x1="76" y1="76" x2="88" y2="76" stroke-width="6"/>
+    <line x1="40" y1="92" x2="66" y2="92" stroke-width="6"/>
+    <line x1="76" y1="92" x2="88" y2="92" stroke-width="6"/>
+  </g>
+</svg>
