@@ -175,35 +175,22 @@ func test_cold_boot_keyboard_only_full_journey() -> void:
 	await wait_frames(1)
 	assert_false(tm.state.active.has("scavenging"), "keyboard accept stops the shift")
 
-	# --- Walk the card wall with arrows (T30 grid geometry: 2 columns,
-	# row-major reading order — within a row ui_right/ui_left, across rows
-	# ui_down/ui_up); visit EVERY department. ---
+	# --- Walk the plate wall with arrows (T35 list geometry: the reverted
+	# wall is one column, so ui_down walks to the next department in order);
+	# visit EVERY department. ---
 	var walked := await _tab_until(func(c: Control) -> bool:
 		return c.name.begins_with("Plate_") and c.name != "Plate_scavenging")
-	assert_not_null(walked, "tab returns to the card wall")
-	# Each leg re-anchors on the CURRENT department's card first, then arrows
-	# one grid move to the next department in reading order: index i -> i+1
-	# is ui_right from an even index (row's left card), ui_down from an odd
-	# one (next row's first column).
+	assert_not_null(walked, "tab returns to the plate wall")
+	# Each leg re-anchors on the CURRENT department's plate first, then one
+	# ui_down move reaches the next department in reading order.
 	var current := "scavenging"
 	for target in ["foraging", "junksmithing", "cooking", "wasteland_patrol",
 			"requisition_depot", "manifest"]:
 		var plate_name := "Plate_" + current
 		var anchor := await _tab_until(func(c: Control) -> bool: return c.name == plate_name)
 		assert_not_null(anchor, "tab anchors on %s" % plate_name)
-		var idx := DEPT_IDS.find(current)
-		if idx % 2 == 0:
-			# Left card of a row: the next department is one ui_right away.
-			_push("ui_right")
-			await wait_frames(1)
-		else:
-			# Right card of a row: the next department starts the next row —
-			# ui_down drops straight below (the row's right card), ui_left
-			# finishes the move onto it.
-			_push("ui_down")
-			await wait_frames(1)
-			_push("ui_left")
-			await wait_frames(1)
+		_push("ui_down")
+		await wait_frames(1)
 		var owner := _focus_owner()
 		assert_eq(owner.name, "Plate_" + target, "arrow lands on %s" % target)
 		_push("ui_accept")
@@ -295,10 +282,10 @@ func test_cold_boot_keyboard_only_full_journey() -> void:
 
 	# --- Back up the wall to Scavenging for the MAIL CALL leg. ---
 	var manifest_plate := await _tab_until(func(c: Control) -> bool: return c.name == "Plate_manifest")
-	assert_not_null(manifest_plate, "tab returns to the card wall")
-	# Manifest sits at column 0, row 3 (grid index 6): three ui_up moves climb
-	# the column back to Scavenging (grid index 0).
-	for i in 3:
+	assert_not_null(manifest_plate, "tab returns to the plate wall")
+	# Manifest sits at index 6 in the single column: six ui_up moves climb
+	# the list back to Scavenging (index 0).
+	for i in 6:
 		_push("ui_up")
 		await wait_frames(1)
 	assert_eq(_focus_owner().name, "Plate_scavenging", "arrow UP walks back to Scavenging")

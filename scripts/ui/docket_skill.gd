@@ -2,14 +2,17 @@ class_name DocketSkill
 extends Docket
 ## DocketSkill — T10a shared skeleton for the four workshop dockets
 ## (Scavenging, Foraging: DocketGathering; Junksmithing, Cooking:
-## DocketProcessing). One skill, one active slot, one enamel gauge, a posted
-## list of form lines (tier cards), and a stamped log.
+## DocketProcessing). One skill, one active slot, one enamel gauge, the
+## skill's posted item list as COMPACT CARDS in a 2-up grid (T35 — the
+## run-6 correction: the items inside the skill are the condensed cards;
+## the active card carries the attached XP meter), and a stamped log.
 ##
 ## Card states are never color-alone (Daredevil floor): the running card
-## carries the Energized variation AND a ">> " prefix on its title; a locked
-## card posts a red CLEARANCE plate whose text names the required grade and
-## the earning path (refinement 2, critique P2#4: working this department's
-## posted shifts is what elevates the gate).
+## carries the SkillCardEnergized variation AND a ">> " prefix on its title
+## (plus the attached progress meter); a locked card posts its clearance
+## gate INLINE in the registered red-on-bone ink, naming the required grade
+## and the earning path (refinement 2, critique P2#4: working this
+## department's posted shifts is what elevates the gate).
 ## The shell's big stencled button retexts BEGIN SHIFT <-> END SHIFT.
 ##
 ## Update discipline: gauge/cards/log mutate ONLY inside bulk_state_changed
@@ -24,7 +27,7 @@ var status_serial: Label
 var gauge: ProgressBar
 var gauge_read: Label
 var gauge_vent: Control  # T33 deep-link target: the clearance gauge block
-var cards_box: VBoxContainer
+var cards_box: GridContainer  # T35: the compact item-card grid (2-up where the width fits)
 var log: ItemList
 var primary_button: Button  # the shell's BEGIN/END SHIFT plate (shell assigns)
 var register: DossierRegister  # T26 the DEPARTMENTAL DOSSIER section
@@ -45,8 +48,9 @@ class Card:
 	var title: Label
 	var rate_line: HFlowContainer
 	var yields_line: HFlowContainer
-	var gate_plate: PanelContainer
+	var gate_plate: Control
 	var gate_text: Label
+	var bar: ProgressBar  # T35: the ACTIVE card's attached XP meter (idle: hidden)
 
 	func rate_text() -> String:
 		return Docket.flow_text(rate_line)
@@ -117,7 +121,11 @@ func _build_content() -> void:
 	add_child(vent)
 
 	add_child(micro(_list_header()))
-	cards_box = vbox(8)
+	# T35: the compact item-card grid — the run-6 correction puts the
+	# condensed-card treatment on the items INSIDE the skill (2-up where the
+	# docket's width fits two cards at 1280x720/100%, one column where it
+	# does not; see Docket.fit_card_grid).
+	cards_box = make_card_grid()
 	add_child(cards_box)
 
 	log = build_log(_log_serial(), 7)
@@ -181,51 +189,77 @@ func _make_card(def: RefCounted) -> Card:
 	var card := Card.new()
 	card.id = str(def.get("id"))
 	# T15: CardButton — the button's minimum size includes its label stack.
+	# T35: the SkillCard variation's condensed margins (10/6) replace the
+	# default plate's (18/10) — the compact card body.
 	var b := Docket.CardButton.new()
 	b.name = "Card_" + card.id
+	b.theme_type_variation = "SkillCard"
+	# The column stretches: GridContainer only widens columns whose children
+	# ask (a FILL-only child would leave both cards at their minimum width).
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.pressed.connect(_on_card_pressed.bind(card.id))
 	b.tooltip_text = "Post this shift — %s" % str(def.get("name"))
 	card.button = b
 
-	# Full-width stacked rows: the title row keeps icon + name on one line;
-	# the rate/yields serials stack below at full card width — nothing
-	# side-by-side can outgrow the docket (no horizontal overflow), and a
-	# wrapped serial must never sit beside an EXPAND_FILL sibling (T15 fix
-	# round: that placement starved it to a 1 px vertical column).
-	var col := vbox(3)
+	# T35 compact card stack: icon-led title row (the autowrapped name is the
+	# row's sole EXPAND_FILL child beside the fixed mark), then the honest
+	# rate and yield serials as segment flows — every string unchanged, the
+	# exact math still on the card.
+	var col := vbox(2)
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
-	var title_row := hbox(10)
+	var title_row := hbox(8)
 	title_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_row.add_child(icon_rect(_card_icon(def), 30))
+	title_row.add_child(icon_rect(_card_icon(def), 22))
 	card.title = label("FormTitle", str(def.get("name")))
+	card.title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	card.title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_row.add_child(card.title)
 	col.add_child(title_row)
 
-	# T15: rate/yields serials stack below the title row at full card width;
-	# T19 renders them as glyph segment flows (stat glyph before its stat's
-	# mono number, item icon beside each yield rate) — no autowrap anywhere
-	# inside a flow, so nothing side-by-side can starve a wrapped serial.
-	card.rate_line = segment_flow(12)
+	# T15/T19: rate/yields serials stay segment flows (stat glyph before its
+	# stat's mono number, item icon beside each yield rate) — no autowrap
+	# anywhere inside a flow, so nothing side-by-side can starve.
+	card.rate_line = segment_flow(10)
 	set_segments(card.rate_line, _rate_segments(def), "PlateSerialNavy")
 	col.add_child(card.rate_line)
 
-	card.yields_line = segment_flow(12)
+	card.yields_line = segment_flow(10)
 	set_segments(card.yields_line, _yields_segments(def), "PlateSerialNavy")
 	col.add_child(card.yields_line)
 
-	# T19: the gate plate carries the clearance staircase glyph beside the
-	# required grade (never a padlock — voice rule 3); the wrapped gate text
-	# stays the sole EXPAND_FILL child of the row.
-	card.gate_plate = panel_box("DangerPlate")
-	card.gate_text = label("MonoValue", "")
+	# T35: the clearance gate posts INLINE — the staircase glyph beside the
+	# compact red serial (FormTitleDanger, the registered red-on-bone pair)
+	# instead of a full DangerPlate block. Same verbatim text: the required
+	# grade AND the earning path (refinement 2, critique P2#4).
+	card.gate_text = label("FormTitleDanger", "")
 	card.gate_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	card.gate_plate.add_child(glyph_beside(GLYPH_CLEARANCE, card.gate_text))
+	card.gate_plate = glyph_beside(GLYPH_CLEARANCE, card.gate_text, 16)
 	col.add_child(card.gate_plate)
+
+	# T35: the ACTIVE card's attached XP meter — "keep the progress bars
+	# attached so you can easily see progress and what is active". The same
+	# engine fill as the clearance gauge, riding the card that is running;
+	# hidden while idle (an idle card has no progress to post).
+	card.bar = ProgressBar.new()
+	card.bar.name = "CardProgress"
+	card.bar.theme_type_variation = "MicroGauge"
+	card.bar.show_percentage = false
+	card.bar.min_value = 0.0
+	card.bar.max_value = 1.0
+	card.bar.value = 0.0
+	card.bar.custom_minimum_size = Vector2(0.0, 7.0)
+	card.bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.bar.visible = false
+	col.add_child(card.bar)
 
 	b.add_child(col)
 	return card
+
+
+## The T35 hook: this docket's item-card grid.
+func _card_grid() -> GridContainer:
+	return cards_box
 
 
 func _card_icon(def: RefCounted) -> String:
@@ -351,6 +385,9 @@ func _nothing_startable_text() -> String:
 func _on_bound() -> void:
 	if cards_box.get_child_count() == 0:
 		_build_cards()
+	# T35: the first column fit rides the bind (cards exist; the grid's first
+	# layout may land after — the deferred pass re-checks on resize).
+	refresh_card_grid()
 	# T26: the register's FIRST read rides the bind (the boot flush's regions
 	# predate the gating below; folded registers re-read on stamps only).
 	register.refresh(tm)
@@ -383,6 +420,13 @@ func _refresh(changes: Dictionary) -> void:
 	if changes.has("objectives") or (register.is_expanded()
 			and (changes.has("inventory") or changes.has("xp"))):
 		register.refresh(tm)
+	refresh_card_grid()
+
+
+## T35: re-fit the item-card grid's columns (idempotent; cheap on the 4 Hz
+## flush — minimum sizes are cached by the engine).
+func refresh_card_grid() -> void:
+	fit_card_grid(cards_box)
 
 
 func _refresh_gauge() -> void:
@@ -396,6 +440,7 @@ func _refresh_gauge() -> void:
 		gauge.value = 1.0
 		gauge_read.text = "CLEARANCE %02d · MAXIMUM GRADE · %s XP LIFETIME" % [
 			level, SignageFmt.num(xp)]
+		_update_card_bars(1.0, 1.0)
 		return
 	var floor_xp := curve.total_xp_to_reach(level)
 	var to_next := curve.xp_to_next(level)
@@ -404,6 +449,23 @@ func _refresh_gauge() -> void:
 	gauge.value = float(clampi(into_level, 0, to_next))
 	gauge_read.text = "CLEARANCE %02d · %s/%s XP TO NEXT" % [
 		level, SignageFmt.num(into_level), SignageFmt.num(to_next)]
+	_update_card_bars(float(maxi(to_next, 1)), float(clampi(into_level, 0, to_next)))
+
+
+## T35: the docket's XP meter, attached to the ACTIVE card. One engine read
+## (this is the gauge's own math, passed in) drives both instruments; the
+## card meter is visible only while its card holds the posting.
+func _update_card_bars(bar_max: float, bar_value: float) -> void:
+	var slot = state().active.get(skill_id)
+	var running_id := String(slot.get("content_id")) if slot != null else ""
+	for id in _content_order:
+		var card: Card = _cards[id]
+		var visible := id == running_id
+		if card.bar.visible != visible:
+			card.bar.visible = visible
+		if visible:
+			card.bar.max_value = bar_max
+			card.bar.value = bar_value
 
 
 func _refresh_activity() -> void:
@@ -434,13 +496,13 @@ func _apply_card_state(card: Card, energized: bool, locked: bool) -> void:
 	var display_name: String = str(def.get("name")) if def != null else card.id
 	var deny_live: bool = bool(_deny_active.get(card.id, false))
 	if energized:
-		card.button.theme_type_variation = "Energized"
+		card.button.theme_type_variation = "SkillCardEnergized"
 		card.title.theme_type_variation = "FormTitleEnergized"
 		card.title.text = ">> " + display_name
 		set_flow_variation(card.rate_line, "MonoValueEnergized")
 		set_flow_variation(card.yields_line, "MonoValueEnergized")
 	else:
-		card.button.theme_type_variation = ""
+		card.button.theme_type_variation = "SkillCard"
 		card.title.theme_type_variation = "FormTitle"
 		card.title.text = display_name
 		set_flow_variation(card.rate_line, "PlateSerialNavy")
@@ -452,6 +514,13 @@ func _apply_card_state(card: Card, energized: bool, locked: bool) -> void:
 		card.title.text = "× " + display_name.to_upper()
 	card.gate_text.text = _gate_text(card.id)
 	card.gate_plate.visible = locked
+	# T35: the attached XP meter belongs to the ACTIVE card only (the fill
+	# itself is set by _update_card_bars on the same flush).
+	var slot = state().active.get(skill_id) if state() != null else null
+	var running_id := String(slot.get("content_id")) if slot != null else ""
+	var bar_visible := energized and card.id == running_id
+	if card.bar.visible != bar_visible:
+		card.bar.visible = bar_visible
 
 
 # ------------------------------------------------------- T31 denial flash

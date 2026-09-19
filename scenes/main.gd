@@ -3,11 +3,15 @@ extends Control
 ## T9 — The Concourse: the shelter's main-game shell (scenes/main.tscn root).
 ##
 ## FIRST VIEWPORT (docs/ultron/design-brief.md — law for this surface): the
-## shelter concourse — since T30 a condensed 2-column wall of department
-## cards (Scavenging, Foraging, Junksmithing, Cooking, Wasteland Patrol,
+## shelter concourse — since T35 a single-column wall of department PLATES
+## (Scavenging, Foraging, Junksmithing, Cooking, Wasteland Patrol,
 ## Requisition Depot, Manifest, and — since T17 — Personnel) behind
 ## a half-open bulkhead door with wasteland daylight spilling in at the left
-## edge. The active department's card is energized — amber, swells forward,
+## edge (the T35 run-6 correction: the user's condensed-card direction lands
+## INSIDE the skill dockets' item lists, and the wall returns to the list it
+## always was — keeping the T30 per-plate readouts, XP micro gauges, posting
+## badges and energized cues so progress and active state stay readable).
+## The active department's plate is energized — amber, swells forward,
 ## and carries a ">> " label prefix so the state never rides on color alone
 ## (Daredevil floor). Its docket panel occupies the right two-thirds of the
 ## body; the big stencled BEGIN SHIFT button on the docket is the primary
@@ -185,14 +189,14 @@ var save_board: SaveNoticeBoard
 var _ui_theme: Node  # the UiTheme autoload, soft-accessed so the script also
                      # compiles under --check-only/-s (no global identifiers)
 var _mouth: BulkheadMouth
-var _plates: Dictionary = {}   # id -> Button (the compact card)
+var _plates: Dictionary = {}   # id -> Button (the wall plate)
 var _dockets: Dictionary = {}  # id -> Control (VBox placeholder)
 var _begin_buttons: Dictionary = {}  # id -> Button
 var _controllers: Dictionary = {}    # id -> Docket (T10a live content)
 var _dept_by_id: Dictionary = {}
 var _plate_order: Array[Button] = []
-# T30 compact card wall: the per-card widget refs the engine-bound refresh
-# keeps in step (name stencil, mono readout, XP micro bar, posting badge).
+# The wall plate's live widgets (T30 additions retained through the T35 wall
+# revert: the stencil name, mono readout, XP micro bar and posting badge).
 var _card_names: Dictionary = {}   # id -> Label
 var _card_reads: Dictionary = {}   # id -> Label
 var _card_bars: Dictionary = {}    # id -> ProgressBar (skills only)
@@ -304,8 +308,8 @@ func plates() -> Dictionary:
 	return _plates
 
 
-## T30: the compact card's stencil name label (the digit + short form live
-## there; probes and suites read the card's text through it).
+## The wall plate's stencil name label (the department name + designation
+## digit live there; probes and suites read the plate's text through it).
 func plate_name_label(id: String) -> Label:
 	return _card_names.get(id)
 
@@ -1080,145 +1084,128 @@ func _build_header() -> Control:
 	header_notice = notice
 	return row
 
-## T30 — the compact card wall (the run-5 UX amendment: "condensed cards more
-## like Melvor's UI" in the shelter-signage idiom). The eight tall plates
-## become a 2-column grid of compact cards, reading order = department order
-## (row-major), each card: icon (the skill/role mark), short stencil name with
-## its designation digit, a mono readout (clearance grade + XP on skill
-## departments; the role readout on Depot/Manifest/Personnel), a hairline XP
-## micro gauge (skills only) and the filled deputy badge when the department
-## holds a posting. Cards stay Buttons: 24 px+ hit targets, one tab cycle,
-## amber focus ring, and the energized state keeps every cue (variation + >>
-## prefix + swell — never color alone).
+## T35 — the department plate wall, REVERTED to the pre-T30 single-column
+## list (the run-6 correction: the user's condensed-card direction belongs to
+## the ITEMS INSIDE each skill's docket, and the wall "was fine as a list").
+## The T30 information additions stay on the list so progress and active
+## state stay readable at a glance (the user: "keep the progress bars
+## attached"): each plate is one full-width line of signage — the full
+## stencil name with its designation digit, the mono readout (clearance
+## grade + XP on skills; wallet/holdings/postings on the departments), a
+## hairline XP micro gauge and the filled deputy badge on the skill plates.
+## Plates stay Buttons: 24 px+ hit targets, one tab cycle, amber focus ring,
+## and the energized state keeps every cue (variation + >> prefix + amber
+## readout + swell — never color alone).
 func _build_plate_wall() -> Control:
 	var scroll := ScrollContainer.new()
 	scroll.name = "PlateWallScroll"
 	scroll.custom_minimum_size = Vector2(360.0, 0.0)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var grid := GridContainer.new()
-	grid.name = "PlateWall"
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 8)
-	grid.add_theme_constant_override("v_separation", 8)
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(grid)
+	var wall := _vbox(2)
+	wall.name = "PlateWall"
+	wall.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(wall)
 	for i in DEPARTMENTS.size():
 		var d: Dictionary = DEPARTMENTS[i]
-		var card := _make_card(d, i)
-		grid.add_child(card)
-		_plates[d.id] = card
-		_plate_order.append(card)
-	_pin_card_grid_neighbors()
+		var plate := _make_plate(d, i)
+		wall.add_child(plate)
+		_plates[d.id] = plate
+		_plate_order.append(plate)
+	_pin_plate_list_neighbors()
 	return scroll
 
 
-## Deterministic grid navigation (T30): the arrow keys walk the card grid —
-## within a row (left/right), down/up a column — and never leave the wall.
-## Explicit focus neighbors are the law here: the geometric fallback gets
-## hijacked by the energized card's swell (its scaled rect pokes 2 px into
-## the next row) and by the table's edges, and a card wall whose arrow
-## behavior changes with the active department is no navigation contract at
-## all. Edge cells pin to themselves (the arrow stays put).
-func _pin_card_grid_neighbors() -> void:
-	var rows := int(ceil(DEPARTMENTS.size() / 2.0))
+## Deterministic list navigation (the T30 pin discipline, re-derived for the
+## reverted column): up/down walk the plate list, left/right stay put.
+## Explicit focus neighbors remain the law — the geometric fallback gets
+## hijacked by the energized plate's swell (its scaled rect pokes into the
+## neighbor) and by the list's ends.
+func _pin_plate_list_neighbors() -> void:
 	for i in _plate_order.size():
-		var card := _plate_order[i]
-		var row := i / 2
-		var col := i % 2
-		if col == 0 and i + 1 < _plate_order.size():
-			card.focus_neighbor_right = card.get_path_to(_plate_order[i + 1])
+		var plate := _plate_order[i]
+		plate.focus_neighbor_right = plate.get_path_to(plate)
+		plate.focus_neighbor_left = plate.get_path_to(plate)
+		if i > 0:
+			plate.focus_neighbor_top = plate.get_path_to(_plate_order[i - 1])
 		else:
-			card.focus_neighbor_right = card.get_path_to(card)
-		if col == 1:
-			card.focus_neighbor_left = card.get_path_to(_plate_order[i - 1])
+			plate.focus_neighbor_top = plate.get_path_to(plate)
+		if i + 1 < _plate_order.size():
+			plate.focus_neighbor_bottom = plate.get_path_to(_plate_order[i + 1])
 		else:
-			card.focus_neighbor_left = card.get_path_to(card)
-		if row > 0:
-			card.focus_neighbor_top = card.get_path_to(_plate_order[i - 2])
-		else:
-			card.focus_neighbor_top = card.get_path_to(card)
-		if row < rows - 1:
-			card.focus_neighbor_bottom = card.get_path_to(_plate_order[i + 2])
-		else:
-			card.focus_neighbor_bottom = card.get_path_to(card)
+			plate.focus_neighbor_bottom = plate.get_path_to(plate)
 
 
-## One compact department card. A CardButton (the T15 sizing discipline: a
-## Button ignores child minimums, so the stack drives the size and the hit
-## target stays far above the 24 px floor).
-func _make_card(d: Dictionary, index: int) -> Button:
-	var card := Docket.CardButton.new()
-	card.name = "Plate_" + d.id
-	card.theme_type_variation = "SkillCard"
-	# The column stretches: GridContainer only widens columns whose children
-	# ask (a FILL-only child would leave both cards at their minimum width).
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	card.tooltip_text = "Open the %s docket (press %d)" % [d.plate.capitalize(), index + 1]
-	card.set_meta("dept_id", d.id)
-	card.set_meta("dept_index", index)
-	card.pressed.connect(_on_plate_pressed.bind(d.id))
+## One department plate: a CardButton (the T15 sizing discipline — a Button
+## ignores child minimums, so the stack drives the size and the hit target
+## stays far above the 24 px floor) carrying the plate's live stack. Geometry
+## budget: 8 plates must hold the wall unscrolled at 1280x720/100% (the T17
+## no-scroll contract), so the plate is two tight rows — stencil name row
+## (with the posting badge at its right shoulder), then the mono readout row
+## (with the XP micro gauge riding its right end) — over the SkillCard
+## variation's condensed margins.
+func _make_plate(d: Dictionary, index: int) -> Button:
+	var plate := Docket.CardButton.new()
+	plate.name = "Plate_" + d.id
+	plate.theme_type_variation = "SkillCard"
+	plate.custom_minimum_size = Vector2(340.0, 0.0)
+	plate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	plate.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	plate.tooltip_text = "Open the %s docket (press %d)" % [d.plate.capitalize(), index + 1]
+	plate.set_meta("dept_id", d.id)
+	plate.set_meta("dept_index", index)
+	plate.pressed.connect(_on_plate_pressed.bind(d.id))
 
 	var col := VBoxContainer.new()
 	col.name = "CardBox"
-	col.add_theme_constant_override("separation", 3)
+	col.add_theme_constant_override("separation", 0)
 
-	# Icon row: the department mark leads (icon-over-text, per the run-5
-	# direction); the posting badge rides the row's right shoulder.
-	var icon_row := HBoxContainer.new()
-	icon_row.name = "IconRow"
-	icon_row.add_theme_constant_override("separation", 6)
-	var icon := TextureRect.new()
-	var tex: Texture2D = load(Docket.ICON_DIR + d.icon + ".svg")
-	if tex != null:
-		icon.texture = tex
-	icon.custom_minimum_size = Vector2(30.0, 30.0)
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon_row.add_child(icon)
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	icon_row.add_child(spacer)
+	# Row 1: the stencil name (full plate name + designation digit — the
+	# pre-T30 text form) with the posting badge at its right shoulder. The
+	# autowrapped name is the row's sole EXPAND_FILL child beside a
+	# fixed-min-size sibling (the sanctioned wrapped-serial shape, T15).
+	var name_row := HBoxContainer.new()
+	name_row.name = "CardNameRow"
+	name_row.add_theme_constant_override("separation", 6)
+	var name_l := Label.new()
+	name_l.name = "CardName"
+	name_l.theme_type_variation = "FormTitle"
+	name_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_l.text = _plate_text(d, index)
+	name_row.add_child(name_l)
+	_card_names[d.id] = name_l
 	if d.skill != "":
 		var badge := TextureRect.new()
 		badge.name = "PostingBadge"
 		var badge_tex: Texture2D = load(Docket.ICON_DIR + Docket.GLYPH_BADGE + ".svg")
 		if badge_tex != null:
 			badge.texture = badge_tex
-		badge.custom_minimum_size = Vector2(18.0, 18.0)
+		badge.custom_minimum_size = Vector2(14.0, 14.0)
 		badge.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		badge.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		badge.visible = false
 		badge.tooltip_text = "POSTING ASSIGNED — this department holds a posting"
-		icon_row.add_child(badge)
+		name_row.add_child(badge)
 		_card_badges[d.id] = badge
-	col.add_child(icon_row)
+	col.add_child(name_row)
 
-	# The stencil name line: short form + designation digit (the hotkey), a
-	# full-width VBox row (the sanctioned wrapped-serial shape, T15).
-	var name_l := Label.new()
-	name_l.name = "CardName"
-	name_l.theme_type_variation = "FormTitle"
-	name_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	name_l.text = _plate_text(d, index)
-	col.add_child(name_l)
-	_card_names[d.id] = name_l
-
-	# The mono readout: clearance grade on skill departments, the role readout
-	# on Depot (wallet), Manifest (holdings) and Personnel (posting count).
+	# Row 2: the mono readout (clearance grade on skill departments, the role
+	# readout on Depot/Manifest/Personnel) with the XP micro gauge riding its
+	# right end — skills only. Same sanctioned shape as row 1 (the autowrapped
+	# readout is the sole EXPAND_FILL child; the gauge is fixed-min-size).
+	var read_row := HBoxContainer.new()
+	read_row.name = "CardReadRow"
+	read_row.add_theme_constant_override("separation", 6)
 	var read := Label.new()
 	read.name = "CardRead"
 	read.theme_type_variation = "PlateSerialNavy"
 	read.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	col.add_child(read)
+	read.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	read_row.add_child(read)
 	_card_reads[d.id] = read
-
-	# The XP micro gauge — skills only (Daredevil: the number's honest line,
-	# the mono readout carries the digits; the bar is the shape of the fill).
 	if d.skill != "":
 		var bar := ProgressBar.new()
 		bar.name = "CardXP"
@@ -1227,20 +1214,23 @@ func _make_card(d: Dictionary, index: int) -> Button:
 		bar.min_value = 0.0
 		bar.max_value = 1.0
 		bar.value = 0.0
-		bar.custom_minimum_size = Vector2(0.0, 7.0)
+		bar.custom_minimum_size = Vector2(96.0, 7.0)
+		bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		col.add_child(bar)
+		read_row.add_child(bar)
 		_card_bars[d.id] = bar
-	card.add_child(col)
-	return card
+	col.add_child(read_row)
+
+	plate.add_child(col)
+	return plate
 
 
-## R3: the card posts its designation digit — the D-0n serial's own number
+## R3: the plate posts its designation digit — the D-0n serial's own number
 ## and the key that selects the department from anywhere in the concourse.
-## T30: the compact short form carries it (SCAV · 1); the full plate name
-## stays on the docket header and the tooltip.
+## T35: the full plate name is back on the wall (the pre-T30 text form; the
+## T30 short forms are retired with the card grid).
 func _plate_text(d: Dictionary, index: int) -> String:
-	return "%s · %d" % [d.short, index + 1]
+	return "%s · %d" % [d.plate, index + 1]
 
 
 ## A manual plate press navigates — it clears the T33 Esc-return memory
@@ -1488,10 +1478,10 @@ func _apply_active(id: String, animate: bool) -> void:
 		settle.tween_property(docket, "modulate:a", 1.0, 0.30) \
 			.set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 
-## Energized state = amber card + swell forward + ">> " prefix on the stencil
+## Energized state = amber plate + swell forward + ">> " prefix on the stencil
 ## name + amber mono readout — four cues, one of them non-color (Daredevil:
-## state must not rely on color alone). T30: the cues moved from the plate's
-## Button text onto the card's label stack.
+## state must not rely on color alone). T35: the cues keep riding the plate's
+## label stack through the wall revert.
 func _set_plate_state(plate: Button, energized: bool, animate: bool) -> void:
 	var d: Dictionary = _dept_by_id[plate.get_meta("dept_id")]
 	var text := _plate_text(d, int(plate.get_meta("dept_index")))

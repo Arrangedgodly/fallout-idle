@@ -293,6 +293,102 @@ func set_flow_variation(flow: Node, variation: String) -> void:
 			(child as Label).theme_type_variation = variation
 
 
+# ------------------------------------------------- T35 compact item-card grid
+## The docket item-card grid (run-6 correction: the ITEMS INSIDE each skill
+## are the condensed cards). A GridContainer of compact CardButtons, densified
+## to 2 columns when the docket's width fits two cards (1280x720 at 100% font
+## scale) and collapsing to 1 column where it does not (200% font scale,
+## narrow windows) — the same relief law the wall pins use: internal vertical
+## scroll absorbs height, horizontal overflow never happens.
+func make_card_grid() -> GridContainer:
+	var grid := GridContainer.new()
+	grid.name = "CardsGrid"
+	grid.columns = 1
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Every layout change to the grid itself re-checks the fit (a collapse
+	# changes the cards' wrap widths and the grid's height; the re-check
+	# settles in one pass — the fit is idempotent).
+	grid.resized.connect(_refit_soon.bind(grid))
+	return grid
+
+
+## Re-fit one card grid's column count to the space it actually has. Called
+## deferred on resizes, theme (font-scale) changes and refreshes; idempotent —
+## a flush or layout pass that changes nothing writes nothing.
+func fit_card_grid(grid: GridContainer) -> void:
+	if grid == null or not grid.is_inside_tree() or grid.get_child_count() == 0:
+		return
+	var card_w := 0.0
+	for child in grid.get_children():
+		if child is Control and (child as Control).is_visible_in_tree():
+			card_w = maxf(card_w, (child as Control).get_combined_minimum_size().x)
+	var want := 2 if _grid_available_width(grid) >= card_w * 2.0 + 8.0 else 1
+	if grid.columns != want:
+		grid.columns = want
+
+
+## The honest width available to `grid`: its docket scroll's viewport minus
+## every horizontal inset between the two (margins + stylebox content
+## margins). The grid's OWN size cannot decide this — an overflowing
+## 2-column grid reports its inflated minimum as its size, so a
+## self-comparison can never collapse it back to one column.
+func _grid_available_width(grid: Control) -> float:
+	var viewport_w := 0.0
+	var cur: Node = grid.get_parent()
+	while cur != null:
+		if cur is ScrollContainer:
+			viewport_w = (cur as ScrollContainer).size.x
+			break
+		cur = cur.get_parent()
+	if viewport_w <= 0.0:
+		return grid.get_parent_area_size().x
+	var inset := 0.0
+	cur = grid.get_parent()
+	while cur != null and cur is Control and not cur is ScrollContainer:
+		var c := cur as Control
+		if c is MarginContainer:
+			inset += c.get_theme_constant("margin_left") + c.get_theme_constant("margin_right")
+		elif c is PanelContainer:
+			var sb := c.get_theme_stylebox("panel")
+			if sb != null:
+				inset += sb.get_margin(SIDE_LEFT) + sb.get_margin(SIDE_RIGHT)
+		cur = cur.get_parent()
+	return viewport_w - inset
+
+
+## Subclass hook: this docket's item-card grid (null where there is none).
+## The base re-fits it whenever the theme's font scale moves (a font-scale
+## change grows the cards' minimum width without resizing the grid, so the
+## resized signal alone cannot catch it).
+func _card_grid() -> GridContainer:
+	return null
+
+
+## The re-fit chase: fit immediately (deferred — minimum-size changes from a
+## font-scale pass land later in the same frame), then once more on the NEXT
+## frame when the children's fresh minimums are certain. Token-guarded: a
+## newer request supersedes the chase; the fit itself is idempotent.
+var _refit_seq := 0
+
+
+func _refit_soon(grid: GridContainer) -> void:
+	if grid == null or not grid.is_inside_tree():
+		return
+	_refit_seq += 1
+	var seq := _refit_seq
+	fit_card_grid.call_deferred(grid)
+	await get_tree().process_frame
+	if seq == _refit_seq:
+		fit_card_grid(grid)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_THEME_CHANGED:
+		_refit_soon(_card_grid())
+
+
 # ------------------------------------------------- T17 posting-refusal plate
 ## The POSTING REFUSED directive plate (shared by every docket that can
 ## request a posting — skill dockets and the patrol). Energized ground +

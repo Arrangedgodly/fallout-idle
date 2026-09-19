@@ -192,7 +192,7 @@ func test_engage_gauges_and_log_match_engine() -> void:
 	assert_eq(docket.phase_line.text, ">> PATROL ENGAGED — LITTERBUG")
 	assert_false(docket.phase_directive.visible, "recovery directive is the death plate's alone")
 	assert_eq((cards["junkyard_roach"].title as Label).text, ">> LITTERBUG", "engaged card carries the non-color cue")
-	assert_eq((cards["junkyard_roach"].button as Button).theme_type_variation, "Energized")
+	assert_eq((cards["junkyard_roach"].button as Button).theme_type_variation, "SkillCardEnergized")
 	assert_eq(c.begin_button_for("wasteland_patrol").text, "WITHDRAW PATROL", "primary retexts while fighting")
 
 	# Advance ticks in sub-interval chunks; after every chunk the gauges must

@@ -103,14 +103,23 @@ func _await_settled(max_frames := 240) -> void:
 func _in_view(ctrl: Control) -> bool:
 	var vr := _concourse.docket_scroll.get_global_rect()
 	var cr := ctrl.get_global_rect()
+	if cr.size.y > vr.size.y:
+		# T33/T35 accepted geometry: a target taller than the docket
+		# viewport (the T35 condensed fauna cards inside the
+		# tutorial-expanded ~190 px viewport) can never be fully enclosed —
+		# the honest bar is the reveal's leading-edge post: the head at or
+		# below the viewport top, the card intersecting the viewport.
+		return vr.intersects(cr) and cr.position.y >= vr.position.y - 2.0
 	return vr.encloses(cr.grow(-2.0))
 
 
 func _assert_in_view(ctrl: Control, what: String) -> void:
 	var vr := _concourse.docket_scroll.get_global_rect()
 	var cr := ctrl.get_global_rect()
-	assert_true(vr.encloses(cr.grow(-2.0)),
-		"%s fully in view (target %s vs viewport %s)" % [what, str(cr), str(vr)])
+	var ok := _in_view(ctrl)
+	var how := "fully in view" if cr.size.y <= vr.size.y else "leading edge posted at the viewport top (taller than the viewport)"
+	assert_true(ok,
+		"%s %s (target %s vs viewport %s)" % [what, how, str(cr), str(vr)])
 
 
 func _pulse_count(ctrl: Control) -> int:

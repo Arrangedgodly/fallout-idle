@@ -57,9 +57,9 @@ GODOT=/path/to/godot ./run_tests.sh
 
 | Key | Action |
 | --- | --- |
-| `1`–`8` | Jump to a department (digit row or numpad) — `8` is PERSONNEL. The digit rides the card's own stencil (`SCAV · 1`) |
-| `Tab` / `Shift+Tab` | Move focus through the concourse (the eight compact cards sit in one tab cycle, in grid order) |
-| Arrow keys | Walk the 2-column card grid; hop between the Patrol's zone tabs **and** the Depot's BUY/SELL tabs |
+| `1`–`8` | Jump to a department (digit row or numpad) — `8` is PERSONNEL. The digit rides the plate's own stencil (`SCAVENGING · 1`) |
+| `Tab` / `Shift+Tab` | Move focus through the concourse (the eight department plates sit in one tab cycle, in reading order) |
+| Arrow keys | Walk the department plate list; hop between the Patrol's zone tabs **and** the Depot's BUY/SELL tabs |
 | `Enter` / `Space` | Activate the focused control |
 | `Esc` | Acknowledge a MAIL CALL notice, or step back to the department a tutorial jump departed from |
 | Any key | While a text field is focused (the Depot's CUSTOM amount), the typing goes to the field — department hotkeys hold off |
@@ -68,7 +68,7 @@ Every control is also reachable by mouse. Modifier combos (`Cmd`/`Ctrl`/`Alt` + 
 
 ## Reading the concourse
 
-- **Compact cards** — the left wall is a 2-column grid of eight department cards: the department mark, the short stencil name with its hotkey digit, a mono readout (clearance grade + XP on skills; wallet, holdings, or posting count on the Depot/Manifest/Personnel), a hairline XP gauge, and a filled deputy badge that burns exactly while the department holds a posting. The active department's card is amber, swells, and takes the `>> ` prefix — state never rides on color alone.
+- **The plate list, with the cards inside** — the left wall is a single-column list of eight full-width department plates: the stencil name with its hotkey digit, a mono readout (clearance grade + XP on skills; wallet, holdings, or posting count on the Depot/Manifest/Personnel), a hairline XP gauge, and a filled deputy badge that burns exactly while the department holds a posting. The active plate is amber, swells, and takes the `>> ` prefix — state never rides on color alone. The CONDENSED cards live inside each skill's docket: the shifts, recipes, and fauna post as compact icon-led cards, two-up, with the progress bar attached to whatever is actually running.
 - **Depot tabs & the sell ladder** — the Depot docket posts BUY (the shop) and SELL (your own sellables — never the shop's stock) as two tabs; SELL lines lead with the full quantity ladder: `SELL 1 · SELL 10% · SELL 25% · SELL 50% · SELL 100% · CUSTOM…`. Counts post on the buttons (a rung whose share floors to zero disables, at its honest `0`), percentages floor exactly, and CUSTOM validates `1–stack` with a live exact `TENDER N · N CROWNS` preview — out-of-range amounts are refused in voice, never clamped.
 - **Tutorial reveal cues** — when an O-1 step becomes current, the game walks you to the control: it selects the department, posts the right tab (FILE A CROWNS CLAIM opens the Depot on SELL), scrolls the target fully into view, and marks it with one brief settle pulse. A step you can't act on yet states so on its own line (`— WORK FOR INVENTORY FIRST` / `— GATHER SUPPLIES FIRST`) and the arrow cues the source department instead; the suffix withdraws the moment you can act. `Esc` steps back.
 - **Refusal feedback** — a refused posting (board full, clearance short, supplies missing) stamps a red notice strip at the top of the docket in the Department's voice, naming the reason; posting refusals carry a one-press REASSIGN that ceases the named posting and starts yours — validated before anything ceases.

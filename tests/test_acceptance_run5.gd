@@ -3,8 +3,9 @@ extends GutTest
 ## one journey per Scope Amendment 3 complaint — each certification drives the
 ## same route the run's fixes shipped, through the REAL input pipeline):
 ##
-##   (a) COMPACT SHELL (complaint #3, T30) — all 8 compact cards keyboard-
-##       reachable in GRID ORDER (one tab walk), the 1-8 hotkeys select from
+##   (a) COMPACT SHELL (complaint #3, T30; wall re-derived by T35) — all 8
+##       department plates keyboard-reachable in READING ORDER (one tab
+##       walk), the 1-8 hotkeys select from
 ##       anywhere with focus following the jump, and the wall is LIVE: posting
 ##       badges and role readouts flip with engine truth on the batched flush.
 ##       Also pins the T34 cleanup fixes: the O-1 slip's completion mark reads
@@ -230,18 +231,18 @@ func _press(btn: Button, what: String, in_docket := true) -> void:
 
 
 # ---------------------------------------------------------------------------
-# (a) COMPACT SHELL — grid order, hotkeys 1-8, live badges
+# (a) COMPACT SHELL — reading order (the T35 list), hotkeys 1-8, live badges
 # ---------------------------------------------------------------------------
 
-func test_a_compact_shell_grid_order_hotkeys_and_live_badges() -> void:
+func test_a_compact_shell_reading_order_hotkeys_and_live_badges() -> void:
 	var tm: Variant = await _boot()
 	var plates: Array[Button] = _concourse.plate_buttons_in_order()
 	assert_eq(plates.size(), 8, "the compact wall posts all eight cards")
-	# Reading order = department order (row-major in the 2-column grid), and
+	# Reading order = department order (top-to-bottom in the T35 plate list), and
 	# every card carries its own designation digit (the hotkey it answers).
 	for i in plates.size():
 		assert_eq(String(plates[i].get_meta("dept_id")), IDS[i],
-			"card %d is %s in grid order" % [i, IDS[i]])
+			"card %d is %s in reading order" % [i, IDS[i]])
 		var label: Label = _concourse.plate_name_label(IDS[i])
 		assert_string_contains(label.text, "· %d" % (i + 1),
 			"card %d posts its designation digit (%s)" % [i, label.text])
@@ -256,7 +257,7 @@ func test_a_compact_shell_grid_order_hotkeys_and_live_badges() -> void:
 		_push_tab()
 		await wait_frames(1)
 		assert_eq(_vp.gui_get_focus_owner(), plates[i],
-			"tab %d lands on card %d (grid order)" % [i, i + 1])
+			"tab %d lands on card %d (reading order)" % [i, i + 1])
 
 	# HOTKEYS 1-8: a real digit selects its department from anywhere, and
 	# focus follows the jump (the tab chain resumes INTO the new docket).
@@ -713,8 +714,8 @@ func test_e_blockade_audit_green_across_states_and_scales() -> void:
 	var form := _concourse.orientation()
 	# Settle the shell into the steady state the audit contract covers (the
 	# probe's own preamble does this through its font-scale legs): the T30
-	# energized swell is a transient emphasis on the ACTIVE card (it pokes
-	# sub-pixel into the grid gap and is re-applied on every department
+	# energized swell is a transient emphasis on the ACTIVE plate (it pokes
+	# sub-pixel past the plate edge and is re-applied on every department
 	# change); one font-scale round-trip settles it so the matrix audits the
 	# standing composition, exactly as the probe's audit does.
 	_concourse.font_slider.value = 2.0

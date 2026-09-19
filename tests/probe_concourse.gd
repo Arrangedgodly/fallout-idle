@@ -11,8 +11,9 @@ extends SceneTree
 ## Proves the T9 acceptance criteria:
 ##   1. the concourse instantiates from scenes/main.tscn with the T8 theme
 ##      installed (no ad-hoc panels: every Panel carries a theme variation);
-##   2. the department card wall (T30): all 8 compact cards in a 2-column
-##      grid, short names/digits per the naming register and the design-brief
+##   2. the department plate wall (T35 revert of the T30 grid): all 8
+##      full-width list plates in one column, full names/digits per the
+##      naming register and the design-brief
 ##      first viewport; the facility plate carries the game title; the docket
 ##      region occupies >= 2/3 of the body at 1280x720 AND 1920x1080;
 ##   3. first-run (T18): ORIENTATION FORM O-1 posted expanded, step 1 cued
@@ -72,8 +73,8 @@ const CONCOURSE_PATH := "res://scenes/main.tscn"
 const REVIEW_DIR := "res://.impeccable/review/t9"
 const CAPTURE_UNSUPPORTED_EXIT := 42
 
-const EXPECTED_PLATES := ["SCAV", "FORAGE", "FORGE", "COOK",
-	"PATROL", "DEPOT", "MANIFEST", "PERSONNEL"]
+const EXPECTED_PLATES := ["SCAVENGING", "FORAGING", "JUNKSMITHING", "COOKING",
+	"WASTELAND PATROL", "REQUISITION DEPOT", "MANIFEST", "PERSONNEL"]
 const EXPECTED_IDS := ["scavenging", "foraging", "junksmithing", "cooking",
 	"wasteland_patrol", "requisition_depot", "manifest", "personnel"]
 const ALLOWED_PANEL_VARIATIONS := ["", "EnamelPlate", "EnergizedPlate",
@@ -126,6 +127,7 @@ func _run() -> void:
 		await _capture_t32_sets()
 		await _capture_t33_sets()
 		await _capture_t34_sets()
+		await _capture_t35_sets()
 		if _capture_unsupported:
 			_done = true
 			return  # already quitting CAPTURE_UNSUPPORTED_EXIT for the runner
@@ -172,25 +174,27 @@ func _check_structure() -> void:
 			unthemed.append("%s(%s)" % [p.name, p.theme_type_variation])
 	_check(unthemed.is_empty(), "all panels carry theme variations (offenders: %s)" % ", ".join(unthemed))
 
-	# Card wall (T30): 8 compact cards in a 2-column grid, short names and
-	# order per the naming register / first viewport (reading order row-major).
-	# R3: each card posts its designation digit (the hotkey that selects it).
+	# Department plate wall (T35 revert): 8 full-width list plates in one
+	# column, full names + digits per the naming register / first viewport,
+	# each carrying the T30 additions (mono readout, XP micro gauge on skills,
+	# posting badge). R3: each plate posts its designation digit (the hotkey
+	# that selects it).
 	var plates := _concourse.plate_buttons_in_order()
-	_check(plates.size() == 8, "card wall has 8 department cards (T17: PERSONNEL D-08 joins the wall; got %d)" % plates.size())
-	var grid := _concourse.find_child("PlateWall", true, false) as GridContainer
-	_check(grid != null and grid.columns == 2, "the wall is a 2-column card grid (T30)")
+	_check(plates.size() == 8, "plate wall has 8 department plates (T17: PERSONNEL D-08 joins the wall; got %d)" % plates.size())
+	var wall_list := _concourse.find_child("PlateWall", true, false) as VBoxContainer
+	_check(wall_list != null, "the wall is a single-column plate list (T35 revert)")
 	for i in mini(plates.size(), EXPECTED_PLATES.size()):
 		var expect: String = "%s · %d" % [EXPECTED_PLATES[i], i + 1]
 		var name_l: Label = _concourse.plate_name_label(EXPECTED_IDS[i])
 		if i == 0 and _concourse.active_department() == EXPECTED_IDS[0]:
-			expect = ">> " + expect  # first card is energized at boot
+			expect = ">> " + expect  # first plate is energized at boot
 		_check(name_l != null and name_l.text == expect,
-			"card %d name '%s' (expected '%s')" % [i, name_l.text if name_l else "none", expect])
-	_check(plates[0].tooltip_text.length() > 0, "cards carry accessibility tooltips")
-	# The compact cards stay honest hit targets (WCAG 2.5.8 floor with room).
+			"plate %d name '%s' (expected '%s')" % [i, name_l.text if name_l else "none", expect])
+	_check(plates[0].tooltip_text.length() > 0, "plates carry accessibility tooltips")
+	# The plates stay honest hit targets (WCAG 2.5.8 floor with room).
 	for i in plates.size():
 		_check(plates[i].size.y >= 24.0 and plates[i].size.x >= 24.0,
-			"card %d keeps a 24px+ hit target (%s)" % [i, str(plates[i].size)])
+			"plate %d keeps a 24px+ hit target (%s)" % [i, str(plates[i].size)])
 
 	# Facility plate: the game title as the shelter's facility plate.
 	var facility := _concourse.find_child("FacilityPlate", true, false) as PanelContainer
@@ -349,47 +353,37 @@ func _check_focus_traversal() -> void:
 	_check(visited.size() == focusables.size(),
 		"tab chain covers exactly the focusable set (%d/%d)" % [visited.size(), focusables.size()])
 
-	# Arrow keys drive the card GRID (T30 re-derivation: the wall is a
-	# 2-column grid, row-major reading order, so ui_right/ui_left walk within
-	# a row and ui_down/ui_up jump a row — the same guarantee as the old
-	# column walk, every card reachable through the viewport's real input
-	# pipeline, now proven in BOTH axes).
+	# Arrow keys drive the plate LIST (T35 re-derivation: the reverted wall
+	# is a single column, so ui_down/ui_up walk the plates in order and
+	# ui_right/ui_left stay put — the same guarantee as the T30 grid walk,
+	# every plate reachable through the viewport's real input pipeline).
 	var plates := _concourse.plate_buttons_in_order()
 	plates[0].grab_focus()
 	await _frames(1)
-	# Row walk: 0 -> 1 (right), then back (left).
+	# Left/right are pinned no-ops on a one-column wall.
 	_push_action("ui_right")
 	await _frames(1)
 	var right_owner := _vp.gui_get_focus_owner()
-	_check(right_owner == plates[1],
-		"arrow RIGHT moves focus across the row to card 1 (got %s)" % (right_owner.name if right_owner else "none"))
+	_check(right_owner == plates[0],
+		"arrow RIGHT stays on a one-column wall (got %s)" % (right_owner.name if right_owner else "none"))
 	_push_action("ui_left")
 	await _frames(1)
 	var left_owner := _vp.gui_get_focus_owner()
 	_check(left_owner == plates[0],
-		"arrow LEFT returns to card 0 (got %s)" % (left_owner.name if left_owner else "none"))
-	# Column walk: down the first column 0 -> 2 -> 4 -> 6, then back up.
-	for step in [2, 4, 6]:
+		"arrow LEFT stays on a one-column wall (got %s)" % (left_owner.name if left_owner else "none"))
+	# The column walk: down 0 -> 1 -> 2 -> 3, then back up.
+	for step in [1, 2, 3]:
 		_push_action("ui_down")
 		await _frames(1)
 		var down_owner := _vp.gui_get_focus_owner()
 		_check(down_owner == plates[step],
-			"arrow DOWN moves focus a row to card %d (got %s)" % [step, down_owner.name if down_owner else "none"])
-	for step in [4, 2, 0]:
+			"arrow DOWN walks the list to plate %d (got %s)" % [step, down_owner.name if down_owner else "none"])
+	for step in [2, 1, 0]:
 		_push_action("ui_up")
 		await _frames(1)
 		var up_owner := _vp.gui_get_focus_owner()
 		_check(up_owner == plates[step],
-			"arrow UP moves focus a row to card %d (got %s)" % [step, up_owner.name if up_owner else "none"])
-	# The second column walks too: 1 -> 3 -> 5 -> 7 by ui_down.
-	plates[1].grab_focus()
-	await _frames(1)
-	for step in [3, 5, 7]:
-		_push_action("ui_down")
-		await _frames(1)
-		var col_owner := _vp.gui_get_focus_owner()
-		_check(col_owner == plates[step],
-			"arrow DOWN walks column two to card %d (got %s)" % [step, col_owner.name if col_owner else "none"])
+			"arrow UP walks the list back to plate %d (got %s)" % [step, up_owner.name if up_owner else "none"])
 
 func _check_focus_rings() -> void:
 	var focusables := _concourse.focusable_controls()
@@ -435,11 +429,11 @@ func _check_transition() -> void:
 	var scav := plates[0]
 	var patrol_name: Label = _concourse.plate_name_label("wasteland_patrol")
 	var scav_name: Label = _concourse.plate_name_label("scavenging")
-	_check(patrol.theme_type_variation == "SkillCardEnergized" and patrol_name.text == ">> PATROL · 5",
-		"patrol card energized after transition (short name + digit posted, R3/T30)")
-	_check(absf(patrol.scale.x - 1.05) < 0.02, "patrol card swell settled (%.3f)" % patrol.scale.x)
-	_check(scav.theme_type_variation == "SkillCard" and scav_name.text == "SCAV · 1" and scav.scale == Vector2.ONE,
-		"scavenging card reset to default state (short name + digit posted, R3/T30)")
+	_check(patrol.theme_type_variation == "SkillCardEnergized" and patrol_name.text == ">> WASTELAND PATROL · 5",
+		"patrol plate energized after transition (full name + digit posted, R3/T35)")
+	_check(absf(patrol.scale.x - 1.05) < 0.02, "patrol plate swell settled (%.3f)" % patrol.scale.x)
+	_check(scav.theme_type_variation == "SkillCard" and scav_name.text == "SCAVENGING · 1" and scav.scale == Vector2.ONE,
+		"scavenging plate reset to default state (full name + digit posted, R3/T35)")
 	_check(_concourse.docket_for("wasteland_patrol").visible, "patrol docket visible after transition")
 	_check(not _concourse.docket_for("scavenging").visible, "scavenging docket hidden after transition")
 	# T18: the run-1 chalk dismissed on the first department change; the O-1
@@ -1318,6 +1312,11 @@ func _check_r1_viewport_geometry() -> void:
 			# no-scroll contract, re-derived for the grid), and at 200% the
 			# grid never overflows the wall horizontally (internal vertical
 			# scroll is the sanctioned relief).
+			# T35 wall pins (re-derived for the reverted list): the plate list
+			# renders without wall scroll at 100% (all 8 plates fully inside
+			# the wall viewport — the T17 no-scroll contract), and at 200% a
+			# plate never overflows the wall horizontally (internal vertical
+			# scroll is the sanctioned relief).
 			var wall_scroll := _concourse.find_child("PlateWallScroll", true, false) as ScrollContainer
 			_check(wall_scroll != null, "R1 %dx%d %s: card wall scroll present" % [
 				vp_size.x, vp_size.y, scale_name])
@@ -1326,7 +1325,7 @@ func _check_r1_viewport_geometry() -> void:
 				var cards := _concourse.plate_buttons_in_order()
 				if scale_value < 1.0:
 					_check(wall_scroll.scroll_vertical == 0,
-						"R1 %dx%d %s: card wall unscrolled at 100%% (T30 grid fit)" % [
+						"R1 %dx%d %s: card wall unscrolled at 100%% (T35 list fit)" % [
 							vp_size.x, vp_size.y, scale_name])
 					for ci in cards.size():
 						_check(wall_rect.encloses(cards[ci].get_global_rect()),
@@ -2915,6 +2914,165 @@ func _validate_t33_pngs() -> void:
 	}
 	for file_name: String in expects:
 		var path := T33_DIR + "/" + file_name
+		var fa := FileAccess.open(path, FileAccess.READ)
+		_check(fa != null and fa.get_length() > 1000, "%s saved with real content" % file_name)
+		if fa == null:
+			continue
+		fa.close()
+		var img := Image.load_from_file(path)
+		_check(img != null, "%s is a loadable image" % file_name)
+		if img == null:
+			continue
+		_check(Vector2i(img.get_width(), img.get_height()) == expects[file_name],
+			"%s dimensions %dx%d" % [file_name, img.get_width(), img.get_height()])
+		var colors := {}
+		for x in range(0, img.get_width(), 12):
+			for y in range(0, img.get_height(), 12):
+				colors[img.get_pixel(x, y).to_html(true)] = true
+		_check(colors.size() >= 12, "%s renders real content (%d distinct sampled colors)" % [
+			file_name, colors.size()])
+
+
+# ---------------------------------------------------------------- T35 captures
+const T35_DIR := "res://.impeccable/review/t35"
+
+## T35 — the run-6 correction: the reverted plate wall + the CONDENSED item
+## cards INSIDE each docket family, the active card carrying its attached
+## progress meter, the fighting fauna card its HP instrument.
+func _capture_t35_sets() -> void:
+	if DirAccess.make_dir_recursive_absolute(T35_DIR) != OK:
+		_check(false, "t35 review dir created")
+		return
+	var tm: Node = _concourse.bound_tick_manager()
+	if tm == null:
+		_check(false, "t35 capture: engine bound")
+		return
+	_vp.size = Vector2i(1280, 720)
+	_concourse.font_slider.value = 0.0
+	tm.new_game(20260935)
+	_concourse.set_first_run(false)
+	_concourse.orientation().fold()
+	# A live shift: the wall plate shows its badge + micro bar, and the
+	# scavenging tier card shows the ATTACHED progress meter mid-fill (30 XP
+	# = level 2 at the 20-XP first step, 10 into the 65-XP second step).
+	tm.start_activity("sort_scrap_pile")
+	tm.engine.grant_xp(tm.state, "scavenging", 30)
+	tm.batcher.mark("xp")
+	tm.batcher.mark("activity")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	await _frames(4)
+	if not _snap_t35("t35_plate_wall_1280x720.png"):
+		return
+	var scav := _concourse.docket_controller("scavenging") as DocketSkill
+	var active_bar: ProgressBar = scav.cards_box.get_child(0).find_child("CardProgress", true, false)
+	_check(active_bar != null and active_bar.visible,
+		"t35 capture: the ACTIVE tier card carries its attached XP meter")
+	var scav_lib: ContentLibrary = tm.engine.lib
+	var scav_curve: XpCurveDef = scav_lib.xp_curve(scav_lib.skill("scavenging").xp_curve)
+	var scav_level := int(tm.state.skills_level["scavenging"])
+	var scav_into := float(clampi(int(tm.state.skills_xp["scavenging"])
+		- int(scav_curve.total_xp_to_reach(scav_level)), 0, int(scav_curve.xp_to_next(scav_level))))
+	_check(active_bar.max_value == float(int(scav_curve.xp_to_next(scav_level)))
+		and active_bar.value == scav_into and scav_into > 0.0,
+		"t35 capture: the attached meter is live-bound (%.0f/%.0f)" % [active_bar.value, active_bar.max_value])
+	var grid := scav.cards_box as GridContainer
+	_check(grid.columns == 2, "t35 capture: the tier cards densify 2-up at 100%")
+	# Bring the condensed cards into the frame (the docket's top half is
+	# chrome above the fold).
+	var sort_card: Control = scav.cards_box.get_child(0)
+	_concourse.docket_scroll.ensure_control_visible(sort_card)
+	await _frames(3)
+	if not _snap_t35("t35_gathering_cards_1280x720.png"):
+		return
+	# Processing family: the recipe cards, condensed.
+	_concourse.select_department("junksmithing", true)
+	var n := 0
+	while n < 240 and _concourse.is_transitioning():
+		await _frames(1)
+		n += 1
+	await _frames(4)
+	var smith := _concourse.docket_controller("junksmithing") as DocketProcessing
+	_check((smith.cards_box as GridContainer).columns == 2,
+		"t35 capture: the recipe cards densify 2-up at 100%")
+	var smelt_card: Control = smith.find_child("Card_smelt_scrap_ingot", true, false)
+	_concourse.docket_scroll.ensure_control_visible(smelt_card)
+	await _frames(3)
+	if not _snap_t35("t35_processing_cards_1280x720.png"):
+		return
+	# Patrol family: the fauna cards, with the fighting card's HP instrument.
+	tm.stop_skill("scavenging")
+	tm.batcher.mark("activity")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	_concourse.select_department("wasteland_patrol", true)
+	n = 0
+	while n < 240 and _concourse.is_transitioning():
+		await _frames(1)
+		n += 1
+	await _frames(2)
+	_check(bool(tm.engage_monster("junkyard_roach")["ok"]), "t35 capture: the patrol engages")
+	_pump(tm, 5_100)
+	_concourse.select_department("wasteland_patrol", true)
+	await _frames(4)
+	var roach_card := _concourse.docket_controller("wasteland_patrol") \
+		.find_child("Fauna_junkyard_roach", true, false) as Control
+	_check(roach_card != null, "t35 capture: the engaged fauna card is posted")
+	# The fight's card lives on the SUNNY board — post it (an earlier capture
+	# set leaves the Gift Court tab up).
+	(_concourse.docket_controller("wasteland_patrol") as DocketPatrol) \
+		.zone_tab_sunny.pressed.emit()
+	await _frames(2)
+	_concourse.docket_scroll.ensure_control_visible(roach_card)
+	await _frames(3)
+	var hp_bar: ProgressBar = (roach_card as Control).find_child("FaunaHP", true, false)
+	_check(hp_bar != null and hp_bar.visible,
+		"t35 capture: the fighting fauna card carries its HP instrument")
+	_check(hp_bar.value < hp_bar.max_value,
+		"t35 capture: the HP instrument is live (%.0f/%.0f)" % [hp_bar.value, hp_bar.max_value])
+	if not _snap_t35("t35_patrol_cards_1280x720.png"):
+		return
+	# 200% font scale: the grids collapse to one column, nothing overflows.
+	_concourse.select_department("scavenging", true)
+	n = 0
+	while n < 240 and _concourse.is_transitioning():
+		await _frames(1)
+		n += 1
+	_concourse.font_slider.value = 2.0
+	await _frames(8)
+	_check((scav.cards_box as GridContainer).columns == 1,
+		"t35 capture: the tier cards collapse to one column at 200%")
+	_concourse.docket_scroll.ensure_control_visible(scav.cards_box.get_child(0))
+	await _frames(3)
+	if not _snap_t35("t35_docket_cards_1280x720_200pct.png"):
+		return
+	tm.stop_combat()
+	_concourse.font_slider.value = 0.0
+	_validate_t35_pngs()
+
+
+func _snap_t35(file_name: String) -> bool:
+	var img := _vp.get_texture().get_image()
+	if img == null:
+		print("HEADLESS_CAPTURE_UNSUPPORTED (dummy rasterizer returned no image)")
+		_capture_unsupported = true
+		quit(CAPTURE_UNSUPPORTED_EXIT)
+		_done = true
+		return false
+	var path := T35_DIR + "/" + file_name
+	var err := img.save_png(path)
+	_check(err == OK, "captured %s (err=%d)" % [path, err])
+	return true
+
+
+func _validate_t35_pngs() -> void:
+	var expects := {
+		"t35_plate_wall_1280x720.png": Vector2i(1280, 720),
+		"t35_gathering_cards_1280x720.png": Vector2i(1280, 720),
+		"t35_processing_cards_1280x720.png": Vector2i(1280, 720),
+		"t35_patrol_cards_1280x720.png": Vector2i(1280, 720),
+		"t35_docket_cards_1280x720_200pct.png": Vector2i(1280, 720),
+	}
+	for file_name: String in expects:
+		var path := T35_DIR + "/" + file_name
 		var fa := FileAccess.open(path, FileAccess.READ)
 		_check(fa != null and fa.get_length() > 1000, "%s saved with real content" % file_name)
 		if fa == null:

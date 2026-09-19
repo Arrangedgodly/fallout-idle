@@ -3,8 +3,10 @@ extends Docket
 ## DocketPatrol — T10b Wasteland Patrol docket: the live battle board for
 ## The Sunny Exclusion Zone. Everything renders from the T7 engine through
 ## the T6 signal contract: engage/withdraw route through the TickManager
-## façade (engage_monster / stop_combat), the HP gauges, phase plate, fauna
-## cards, loadout stats and ration queue re-read state.combat / state on
+## façade (engage_monster / stop_combat), the HP gauges, phase plate, the
+## fauna card grid (T35: compact cards, 2-up where the width fits; the
+## fighting card carries its attached HP instrument), loadout stats and
+## ration queue re-read state.combat / state on
 ## batched flushes, and the discrete combat_ended / zone_cleared / level_up
 ## signals stamp their lines immediately (combat events may be immediate per
 ## the TickManager contract). NOTHING updates per frame.
@@ -139,7 +141,7 @@ var m_read: Label
 var ration_read: Label
 var gauge: ProgressBar
 var gauge_read: Label
-var cards_box: VBoxContainer
+var cards_box: GridContainer  # T35: the compact fauna-card grid (2-up where the width fits)
 var log: ItemList
 var weapon_name: Label
 var weapon_serial: HFlowContainer
@@ -165,8 +167,9 @@ class FaunaCard:
 	var tag_line: Label
 	var stats_line: HFlowContainer
 	var drops_line: HFlowContainer
-	var gate_plate: PanelContainer
+	var gate_plate: Control
 	var gate_text: Label
+	var hp_bar: ProgressBar  # T35: the fighting card's attached HP instrument
 	# T24 perf guard (the T19 no-change-signature precedent): _refresh_cards
 	# re-applies every card's state on every combat event (kills, level-ups,
 	# inventory flushes at 4 Hz); with the run-3 fauna count the redundant
@@ -313,9 +316,10 @@ func _build_content() -> void:
 	zone_serial.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(zone_serial)
 
-	# Fauna posting list (the monster picker — one zone's board at a time).
+	# Fauna posting list (the monster picker — one zone's board at a time),
+	# as compact cards in the T35 grid (2-up where the width fits).
 	add_child(micro("FAUNA POSTINGS · SELECT A DESIGNATION"))
-	cards_box = vbox(8)
+	cards_box = make_card_grid()
 	add_child(cards_box)
 
 	# Equipment on person + derived patrol stats.
@@ -502,26 +506,38 @@ func _make_card(mdef: MonsterDef) -> FaunaCard:
 	card.id = mdef.id
 	card.zone = mdef.zone
 	# T15: CardButton — the button's minimum size includes its label stack.
+	# T35: the SkillCard variation's condensed margins (10/6) — the compact
+	# fauna card body.
 	var b := Docket.CardButton.new()
 	b.name = "Fauna_" + card.id
+	b.theme_type_variation = "SkillCard"
+	# The column stretches: GridContainer only widens columns whose children
+	# ask (a FILL-only child would leave both cards at their minimum width).
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.pressed.connect(_on_card_pressed.bind(card.id))
 	b.tooltip_text = "Designate this fauna for patrol — %s" % mdef.name
 	card.button = b
 
-	var col := vbox(3)
+	# T35 compact card stack: icon-led title row (autowrapped name, sole
+	# EXPAND_FILL beside the fixed mark), the zone's own classification line,
+	# then the honest stats and claim serials as segment flows — every exact
+	# number unchanged on the card.
+	var col := vbox(2)
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
-	var title_row := hbox(10)
+	var title_row := hbox(8)
 	title_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_row.add_child(icon_rect(mdef.icon, 30))
+	title_row.add_child(icon_rect(mdef.icon, 22))
 	card.title = label("FormTitle", mdef.name.to_upper())
+	card.title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	card.title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_row.add_child(card.title)
 	col.add_child(title_row)
 
 	# T26: classifications are zone's own (T24-registered copy — the Gift
 	# Court's boss posts the REGIONAL AUTHORITY plate, its pests read the
-	# UNSHELVED family; the Sunny lines stay verbatim as shipped).
+	# UNSHELVED family; the Sunny lines stay verbatim as shipped). A
+	# full-width VBox row (the sanctioned wrapped-serial shape, T15).
 	var tag_text := String(ZONE_BOSS_TAG.get(mdef.zone, ZONE_BOSS_TAG[ZONE_SUNNY])) if mdef.is_boss \
 		else String(ZONE_PEST_TAG.get(mdef.zone, ZONE_PEST_TAG[ZONE_SUNNY]))
 	card.tag_line = label("PlateSerialNavy", tag_text)
@@ -531,24 +547,47 @@ func _make_card(mdef: MonsterDef) -> FaunaCard:
 	# T19: fauna stats post as [stat glyph][mono value] segments (honest math
 	# unchanged — the glyphs name exactly the stats their numbers post; XP is
 	# not one of the five instrumented stats and stays bare text).
-	card.stats_line = segment_flow(12)
+	card.stats_line = segment_flow(10)
 	set_segments(card.stats_line, _stats_segments(mdef), "PlateSerialNavy")
 	col.add_child(card.stats_line)
 
 	# T19: claim-table entries carry their item's icon beside the exact rate.
-	card.drops_line = segment_flow(12)
+	card.drops_line = segment_flow(10)
 	set_segments(card.drops_line, _drops_segments(mdef), "PlateSerialNavy")
 	col.add_child(card.drops_line)
 
-	# T19: the gate plate carries the clearance staircase beside the grade.
-	card.gate_plate = panel_box("DangerPlate")
-	card.gate_text = label("MonoValue", "")
+	# T35: the clearance gate posts INLINE — the staircase glyph beside the
+	# compact red serial (FormTitleDanger, the registered red-on-bone pair)
+	# instead of a full DangerPlate block. Same verbatim text: the required
+	# grade AND the earning path (refinement 2, critique P2#4).
+	card.gate_text = label("FormTitleDanger", "")
 	card.gate_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	card.gate_plate.add_child(glyph_beside(GLYPH_CLEARANCE, card.gate_text))
+	card.gate_plate = glyph_beside(GLYPH_CLEARANCE, card.gate_text, 16)
 	col.add_child(card.gate_plate)
+
+	# T35: the fighting card's attached HP instrument — the live engagement
+	# fill rides the designated card (visible only while THIS fauna fights;
+	# the battle board's gauges keep the exact digits). "Keep the progress
+	# bars attached so you can easily see progress and what is active."
+	card.hp_bar = ProgressBar.new()
+	card.hp_bar.name = "FaunaHP"
+	card.hp_bar.theme_type_variation = "MicroGauge"
+	card.hp_bar.show_percentage = false
+	card.hp_bar.min_value = 0.0
+	card.hp_bar.max_value = 1.0
+	card.hp_bar.value = 0.0
+	card.hp_bar.custom_minimum_size = Vector2(0.0, 7.0)
+	card.hp_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.hp_bar.visible = false
+	col.add_child(card.hp_bar)
 
 	b.add_child(col)
 	return card
+
+
+## The T35 hook: this docket's fauna-card grid.
+func _card_grid() -> GridContainer:
+	return cards_box
 
 
 ## The engine's exact combat math as glyph segments (honest-math principle;
@@ -783,6 +822,12 @@ func _refresh(changes: Dictionary) -> void:
 		register.refresh(tm)
 	if changes.has("objectives") or changes.has("combat"):
 		_refresh_zone_plates()
+	refresh_card_grid()
+
+
+## T35: re-fit the fauna-card grid's columns (idempotent; cheap on the flush).
+func refresh_card_grid() -> void:
+	fit_card_grid(cards_box)
 
 
 ## The battle board: swing/eat attribution stamps, gauges, phase plate, cards,
@@ -839,6 +884,18 @@ func _refresh_battle() -> void:
 		m_read.text = "%s · %s/%s HP" % [mdef.name.to_upper(),
 			SignageFmt.num(clampi(m_now, 0, mdef.max_hp)), SignageFmt.num(mdef.max_hp)]
 	ration_read.text = "RATIONS CONSUMED THIS ENGAGEMENT · %d" % int(c.get("eaten_total", 0))
+
+	# T35: the fighting card's attached HP instrument — the live engagement
+	# fill rides the designated fauna card, exact board numbers and all (the
+	# same m_now/max_hp read above; the digits stay on the board's read).
+	for id in _content_order:
+		var fcard: FaunaCard = _cards[id]
+		var show_hp := id == monster_id and phase == CombatSession.PHASE_FIGHTING
+		if fcard.hp_bar.visible != show_hp:
+			fcard.hp_bar.visible = show_hp
+		if show_hp and mdef != null:
+			fcard.hp_bar.max_value = float(maxi(mdef.max_hp, 1))
+			fcard.hp_bar.value = float(clampi(m_now, 0, mdef.max_hp))
 
 	_apply_phase_plate(phase, mdef)
 	_refresh_cards(phase, monster_id)
@@ -931,14 +988,14 @@ func _apply_card_state(card: FaunaCard, mdef: MonsterDef, energized: bool, locke
 	card._applied["energized"] = energized
 	card._applied["locked"] = locked
 	if energized:
-		card.button.theme_type_variation = "Energized"
+		card.button.theme_type_variation = "SkillCardEnergized"
 		card.title.theme_type_variation = "FormTitleEnergized"
 		card.title.text = ">> " + display
 		card.tag_line.theme_type_variation = "MonoValueEnergized"
 		set_flow_variation(card.stats_line, "MonoValueEnergized")
 		set_flow_variation(card.drops_line, "MonoValueEnergized")
 	else:
-		card.button.theme_type_variation = ""
+		card.button.theme_type_variation = "SkillCard"
 		card.title.theme_type_variation = "FormTitle"
 		card.title.text = display
 		card.tag_line.theme_type_variation = "PlateSerialNavy"
