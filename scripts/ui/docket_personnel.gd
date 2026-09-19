@@ -178,8 +178,11 @@ func _on_bound() -> void:
 func _refresh_board() -> void:
 	var slots: int = tm.posting_slots()
 	var occupied: int = tm.occupied_postings()
-	_set_label(summary_line, "ESTABLISHMENT · %d POSTINGS · %d ASSIGNED · %d AVAILABLE" % [
-		slots, occupied, maxi(slots - occupied, 0)])
+	# T34 cleanup (capture evidence, t34_personnel_1280x720.png): "1 POSTINGS"
+	# read wrong at a one-slot establishment — the count carries its own
+	# plural now; the rest of the serial is verbatim.
+	_set_label(summary_line, "ESTABLISHMENT · %d POSTING%s · %d ASSIGNED · %d AVAILABLE" % [
+		slots, "" if slots == 1 else "S", occupied, maxi(slots - occupied, 0)])
 	_set_label(crowns_read, SignageFmt.num(state().crowns))
 
 	# -- posting rows (rebuild only when the assignment signature changes) --

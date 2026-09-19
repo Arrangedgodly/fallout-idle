@@ -94,6 +94,7 @@ var _col: VBoxContainer
 var _header_row: HBoxContainer
 var _serial_label: Label
 var _slip_marks: HBoxContainer
+var _slip_stamp: MiniMark  ## the completion mark — honest fill (T34 cleanup)
 var _mini_marks: Dictionary = {}  # step_id -> MiniMark
 var _body_scroll: ScrollContainer
 var _rows_box: VBoxContainer
@@ -176,7 +177,18 @@ func _build() -> void:
 		mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_slip_marks.add_child(mark)
 		_mini_marks[step_id] = mark
-	_slip_marks.add_child(_glyph("stamp_check", MINI_SIZE + 8, "SlipStamp"))
+	# T34 cleanup (capture evidence, t34_*_1280x720.png): the completion mark
+	# used to post as a full red stamp_check at EVERY state — on a slip with
+	# one stamp it read as an eighth DONE box (the red check is the done
+	# grammar everywhere else on this form). The mark now speaks the slip's
+	# own fill language: navy outline while the tutorial runs, the red stamp
+	# only when it is complete (the fill is the state, never a standing lie).
+	_slip_stamp = MiniMark.new()
+	_slip_stamp.name = "SlipStamp"
+	_slip_stamp.custom_minimum_size = Vector2(float(MINI_SIZE + 8), float(MINI_SIZE + 8))
+	_slip_stamp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_slip_stamp.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_slip_marks.add_child(_slip_stamp)
 	_header_row.add_child(_slip_marks)
 
 	var spacer := Control.new()
@@ -377,6 +389,7 @@ func refresh() -> void:
 	_open_button.visible = not _expanded
 	if complete:
 		_set_stipend(int(p["stipend"]))
+	_slip_stamp.set_stamped(complete)  # the completion mark's fill IS the fact
 	for step_id: String in _row_order:
 		var suffix := ""
 		var hint := _dept_hint(OrientationTracker.step_target(step_id))

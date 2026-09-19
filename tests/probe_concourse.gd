@@ -125,6 +125,7 @@ func _run() -> void:
 		await _capture_t31_sets()
 		await _capture_t32_sets()
 		await _capture_t33_sets()
+		await _capture_t34_sets()
 		if _capture_unsupported:
 			_done = true
 			return  # already quitting CAPTURE_UNSUPPORTED_EXIT for the runner
@@ -2486,6 +2487,98 @@ func _validate_t31_pngs() -> void:
 				colors[img.get_pixel(x, y).to_html(true)] = true
 		_check(colors.size() >= 12, "%s renders real content (%d distinct sampled colors)" % [
 			file_name, colors.size()])
+
+
+# ------------------------------------------------------- T34 capture set
+## The T34 guided menu-cleanup sweep (run-5 closing task): EVERY department
+## docket at 1280x720 (100%) AND at 200% font scale, one LIVE staged state
+## shared by the sweep (a running posting with its badge, stock + crowns so
+## the depot/manifest/cook dockets carry real content, the O-1 slip folded —
+## the steady-state composition). The polish lane views these and fixes ONLY
+## what they show; the wall itself rides in every frame's left column.
+const T34_DIR := "res://.impeccable/review/t34"
+
+func _capture_t34_sets() -> void:
+	if DirAccess.make_dir_recursive_absolute(T34_DIR) != OK:
+		_check(false, "t34 review dir created")
+		return
+	var tm: Node = _concourse.bound_tick_manager()
+	if tm == null:
+		_check(false, "t34 capture: engine bound")
+		return
+	_concourse.auto_reveal = false  # the sweep pins the shell composition
+	_vp.size = Vector2i(1280, 720)
+	_concourse.font_slider.value = 0.0
+	tm.new_game(20260934)
+	_concourse.set_first_run(false)
+	_concourse.orientation().fold()  # the steady-state slip: dockets at full region
+	tm.start_activity("sort_scrap_pile")  # a live posting: the SCAV badge burns
+	tm.state.add_crowns(120)
+	tm.state.add_item("scrap_metal", 24)
+	tm.state.add_item("cloth_scraps", 9)
+	tm.state.add_item("glowshroom", 15)
+	tm.state.add_item("duskcorn", 6)
+	tm.batcher.mark("inventory")
+	tm.batcher.mark("xp")
+	tm.batcher.force_flush(tm.sim_time_ms)
+	await _frames(3)
+	for scale_value in [0.0, 2.0]:
+		_concourse.font_slider.value = scale_value
+		await _frames(5)  # the scaled layout settles before the sweep
+		var suffix := "" if scale_value < 1.0 else "_200pct"
+		for d in Concourse.DEPARTMENTS:
+			_concourse.select_department(String(d.id), true)
+			# The sweep's first department may already be active (an earlier
+			# capture set left it so): an instant select on the active id is a
+			# guarded no-op and would inherit its scroll — re-assert the
+			# content top the shell posts on every real department change
+			# (t34 worker finding, first sweep frame).
+			_concourse.docket_scroll.scroll_vertical = 0
+			await _frames(3)
+			_check(_concourse.active_department() == String(d.id),
+				"t34 capture: %s selected" % String(d.id))
+			if not _snap_t34("t34_%s_1280x720%s.png" % [String(d.id), suffix]):
+				return
+	_concourse.select_department("scavenging", true)
+	_validate_t34_pngs()
+
+
+func _snap_t34(file_name: String) -> bool:
+	var img := _vp.get_texture().get_image()
+	if img == null:
+		print("HEADLESS_CAPTURE_UNSUPPORTED (dummy rasterizer returned no image)")
+		_capture_unsupported = true
+		quit(CAPTURE_UNSUPPORTED_EXIT)
+		_done = true
+		return false
+	var path := T34_DIR + "/" + file_name
+	var err := img.save_png(path)
+	_check(err == OK, "captured %s (err=%d)" % [path, err])
+	return true
+
+
+func _validate_t34_pngs() -> void:
+	for d in Concourse.DEPARTMENTS:
+		for suffix: String in ["", "_200pct"]:
+			var file_name := "t34_%s_1280x720%s.png" % [String(d.id), suffix]
+			var path := T34_DIR + "/" + file_name
+			var fa := FileAccess.open(path, FileAccess.READ)
+			_check(fa != null and fa.get_length() > 1000, "%s saved with real content" % file_name)
+			if fa == null:
+				continue
+			fa.close()
+			var img := Image.load_from_file(path)
+			_check(img != null, "%s is a loadable image" % file_name)
+			if img == null:
+				continue
+			_check(Vector2i(img.get_width(), img.get_height()) == Vector2i(1280, 720),
+				"%s dimensions %dx%d" % [file_name, img.get_width(), img.get_height()])
+			var colors := {}
+			for x in range(0, img.get_width(), 12):
+				for y in range(0, img.get_height(), 12):
+					colors[img.get_pixel(x, y).to_html(true)] = true
+			_check(colors.size() >= 12, "%s renders real content (%d distinct sampled colors)" % [
+				file_name, colors.size()])
 
 
 func _validate_saved_pngs() -> void:

@@ -42,13 +42,13 @@ GODOT=/path/to/godot ./run_tests.sh
 - **Departmental Dossiers (Form R-1)** — every skill carries a 23-line objectives register posted in its docket: level ladders, gather/craft/kill counts, equips, zone clears, economy rungs, and a set-completion capstone. Progress stamps itself as you play ("12/23 STAMPED"), rewards post automatically (MERIT PAY in Crowns, COMMENDATION in XP — no claim buttons anywhere), and a completed dossier posts its ALL 23 STAMPED plate. 115 objectives in all, authored against the shipped content.
 - **Depth at every tier** — each gathering skill runs 9 activity tiers (up from 4) with new materials trickling through the tables; Junksmithing and Cooking each carry 20 recipes; equipment spans four tiers (T1 shiv and vest to the T4 Line-Item Veto, Cloture, Motorcade Mantle, and Turnpike Aegis); food climbs to the 230-heal Court Feast. Roughly twice the run-1 content.
 - **Two zones, two bosses** — clear the Sunny Exclusion Zone's fauna and The Superintendent (clearance 14, slice-max gear + stews), then step through the zone tabs into The Gift Court: five more stands of fauna and The Regional Manager at clearance 40, who wants the crafted T4 ladder and a thermos of Court Feast.
-- **ORIENTATION FORM O-1** — a low-text first-run checklist posted on the concourse: seven stencil lines, each stamped as you do it (work a shift, earn a clearance, file a claim, process a product, provision the patrol, clear a nuisance, deputize a resident). A walking arrow cue points at the next department; completing the form posts the DULY ORIENTED stamp and an orientation stipend.
+- **ORIENTATION FORM O-1** — a low-text first-run checklist posted on the concourse: seven stencil lines, each stamped as you do it (work a shift, earn a clearance, file a claim, process a product, provision the patrol, clear a nuisance, deputize a resident). A walking arrow cue points at the next department, and every step now REVEALS its target — the right department, the right tab, the control scrolled into view and pulse-marked. Completing the form posts the DULY ORIENTED stamp and an orientation stipend.
 - **Personnel postings** — you start with one posting (your own two hands) and deputize residents at the PERSONNEL plate (D-08) to run more skills at once, up to all five. Starting a shift with no free posting is refused with a posted directive — nothing is silently stopped. The patrol occupies a posting like any skill.
 - **An icon language, not decoration** — every stat has its own instrument glyph, clearance gates carry a rising three-step staircase (never a padlock), log and mail lines carry their subject's mark, and every price carries the crown mark. 96 original SVGs, one stencil grammar.
 - **Honest math** — drop tables and success rates are posted on screen; every gameplay number renders in mono digits.
 - **Clearance gates** — skill levels unlock new activities and recipes as numbered clearances.
 - **Auto-battle patrols** — attack speed, accuracy, max hit; weapon and armor slots; food is auto-eaten at half health, best first. Death ends the patrol with zero losses.
-- **Crowns economy** — buy and sell at the Depot, with both prices posted per line. Objective merit pay is part of the same wallet: it is sized to stay under 20% of duty income at every deputy rung, and the first deputy (300 Crowns) wants a stamped rung or two beside your selling.
+- **Crowns economy** — buy and sell at the Depot, with both prices posted per line and a full sell ladder (1 / 10% / 25% / 50% / 100% / custom) on your own holdings. Objective merit pay is part of the same wallet: it is sized to stay under 20% of duty income at every deputy rung, and the first deputy (300 Crowns) wants a stamped rung or two beside your selling.
 - **Uncapped offline progress** — full-rate gains for all elapsed time, including survivable offline combat: a patrol that would fail is recalled at the instant of death, and a posted **MAIL CALL** notice reports everything you earned while away — dossier stamps included.
 - **Durable saves** — atomic writes, a versioned format (currently v3, migrating run-1 and run-2 records forward), and rotating backups; a killed process cannot corrupt a save.
 - **Keyboard-first accessibility** — the whole game is playable without a mouse, with visible focus, font scaling to 200%, and a WCAG-AA-checked theme.
@@ -57,13 +57,22 @@ GODOT=/path/to/godot ./run_tests.sh
 
 | Key | Action |
 | --- | --- |
-| `1`–`8` | Jump to a department (digit row or numpad) — `8` is PERSONNEL |
-| `Tab` / `Shift+Tab` | Move focus through the concourse |
-| `←` / `→` | Hop between the two zone tabs on the Patrol docket (Sunny Exclusion Zone / Gift Court) |
+| `1`–`8` | Jump to a department (digit row or numpad) — `8` is PERSONNEL. The digit rides the card's own stencil (`SCAV · 1`) |
+| `Tab` / `Shift+Tab` | Move focus through the concourse (the eight compact cards sit in one tab cycle, in grid order) |
+| Arrow keys | Walk the 2-column card grid; hop between the Patrol's zone tabs **and** the Depot's BUY/SELL tabs |
 | `Enter` / `Space` | Activate the focused control |
-| `Esc` | Acknowledge a MAIL CALL notice |
+| `Esc` | Acknowledge a MAIL CALL notice, or step back to the department a tutorial jump departed from |
+| Any key | While a text field is focused (the Depot's CUSTOM amount), the typing goes to the field — department hotkeys hold off |
 
 Every control is also reachable by mouse. Modifier combos (`Cmd`/`Ctrl`/`Alt` + digit) are left to the OS.
+
+## Reading the concourse
+
+- **Compact cards** — the left wall is a 2-column grid of eight department cards: the department mark, the short stencil name with its hotkey digit, a mono readout (clearance grade + XP on skills; wallet, holdings, or posting count on the Depot/Manifest/Personnel), a hairline XP gauge, and a filled deputy badge that burns exactly while the department holds a posting. The active department's card is amber, swells, and takes the `>> ` prefix — state never rides on color alone.
+- **Depot tabs & the sell ladder** — the Depot docket posts BUY (the shop) and SELL (your own sellables — never the shop's stock) as two tabs; SELL lines lead with the full quantity ladder: `SELL 1 · SELL 10% · SELL 25% · SELL 50% · SELL 100% · CUSTOM…`. Counts post on the buttons (a rung whose share floors to zero disables, at its honest `0`), percentages floor exactly, and CUSTOM validates `1–stack` with a live exact `TENDER N · N CROWNS` preview — out-of-range amounts are refused in voice, never clamped.
+- **Tutorial reveal cues** — when an O-1 step becomes current, the game walks you to the control: it selects the department, posts the right tab (FILE A CROWNS CLAIM opens the Depot on SELL), scrolls the target fully into view, and marks it with one brief settle pulse. A step you can't act on yet states so on its own line (`— WORK FOR INVENTORY FIRST` / `— GATHER SUPPLIES FIRST`) and the arrow cues the source department instead; the suffix withdraws the moment you can act. `Esc` steps back.
+- **Refusal feedback** — a refused posting (board full, clearance short, supplies missing) stamps a red notice strip at the top of the docket in the Department's voice, naming the reason; posting refusals carry a one-press REASSIGN that ceases the named posting and starts yours — validated before anything ceases.
+- **The status line** — `CONSOLE 09 · FORM 9-A` in the bottom console is the shell's status line: objective stamps, record filings (`RECORD FILED · HH:MM:SS`), and the orientation completion (`FORM O-1 FILED · DULY ORIENTED`) flash there for two seconds, then the standing serial returns.
 
 ## Content is data, not code
 
@@ -81,7 +90,7 @@ Every shipped file under `assets/` has a provenance row in [`ASSETS.md`](ASSETS.
 
 ## Status
 
-Hobby project; vertical slice plus the run-2 systems (orientation form, personnel postings, expanded icon language) and the run-3 depth + objectives expansion complete, pre-release. The subtitle word "Wasteland" is queued for a naming/licensing review before any wider distribution.
+Hobby project; vertical slice, the run-2 systems (orientation form, personnel postings, expanded icon language), the run-3 depth + objectives expansion, and the run-5 UX overhaul (compact card wall, refusal feedback with one-press REASSIGN, Depot BUY/SELL tabs with the sell ladder, tutorial deep-linking) complete, pre-release. The subtitle word "Wasteland" is queued for a naming/licensing review before any wider distribution.
 
 ## Documentation
 
